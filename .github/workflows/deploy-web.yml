@@ -38,6 +38,26 @@ jobs:
           mkdir -p "$HOME/.local/share/godot/export_templates/${GODOT_VERSION}.${GODOT_STATUS}"
           cp -R /tmp/templates/templates/. "$HOME/.local/share/godot/export_templates/${GODOT_VERSION}.${GODOT_STATUS}/"
 
+      - name: Run headless Arena smoke test
+        shell: bash
+        run: |
+          set -euxo pipefail
+          LOG=/tmp/godot-smoke.log
+          set +e
+          "/tmp/godot/Godot_v${GODOT_VERSION}-${GODOT_STATUS}_linux.x86_64" \
+            --headless --path . --script res://tests/SmokeTest.gd 2>&1 | tee "$LOG"
+          GODOT_EXIT=${PIPESTATUS[0]}
+          set -e
+          if [ "$GODOT_EXIT" -ne 0 ]; then
+            echo "Arena smoke test exited with code $GODOT_EXIT"
+            exit "$GODOT_EXIT"
+          fi
+          if grep -E 'SCRIPT ERROR|Parse Error|Failed to load script|SMOKE FAIL' "$LOG"; then
+            echo 'Arena smoke test reported an error; refusing to publish.'
+            exit 1
+          fi
+          grep -q 'ARENA SMOKE OK' "$LOG"
+
       - name: Export Web build and reject script errors
         shell: bash
         run: |
@@ -46,14 +66,12 @@ jobs:
           SHORT_SHA="${GITHUB_SHA:0:12}"
           BASENAME="arena-${SHORT_SHA}"
           LOG=/tmp/godot-export.log
-
           set +e
           "/tmp/godot/Godot_v${GODOT_VERSION}-${GODOT_STATUS}_linux.x86_64" \
             --headless --path . --export-release Web "build/web/${BASENAME}.html" \
             2>&1 | tee "$LOG"
           GODOT_EXIT=${PIPESTATUS[0]}
           set -e
-
           if [ "$GODOT_EXIT" -ne 0 ]; then
             echo "Godot export exited with code $GODOT_EXIT"
             exit "$GODOT_EXIT"
@@ -62,7 +80,6 @@ jobs:
             echo 'Godot emitted script errors; refusing to publish broken build.'
             exit 1
           fi
-
           mv "build/web/${BASENAME}.html" build/web/index.html
           touch build/web/.nojekyll
           test -f build/web/index.html
