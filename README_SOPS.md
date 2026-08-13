@@ -1,12 +1,12 @@
 # Arena Combat Lab — AI Coding SOP
 
-> **AI-only. HARD RULE: before EVERY code edit, reread this file and `PROJECT_CONTEXT.md`.**
+> **AI-only. HARD RULE: for every user prompt that will edit code, reread this file and `PROJECT_CONTEXT.md` once before the first code edit.**
 >
-> “Every code edit” means every new source change, follow-up patch, CI fix, input tweak, hotfix, or second attempt. Reading them earlier in the same turn does **not** waive the rule. Documentation-only edits do not require another reread.
+> One read per prompt is enough. Follow-up patches, CI fixes, input tweaks and hotfixes within that same prompt do **not** require another reread. Documentation-only prompts do not require the startup reread.
 >
 > Current truth: `PROJECT_CONTEXT.md` · Future: `ROADMAP.md` · History: `CHANGELOG.md`
 
-## 1. Before every code edit
+## 1. Before the first code edit in each prompt
 
 1. Reread `README_SOPS.md`.
 2. Reread `PROJECT_CONTEXT.md`.
@@ -15,7 +15,9 @@
 5. Inspect `.github/workflows/deploy-web.yml` when build/deploy assumptions matter.
 6. Choose the GitHub write path before drafting a huge patch.
 
-**If CI fails and code must change, start again at step 1 before fixing it.** Current repo state beats memory/chat history.
+If CI fails and code needs another fix within the same prompt, keep working from current repo state without repeating steps 1–2. Still refetch any file whose content/SHA may have changed.
+
+If the code batch changes current architecture, mechanics, runtime chain, balance truth or implemented status, update `PROJECT_CONTEXT.md` before finishing the prompt so the next prompt reads fresh truth.
 
 ## 2. Working style
 
@@ -111,8 +113,9 @@ Check Context before changing these intentionally established rules:
 
 Before saying done:
 
-- SOP + Context reread before **each** code edit?
-- current source fetched?
+- SOP + Context reread once before the first code edit for this prompt?
+- current source refetched as needed after intermediate commits?
+- Context updated if current game truth changed?
 - sane write path chosen without thrashing?
 - no temporary workflow/staging/encoded artifact left?
 - docs maintained by role?

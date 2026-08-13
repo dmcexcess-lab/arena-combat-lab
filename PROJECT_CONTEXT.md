@@ -1,6 +1,6 @@
 # Arena Combat Lab — AI Project Context
 
-> **Read `README_SOPS.md` and this file before EVERY code edit.** Current truth only; future scope is in `ROADMAP.md`, history in `CHANGELOG.md`.
+> **For every prompt that will edit code, read `README_SOPS.md` and this file once before the first code edit.** Current truth only; future scope is in `ROADMAP.md`, history in `CHANGELOG.md`.
 
 ## Current alpha
 
