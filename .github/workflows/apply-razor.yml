@@ -25,7 +25,6 @@ jobs:
           get_blob 653a04af5b7b3bd6f9e349d4dbae0ce108811d83 scripts/MainPerception.gd
           get_blob 71f4e04b9410adae30dd3c7c0c79a1e26ee0109f scripts/MainBoundless.gd
           get_blob eefffef7473ab0e0ed33d736244b3b6a65564d5f tests/SmokeTest.gd
-          get_blob 6a861976f0776fc1feed00a070abc76ac1881c6b .github/workflows/deploy-web.yml
           get_blob 2b0bd3f176e11fff97797be29c042ef393bde2d8 README_SOPS.md
           get_blob 69cc26ee445c0025d4aa712a7d7e2a1c874ab162 PROJECT_CONTEXT.md
           rm -f scripts/MainDungeon.gd
