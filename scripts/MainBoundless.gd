@@ -61,24 +61,24 @@ const WALKER_ATTACK := 105
 const WALKER_SIGHT := 7
 const WALKER_HEARING := 12
 
-var zombie_spawn_count := 12
+var zombie_spawn_count = 12
 var dungeon_rooms: Array = []
 var floor_cells: Array = []
 var inventory: Array = []
-var equipped := {}
-var build_affinity := {"Warrior": 0, "Ranger": 0, "Wizard": 0}
-var armor_total := 0
-var character_open := false
-var inventory_page := 0
-var loot_serial := 0
+var equipped = {}
+var build_affinity = {"Warrior": 0, "Ranger": 0, "Wizard": 0}
+var armor_total = 0
+var character_open = false
+var inventory_page = 0
+var loot_serial = 0
 
-var btn_character := Rect2(602, 12, 106, 48)
-var btn_char_close := Rect2(588, 28, 112, 48)
-var btn_roll_loot := Rect2(32, 1160, 238, 62)
-var btn_inv_prev := Rect2(300, 1160, 120, 62)
-var btn_inv_next := Rect2(450, 1160, 120, 62)
-var btn_z_minus := Rect2(130, 780, 100, 56)
-var btn_z_plus := Rect2(490, 780, 100, 56)
+var btn_character = Rect2(602, 12, 106, 48)
+var btn_char_close = Rect2(588, 28, 112, 48)
+var btn_roll_loot = Rect2(32, 1160, 238, 62)
+var btn_inv_prev = Rect2(300, 1160, 120, 62)
+var btn_inv_next = Rect2(450, 1160, 120, 62)
+var btn_z_minus = Rect2(130, 780, 100, 56)
+var btn_z_plus = Rect2(490, 780, 100, 56)
 
 func _ready():
     alarm = Vector2i(-99, -99)
@@ -111,19 +111,19 @@ func build_map():
             walls[Vector2i(x, y)] = true
 
     # Fixed entrance room keeps the start readable while the rest changes.
-    var entrance := Rect2i(1, H - 5, 6, 4)
+    var entrance = Rect2i(1, H - 5, 6, 4)
     dungeon_rooms.append(entrance)
     _carve_room(entrance)
 
-    var attempts := 0
+    var attempts = 0
     while dungeon_rooms.size() < 7 and attempts < 220:
         attempts += 1
-        var rw := rng.randi_range(4, 7)
-        var rh := rng.randi_range(3, 5)
-        var rx := rng.randi_range(1, W - rw - 2)
-        var ry := rng.randi_range(1, H - rh - 2)
-        var candidate := Rect2i(rx, ry, rw, rh)
-        var okay := true
+        var rw = rng.randi_range(4, 7)
+        var rh = rng.randi_range(3, 5)
+        var rx = rng.randi_range(1, W - rw - 2)
+        var ry = rng.randi_range(1, H - rh - 2)
+        var candidate = Rect2i(rx, ry, rw, rh)
+        var okay = true
         for r in dungeon_rooms:
             if _rooms_touch(candidate, r, 1):
                 okay = false
@@ -151,14 +151,14 @@ func build_map():
 
     for y in range(1, H - 1):
         for x in range(1, W - 1):
-            var p := Vector2i(x, y)
+            var p = Vector2i(x, y)
             if not walls.has(p):
                 floor_cells.append(p)
 
     exit_cell = _room_center(dungeon_rooms[0])
     objective_spots.clear()
     for i in range(1, dungeon_rooms.size()):
-        var c := _room_center(dungeon_rooms[i])
+        var c = _room_center(dungeon_rooms[i])
         if manhattan(c, exit_cell) >= 8:
             objective_spots.append(c)
     if objective_spots.is_empty():
@@ -185,7 +185,7 @@ func _room_center(r: Rect2i) -> Vector2i:
     return Vector2i(r.position.x + r.size.x / 2, r.position.y + r.size.y / 2)
 
 func _carve_corridor(a: Vector2i, b: Vector2i):
-    var horizontal_first := rng.randf() < 0.5
+    var horizontal_first = rng.randf() < 0.5
     if horizontal_first:
         _carve_h(a.x, b.x, a.y)
         _carve_v(a.y, b.y, b.x)
@@ -208,14 +208,14 @@ func _place_dungeon_doors():
     for p in floor_cells:
         if manhattan(p, exit_cell) <= 2:
             continue
-        var ns := not walls.has(p + Vector2i(0, -1)) and not walls.has(p + Vector2i(0, 1))
-        var ew := not walls.has(p + Vector2i(-1, 0)) and not walls.has(p + Vector2i(1, 0))
-        var walls_lr := walls.has(p + Vector2i(-1, 0)) and walls.has(p + Vector2i(1, 0))
-        var walls_ud := walls.has(p + Vector2i(0, -1)) and walls.has(p + Vector2i(0, 1))
+        var ns = not walls.has(p + Vector2i(0, -1)) and not walls.has(p + Vector2i(0, 1))
+        var ew = not walls.has(p + Vector2i(-1, 0)) and not walls.has(p + Vector2i(1, 0))
+        var walls_lr = walls.has(p + Vector2i(-1, 0)) and walls.has(p + Vector2i(1, 0))
+        var walls_ud = walls.has(p + Vector2i(0, -1)) and walls.has(p + Vector2i(0, 1))
         if (ns and walls_lr) or (ew and walls_ud):
             candidates.append(p)
     candidates.shuffle()
-    var count := min(10, candidates.size())
+    var count = min(10, candidates.size())
     for i in range(count):
         doors[candidates[i]] = false
 
@@ -224,13 +224,13 @@ func _place_room_obstacles():
         if rng.randf() > 0.72:
             continue
         var r: Rect2i = dungeon_rooms[i]
-        var p := Vector2i(
+        var p = Vector2i(
             rng.randi_range(r.position.x + 1, r.end.x - 2),
             rng.randi_range(r.position.y + 1, r.end.y - 2)
         )
         if p == _room_center(r) or doors.has(p):
             continue
-        var open_neighbors := 0
+        var open_neighbors = 0
         for d in DIRS:
             if not walls.has(p + d):
                 open_neighbors += 1
@@ -242,7 +242,7 @@ func _place_casks():
     for p in floor_cells:
         if manhattan(p, exit_cell) < 7 or doors.has(p) or shelves.has(p):
             continue
-        var open_neighbors := 0
+        var open_neighbors = 0
         for d in DIRS:
             if not walls.has(p + d):
                 open_neighbors += 1
@@ -278,7 +278,7 @@ func make_player():
         "crouched": false
     }
 
-    var starter_family := FAMILIES[rng.randi_range(0, FAMILIES.size() - 1)]
+    var starter_family = FAMILIES[rng.randi_range(0, FAMILIES.size() - 1)]
     for slot in EQUIP_SLOTS:
         if starter_family == "Wizard" and slot == "Helm":
             continue
@@ -288,7 +288,7 @@ func make_player():
     _roll_inventory(12)
 
 func _blank_attrs() -> Dictionary:
-    var a := {}
+    var a = {}
     for stat in ATTR_NAMES:
         a[stat] = BASE_ATTR
     return a
@@ -298,15 +298,15 @@ func _base_slot(slot: String) -> String:
 
 func _generate_item(slot: String, forced_family: String = "") -> Dictionary:
     loot_serial += 1
-    var family := forced_family
+    var family = forced_family
     if family == "":
         family = FAMILIES[rng.randi_range(0, FAMILIES.size() - 1)]
     if slot == "Helm" and family == "Wizard":
         family = ["Warrior", "Ranger"][rng.randi_range(0, 1)]
 
-    var rarity := "Common"
-    var extra_points := 1
-    var roll := rng.randf()
+    var rarity = "Common"
+    var extra_points = 1
+    var roll = rng.randf()
     if roll < 0.18:
         rarity = "Rare"
         extra_points = 3
@@ -314,7 +314,7 @@ func _generate_item(slot: String, forced_family: String = "") -> Dictionary:
         rarity = "Enchanted"
         extra_points = 2
 
-    var bonuses := {}
+    var bonuses = {}
     for stat in ATTR_NAMES:
         bonuses[stat] = 0
     var cores: Array = FAMILY_CORES[family]
@@ -329,7 +329,7 @@ func _generate_item(slot: String, forced_family: String = "") -> Dictionary:
 
     var options: Array = GEAR_NAMES[family][slot]
     var base_name: String = options[rng.randi_range(0, options.size() - 1)]
-    var item := {
+    var item = {
         "id": loot_serial,
         "name": "%s %s" % [rarity, base_name],
         "rarity": rarity,
@@ -370,19 +370,19 @@ func _fists() -> Dictionary:
 func _roll_inventory(count: int):
     inventory.clear()
     for i in range(count):
-        var slot := LOOT_SLOTS[rng.randi_range(0, LOOT_SLOTS.size() - 1)]
+        var slot = LOOT_SLOTS[rng.randi_range(0, LOOT_SLOTS.size() - 1)]
         inventory.append(_generate_item(slot))
     inventory_page = 0
 
 func _rebuild_player_from_gear(heal_full: bool = false):
-    var old_max := int(player.get("max_hp", 19))
-    var old_hp := int(player.get("hp", old_max))
-    var missing_hp := max(0, old_max - old_hp)
-    var attrs := _blank_attrs()
+    var old_max = int(player.get("max_hp", 19))
+    var old_hp = int(player.get("hp", old_max))
+    var missing_hp = max(0, old_max - old_hp)
+    var attrs = _blank_attrs()
     armor_total = 0
-    var noise_total := 0
+    var noise_total = 0
     build_affinity = {"Warrior": 0, "Ranger": 0, "Wizard": 0}
-    var weapon_data := _fists()
+    var weapon_data = _fists()
 
     for slot in EQUIP_SLOTS:
         if not equipped.has(slot):
@@ -392,7 +392,7 @@ func _rebuild_player_from_gear(heal_full: bool = false):
             attrs[stat] += int(item.bonuses.get(stat, 0))
         armor_total += int(item.get("armor", 0))
         noise_total += int(item.get("noise", 0))
-        var family := str(item.get("family", ""))
+        var family = str(item.get("family", ""))
         if build_affinity.has(family):
             build_affinity[family] += 1
         if slot == "Weapon" and item.has("weapon_data"):
@@ -408,22 +408,22 @@ func _rebuild_player_from_gear(heal_full: bool = false):
         player["hp"] = max(1, int(player.max_hp) - missing_hp)
 
 func _build_name() -> String:
-    var first := "Warrior"
-    var second := "Ranger"
+    var first = "Warrior"
+    var second = "Ranger"
     for family in FAMILIES:
         if int(build_affinity[family]) > int(build_affinity[first]):
             second = first
             first = family
         elif family != first and int(build_affinity[family]) > int(build_affinity[second]):
             second = family
-    var a := int(build_affinity[first])
-    var b := int(build_affinity[second])
+    var a = int(build_affinity[first])
+    var b = int(build_affinity[second])
     if b > 0 and abs(a - b) <= 1:
         return "%s / %s HYBRID" % [first.to_upper(), second.to_upper()]
     return first.to_upper()
 
 func _gear_score(item: Dictionary) -> int:
-    var score := int(item.get("armor", 0)) * 2
+    var score = int(item.get("armor", 0)) * 2
     for stat in ATTR_NAMES:
         score += int(item.bonuses.get(stat, 0))
     return score
@@ -433,7 +433,7 @@ func _equip_inventory_index(index: int):
         return
     var item: Dictionary = inventory[index]
     inventory.remove_at(index)
-    var slot := str(item.slot)
+    var slot = str(item.slot)
     if slot == "Ring":
         if not equipped.has("Ring 1"):
             slot = "Ring 1"
@@ -446,7 +446,7 @@ func _equip_inventory_index(index: int):
     equipped[slot] = item
     _rebuild_player_from_gear(false)
     msg = "Equipped %s. Build: %s" % [item.name, _build_name()]
-    var max_page := max(0, int(ceil(float(inventory.size()) / 8.0)) - 1)
+    var max_page = max(0, int(ceil(float(inventory.size()) / 8.0)) - 1)
     inventory_page = min(inventory_page, max_page)
     queue_redraw()
 
@@ -455,18 +455,18 @@ func _equip_inventory_index(index: int):
 # -----------------------------------------------------------------------------
 
 func melee(target: Vector2i):
-    var zi := zombie_at(target)
+    var zi = zombie_at(target)
     if zi == -1:
         msg = "Nothing in melee range."
         queue_redraw()
         return
     var z = zombies[zi]
-    var stealth := stealth_attack(z)
-    var finesse := int(player.attrs["Finesse"])
-    var might := int(player.attrs["Might"])
-    var chance := clamp(.52 + finesse * .045 - attack_penalty() + (.30 if stealth else 0.0), .12, .97)
+    var stealth = stealth_attack(z)
+    var finesse = int(player.attrs["Finesse"])
+    var might = int(player.attrs["Might"])
+    var chance = clamp(.52 + finesse * .045 - attack_penalty() + (.30 if stealth else 0.0), .12, .97)
     if rng.randf() <= chance:
-        var d := rng.randi_range(int(player.weapon.dmin), int(player.weapon.dmax)) + int(floor(might * .65))
+        var d = rng.randi_range(int(player.weapon.dmin), int(player.weapon.dmax)) + int(floor(might * .65))
         if stealth:
             d = int(round(float(d + int(player.weapon.stealth)) * 1.45))
         zombies[zi].hp -= d
@@ -474,13 +474,13 @@ func melee(target: Vector2i):
         if int(zombies[zi].hp) <= 0:
             kill_zombie(zi, stealth)
         else:
-            var push := int(player.weapon.push) + int(floor(might / 5.0))
+            var push = int(player.weapon.push) + int(floor(might / 5.0))
             if push > 0:
                 push_zombie(zi, player.facing)
     else:
         msg = "%s misses." % player.weapon.name
     emit_noise(player.pos, int(player.weapon.noise), "melee", true)
-    var cost := max(50, int(player.weapon.time) - finesse * 3)
+    var cost = max(50, int(player.weapon.time) - finesse * 3)
     commit_action(cost)
 
 func awareness() -> float:
@@ -493,7 +493,7 @@ func attack_penalty() -> float:
     return max(0.0, float(player.fear - 45) * .0018)
 
 func add_fear(n: int):
-    var resist := int(player.attrs["Will"])
+    var resist = int(player.attrs["Will"])
     player.fear = clamp(int(player.fear) + max(1, n - int(floor(resist / 3.0))), 0, 100)
 
 func fear_recovery() -> int:
@@ -513,7 +513,7 @@ func spawn_zombies():
             continue
         candidates.append(p)
     candidates.shuffle()
-    var actual := min(zombie_spawn_count, candidates.size())
+    var actual = min(zombie_spawn_count, candidates.size())
     for i in range(actual):
         zombies.append({
             "id": i,
@@ -529,14 +529,14 @@ func spawn_zombies():
         })
 
 func zombie_sees(z: Dictionary) -> bool:
-    var r := WALKER_SIGHT - (2 if player.crouched else 0)
+    var r = WALKER_SIGHT - (2 if player.crouched else 0)
     return in_cone(z.pos, z.facing, player.pos, r, .40) and has_los(z.pos, player.pos)
 
 func zombie_attack(i: int):
-    var pressure := crowd_pressure()
-    var chance := clamp(WALKER_HIT + min(.28, pressure * .05), .18, .88)
+    var pressure = crowd_pressure()
+    var chance = clamp(WALKER_HIT + min(.28, pressure * .05), .18, .88)
     if rng.randf() <= chance:
-        var d := max(1, rng.randi_range(WALKER_DMIN, WALKER_DMAX) - armor_total)
+        var d = max(1, rng.randi_range(WALKER_DMIN, WALKER_DMAX) - armor_total)
         hurt(d, "walker attack")
         msg = "Walker hits for %d. Armor %d. Pressure %.1f." % [d, armor_total, pressure]
     else:
@@ -573,7 +573,7 @@ func handle_touch_point(pos: Vector2):
             queue_redraw()
             return
         if btn_inv_next.has_point(pos):
-            var max_page := max(0, int(ceil(float(inventory.size()) / 8.0)) - 1)
+            var max_page = max(0, int(ceil(float(inventory.size()) / 8.0)) - 1)
             inventory_page = min(max_page, inventory_page + 1)
             queue_redraw()
             return
@@ -605,9 +605,9 @@ func _inventory_row_rect(row: int) -> Rect2:
 
 func _item_bonus_text(item: Dictionary) -> String:
     var parts: Array[String] = []
-    var short := {"Might": "MGT", "Finesse": "FIN", "Awareness": "AWR", "Vitality": "VIT", "Will": "WIL"}
+    var short = {"Might": "MGT", "Finesse": "FIN", "Awareness": "AWR", "Vitality": "VIT", "Will": "WIL"}
     for stat in ATTR_NAMES:
-        var v := int(item.bonuses.get(stat, 0))
+        var v = int(item.bonuses.get(stat, 0))
         if v > 0:
             parts.append("%s+%d" % [short[stat], v])
     if int(item.get("armor", 0)) > 0:
@@ -691,14 +691,14 @@ func draw_character_overlay():
     draw_string(font, Vector2(28, 184), "GEAR CREATES THE CLASS", HORIZONTAL_ALIGNMENT_LEFT, -1, 13, Color(.95, .8, .36))
 
     for i in range(EQUIP_SLOTS.size()):
-        var col := i / 5
-        var row := i % 5
-        var x := 28.0 + col * 346.0
-        var y := 218.0 + row * 54.0
+        var col = i / 5
+        var row = i % 5
+        var x = 28.0 + col * 346.0
+        var y = 218.0 + row * 54.0
         var slot: String = EQUIP_SLOTS[i]
         draw_string(font, Vector2(x, y), slot.to_upper(), HORIZONTAL_ALIGNMENT_LEFT, -1, 10, Color(.65, .68, .72))
-        var text := "— empty —"
-        var detail := ""
+        var text = "— empty —"
+        var detail = ""
         if equipped.has(slot):
             var item: Dictionary = equipped[slot]
             text = str(item.name)
@@ -707,10 +707,10 @@ func draw_character_overlay():
         draw_string(font, Vector2(x, y + 34), detail, HORIZONTAL_ALIGNMENT_LEFT, 326, 9, Color(.70, .74, .78))
 
     draw_string(font, Vector2(28, 690), "INVENTORY — tap an item to equip it", HORIZONTAL_ALIGNMENT_LEFT, -1, 13, Color(.95, .8, .36))
-    var start := inventory_page * 8
+    var start = inventory_page * 8
     for row in range(8):
-        var idx := start + row
-        var rect := _inventory_row_rect(row)
+        var idx = start + row
+        var rect = _inventory_row_rect(row)
         draw_rect(rect, Color(.055, .065, .075, .96))
         draw_rect(rect, Color(.25, .29, .33), false, 1)
         if idx < inventory.size():
@@ -718,7 +718,7 @@ func draw_character_overlay():
             draw_string(font, Vector2(rect.position.x + 10, rect.position.y + 18), "%s   [%s / %s]" % [item.name, item.family, item.slot], HORIZONTAL_ALIGNMENT_LEFT, 620, 11, Color.WHITE)
             draw_string(font, Vector2(rect.position.x + 10, rect.position.y + 36), _item_bonus_text(item), HORIZONTAL_ALIGNMENT_LEFT, 620, 10, Color(.72, .78, .82))
 
-    var pages := max(1, int(ceil(float(inventory.size()) / 8.0)))
+    var pages = max(1, int(ceil(float(inventory.size()) / 8.0)))
     draw_touch_button(btn_roll_loot, "ROLL 12 LOOT", false)
     draw_touch_button(btn_inv_prev, "PREV", false)
     draw_touch_button(btn_inv_next, "NEXT", false)
