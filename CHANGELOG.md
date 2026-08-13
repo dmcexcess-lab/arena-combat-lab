@@ -1,5 +1,18 @@
 # Arena Combat Lab — Changelog
 
+## 2026-08-13 — Weapon Identity + Walker Awareness
+- Short Bow now owns **Quick Shot**: only it can fire at a diagonally adjacent target, at reduced damage/accuracy and with no knockback.
+- Replaced Hunting Bow with **Long Bow**: slower, 8-tile range, 8–12 base ranged damage, knockback 2, and no close-range Quick Shot.
+- Stealth armor can dual-wield only small blade offhands (Stiletto/Dirk); Ravager armor can dual-wield full Ravager weapons.
+- Ravager's fixed starter kit now includes an offhand Execution Sword so dual wield can be tested immediately.
+- Dual-wield weapon offhands grant **Dual Strike**: two hit rolls, full main-hand damage then 60% offhand damage, with longer action time, higher fatigue, and a 240-tick cooldown.
+- A successful hit now reveals the attacker even when the hit began from stealth. A lethal stealth hit can still alert nearby enemies at the impact location.
+- Added per-enemy AI intelligence fields for awareness sharing, pursuit memory, follow budget, tracking distance, and search time.
+- Walkers use AI Intelligence 1: awareness spreads one tile to adjacent Walkers, direct pursuit memory is short, breadcrumb following is crude, and post-loss searching is brief.
+- Nearby enemies receiving shared awareness enter **FOLLOW** rather than magically gaining exact live tracking.
+- **SPOTTED** now persists while an enemy still remembers the player, not only while direct line of sight is active.
+- Armor weight has a smaller secondary effect on how long/easily enemies can track the player: Stealth is easiest to lose, Guard hardest, while enemy intelligence remains the dominant factor.
+
 ## 2026-08-13 — Boundless Combat HUD Revamp
 - Rebuilt the in-dungeon UI around Boundless combat instead of the First Fire-style control shelf.
 - Desktop keeps the existing WASD movement behavior; number keys 1–6 can now select equipped feats.
