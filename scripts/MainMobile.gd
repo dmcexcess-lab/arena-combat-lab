@@ -1,6 +1,6 @@
 extends "res://scripts/MainPerception.gd"
 
-# Alpha 0.7 portrait mobile layer.
+# Alpha 0.8 portrait mobile layer.
 # The board is panned horizontally and enlarged for phone play. Keyboard input
 # remains available only as a desktop/debug fallback.
 
@@ -41,8 +41,6 @@ func _unhandled_input(e):
         get_viewport().set_input_as_handled()
         return
 
-    # Mouse follows the phone path for desktop testing, but an emulated mouse
-    # event immediately following a real touch is discarded.
     if e is InputEventMouseButton and e.pressed and e.button_index == MOUSE_BUTTON_LEFT:
         if Time.get_ticks_msec() - last_touch_ms < 750:
             get_viewport().set_input_as_handled()
@@ -61,8 +59,6 @@ func _unhandled_input(e):
         super._unhandled_input(e)
 
 func handle_touch_point(pos: Vector2):
-    # Once the overlay is open, the underlying MENU button is inert. The user
-    # must deliberately choose Resume, New Run, or Exit.
     if menu_open:
         if btn_resume.has_point(pos):
             menu_open = false
@@ -97,7 +93,6 @@ func handle_touch_point(pos: Vector2):
         toggle_crouch()
         return
 
-    # The top strip is information only. Everything beneath it is board space.
     if pos.y < MAP_TOP or pos.y >= CONTROL_SHELF_TOP or game_over:
         return
 
@@ -115,14 +110,18 @@ func handle_touch_point(pos: Vector2):
         if zombie_at(cell) != -1:
             melee(cell)
             return
-        if doors.has(cell) or glass.has(cell) or cell == alarm:
+        if doors.has(cell):
+            if not doors[cell]:
+                interact()
+            else:
+                try_move(delta, false)
+            return
+        if glass.has(cell) or cell == alarm:
             interact()
             return
         try_move(delta, false)
         return
 
-    # Distant taps are only for visible targets. This keeps shooting direct and
-    # removes the need for a permanent SHOOT button.
     if visible_cells.has(cell) and (zombie_at(cell) != -1 or barrels.has(cell)):
         click_target(cell)
         return
@@ -137,7 +136,13 @@ func step_forward():
     if zombie_at(cell) != -1:
         melee(cell)
         return
-    if doors.has(cell) or glass.has(cell) or cell == alarm:
+    if doors.has(cell):
+        if not doors[cell]:
+            interact()
+        else:
+            try_move(player.facing, false)
+        return
+    if glass.has(cell) or cell == alarm:
         interact()
         return
     try_move(player.facing, false)
@@ -147,7 +152,6 @@ func step_backward():
         return
     var keep_facing: Vector2i = player.facing
     try_move(-keep_facing, false)
-    # Backing up does not magically turn the survivor around.
     player.facing = keep_facing
     player.last_dir = Vector2i.ZERO
     if not player.crouched and not game_over:
@@ -171,8 +175,6 @@ func exit_to_google():
         OS.shell_open("https://www.google.com")
 
 func map_draw_origin() -> Vector2:
-    # The map is wider than a portrait phone, so follow the player horizontally
-    # while always keeping the complete north/south span visible.
     var scaled_left := ORIGIN.x * MAP_SCALE
     var scaled_right := (ORIGIN.x + W * TILE) * MAP_SCALE
     var left_aligned := -scaled_left
@@ -203,8 +205,6 @@ func _draw():
     draw_hud()
 
 func draw_hud():
-    # Opaque portrait information strip. It intentionally covers any map cells
-    # that would otherwise scroll underneath it.
     draw_rect(Rect2(0, 0, SCREEN_W, INFO_H), Color(.035, .045, .04, .99))
     draw_rect(Rect2(0, INFO_H - 2, SCREEN_W, 2), Color(.38, .42, .38))
 
@@ -230,14 +230,9 @@ func draw_hud():
     draw_string(font, Vector2(18, 363), submsg, HORIZONTAL_ALIGNMENT_LEFT, 684, 11, Color(.68, .72, .68))
     draw_string(font, Vector2(18, 396), "Kills %d  Alerted %d  Stealth %d  Shots %d  Noise %d" % [stats.kills, stats.alerted, stats.stealth, stats.shots, stats.noise], HORIZONTAL_ALIGNMENT_LEFT, -1, 11, Color(.75, .78, .75))
 
-    # Global danger state stays deliberately blunt. The red ring identifies the
-    # specific zombie when visible; this warning tells you that somewhere, one
-    # of them currently has eyes on you.
     if any_zombie_spotted_player() and not game_over:
         draw_string(font, Vector2(0, 458), "!! SPOTTED !!", HORIZONTAL_ALIGNMENT_CENTER, SCREEN_W, 22, Color(1, .24, .18))
 
-    # Keep the controls off the map itself. The large turn buttons are level and
-    # dominant; secondary movement/stance controls sit around them.
     draw_rect(Rect2(0, CONTROL_SHELF_TOP, SCREEN_W, SCREEN_H - CONTROL_SHELF_TOP), Color(.025, .032, .028, .82))
     draw_rect(Rect2(0, CONTROL_SHELF_TOP, SCREEN_W, 2), Color(.38, .42, .38))
     draw_touch_button(btn_turn_left, "TURN L", false, 18)
