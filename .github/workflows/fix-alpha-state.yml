@@ -1,0 +1,44 @@
+name: Fix alpha state
+on:
+  push:
+    branches: [main]
+permissions:
+  contents: write
+jobs:
+  fix:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - name: Fix alpha state typo and changelog
+        shell: python
+        run: |
+          from pathlib import Path
+          changed = False
+          p = Path('scripts/MainAlphaState.gd')
+          text = p.read_text()
+          bad = 'if build_affinity.has(str(item["family"])):build_affinity[str(item["family"]]+=1)'
+          good = 'if build_affinity.has(str(item["family"])):build_affinity[str(item["family"])] += 1'
+          if bad in text:
+              p.write_text(text.replace(bad, good))
+              changed = True
+          c = Path('CHANGELOG.md')
+          old = c.read_text() if c.exists() else '# Arena Combat Lab — Changelog\n'
+          heading = '## 2026-08-13 — Alpha Equipment Generator + Loot Chests'
+          if heading not in old:
+              entry = '''# Arena Combat Lab — Changelog\n\n## 2026-08-13 — Alpha Equipment Generator + Loot Chests\n- Replaced randomized starter gear with four fixed Common starter kits: Stealth, Ranged, Guard, Ravager.\n- Baseline human is now fixed at MGT/FIN/AWR/VIT/WIL 2 with 22 base HP; equipment creates the build.\n- Added Offhand slot, full armor compatibility matrix, weapon restrictions, and unrestricted rings/amulets.\n- Added the complete non-magical alpha equipment catalog and Common, Uncommon, Rare, Enchanted generator. Epic/magic is disabled.\n- Uncommon adds one stat and one legal quality property; Rare adds two stats, one property, and one extra weapon/offhand feat; Enchanted adds three stats, two properties, and two extra feats.\n- Added HP, armor DR, Fear/Will interaction, Fatigue/Vitality interaction, and gear-driven tick/action-speed modifiers.\n- Added Stealth throwing knives, Ranged close-range penalties plus diagonal Quick Shot, Guard multi-target/shield play, and Ravager single-target execution play.\n- Added FEATS UI so generated weapon/offhand actions are usable on mobile.\n- Random dungeons now place four loot chests. Stepping onto a chest rolls one item at 45% Common / 30% Uncommon / 18% Rare / 7% Enchanted and adds it to inventory.\n\n'''
+              if old.startswith('# Arena Combat Lab — Changelog\n'):
+                  old = old[len('# Arena Combat Lab — Changelog\n'):].lstrip('\n')
+              c.write_text(entry + old)
+              changed = True
+          if not changed:
+              Path('/tmp/no_changes').write_text('1')
+      - name: Commit fixes
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ -f /tmp/no_changes ]; then exit 0; fi
+          git config user.name 'arena-bot'
+          git config user.email 'actions@users.noreply.github.com'
+          git add scripts/MainAlphaState.gd CHANGELOG.md
+          git commit -m 'Fix alpha state and document equipment system'
+          git push origin HEAD:main
