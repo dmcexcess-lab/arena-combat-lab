@@ -172,6 +172,12 @@ func map_draw_origin() -> Vector2:
 func screen_to_game(pos: Vector2) -> Vector2:
     return (pos - map_draw_origin()) / MAP_SCALE
 
+func any_zombie_spotted_player() -> bool:
+    for z in zombies:
+        if not z.dead and z.state == "CHASE":
+            return true
+    return false
+
 func _draw():
     var map_origin := map_draw_origin()
     draw_set_transform(map_origin, 0.0, Vector2(MAP_SCALE, MAP_SCALE))
@@ -208,6 +214,12 @@ func draw_hud():
     draw_string(font, Vector2(18, 338), msg, HORIZONTAL_ALIGNMENT_LEFT, 684, 13, Color(.93, .94, .90))
     draw_string(font, Vector2(18, 363), submsg, HORIZONTAL_ALIGNMENT_LEFT, 684, 11, Color(.68, .72, .68))
     draw_string(font, Vector2(18, 396), "Kills %d  Alerted %d  Stealth %d  Shots %d  Noise %d" % [stats.kills, stats.alerted, stats.stealth, stats.shots, stats.noise], HORIZONTAL_ALIGNMENT_LEFT, -1, 11, Color(.75, .78, .75))
+
+    # Global danger state stays deliberately blunt. The red ring identifies the
+    # specific zombie when visible; this warning tells you that somewhere, one
+    # of them currently has eyes on you.
+    if any_zombie_spotted_player() and not game_over:
+        draw_string(font, Vector2(0, 458), "!! SPOTTED !!", HORIZONTAL_ALIGNMENT_CENTER, SCREEN_W, 22, Color(1, .24, .18))
 
     # Minimal controls float directly over the tactical board.
     draw_touch_button(btn_forward, "FORWARD", false)
