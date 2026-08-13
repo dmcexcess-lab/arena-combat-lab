@@ -2,15 +2,23 @@
 
 Current truth: `PROJECT_CONTEXT.md` · Future: `ROADMAP.md`
 
+## 2026-08-13 — Razor Refactor + Regression Gate
+- Audited the entire GDScript runtime stack and separated proven-dead prototype code from active Arena behavior.
+- Removed obsolete `MainDungeon.gd`; current Arena procgen is authoritative and Boundless now inherits directly from the mobile-web shell.
+- Cut `MainBoundless.gd` down from the old class/map/prototype implementation to the live setup/run shell and shared Arena helpers.
+- Cut `MainPerception.gd` down to its live responsibilities: intent reads, last-seen memory and fuzzy sound rendering.
+- Net razor commit: **1,329 lines removed / 263 added** while preserving the current gameplay chain.
+- Added `TEST_MATRIX.md` and a headless Godot smoke test before Web export; it verifies scene startup, four fixed starters, mixed 8/3/1 creature roster, connected Arena objective, four chests, and enabled gear schema/rarities.
+- Updated the AI SOP with code ownership, inheritance, dictionary-contract, refactor safety, testing, rollback and GitHub transport best practices.
+- Active AI/dual-wield/bow layers were deliberately retained because they still own live behavior; cleanup stopped rather than turn into an unrequested combat rewrite.
+- SOP + Context are now read once before the first code edit of each coding prompt; Context is refreshed after a batch when current truth changes.
+
 ## 2026-08-13 — Arena Tiles + Creature Roster
 - Added code-drawn stone Arena tiles, gates, pillars, casks, stairs, cache and chests.
 - Added distinct **Walker, Ripper and Brute** icons with HP bars; player stays a circle until paper-doll work.
 - Ripper is the fast, perceptive, higher-intelligence hunter; Brute is the slow, durable, low-intelligence physical threat.
-- Launch menu now controls each creature count independently, combined cap 40, default 8/3/1.
-- Procgen now creates a large central space, four satellite rooms, wide lanes, loops and sparse cover.
-- Creature senses, action timing, Fear pressure, awareness sharing and tracking are data-driven per type.
-- Ravager target-health checks now use each creature's own max HP.
-- SOP now requires rereading SOP + Context before **every** code edit/fix.
+- Launch menu controls each creature count independently, combined cap 40, default 8/3/1.
+- Procgen creates a large central space, four satellite rooms, wide lanes, loops and sparse cover.
 
 ## 2026-08-13 — Docs + Long-Term Shape
 - Added Prison RPG + Arena contract roadmap, Developer Portal vision and cross-game combat-test role.
