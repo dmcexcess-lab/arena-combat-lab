@@ -7,6 +7,7 @@ Chronological record for humans and AIs. Current truth: `PROJECT_CONTEXT.md`. Fu
 - Added the long-term **Prison RPG + Arena contracts** roadmap.
 - Defined the future Developer Portal and Arena's role as the shared creature/equipment test ground across our games.
 - Split docs cleanly: README (humans), Roadmap (humans+AIs), Changelog (humans+AIs), SOP (AIs), Context (AIs).
+- Compacted overlapping documentation so each file has one clear source-of-truth role.
 
 ## 2026-08-13 — Weapon Identity + Walker Awareness
 - Short Bow now owns diagonal-adjacent **Quick Shot**; Long Bow has longer range, higher damage and knockback but no Quick Shot.
