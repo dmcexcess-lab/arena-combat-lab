@@ -1,4 +1,4 @@
-name: One-time perception clarity pass
+name: Perception clarity pass
 
 on:
   push:
@@ -9,18 +9,17 @@ permissions:
 
 jobs:
   patch:
-    if: github.actor != 'github-actions[bot]'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - name: Patch perception clarity
         shell: bash
         run: |
+          if [ "$GITHUB_ACTOR" = "github-actions[bot]" ]; then exit 0; fi
           python3 - <<'PY'
           from pathlib import Path
           p = Path('scripts/Main.gd')
           s = p.read_text()
-
           s = s.replace('var intent_reads := {}\nvar tick := 0', 'var intent_reads := {}\nvar last_seen := {}\nvar tick := 0', 1)
           s = s.replace('    sound_marks.clear()\n    stats = {', '    sound_marks.clear()\n    last_seen.clear()\n    stats = {', 1)
 
@@ -50,8 +49,6 @@ jobs:
         z.target = player.pos
         z.heard = player.pos
     elif z.state == "CHASE":
-        # Sight is lost: go to the last position actually seen instead of tracking
-        # the player through fog or walls.
         z.state = "INVESTIGATE"
         z.target = z.heard
     if sees_player and manhattan(z.pos,player.pos) == 1:
@@ -64,8 +61,7 @@ jobs:
         if z.pos == z.target:
             zombies[i].heard = Vector2i(-1,-1); zombies[i].state = "IDLE"
         else: moved = zombie_move(i,z.target)'''
-          if old not in s:
-              raise SystemExit('zombie_act block not found')
+          if old not in s: raise SystemExit('zombie_act block not found')
           s = s.replace(old, new, 1)
 
           old = '''    if not player_made:
@@ -83,8 +79,7 @@ jobs:
             elif heard >= 30: band = "CLEAR"
             sound_marks.append({"dir":compass_dir(player.pos,source),"label":label,"band":band,"time":tick})
             while sound_marks.size()>5: sound_marks.pop_front()'''
-          if old not in s:
-              raise SystemExit('sound record block not found')
+          if old not in s: raise SystemExit('sound block not found')
           s = s.replace(old, new, 1)
 
           old = '''func refresh_intents():
@@ -105,8 +100,6 @@ jobs:
             continue
         if visible_cells.has(z.pos):
             last_seen[i] = {"pos":z.pos,"time":tick}
-            # Being actively spotted is objective battlefield information, not a
-            # skill check. Everyone gets this warning.
             if z.state == "CHASE":
                 intent_reads[i] = "! SEES YOU"
                 continue
@@ -118,15 +111,12 @@ jobs:
             else: intent_reads[i]=["IDLE","SEARCH","?"][rng.randi_range(0,2)]
         elif last_seen.has(i):
             var remembered: Vector2i = last_seen[i].pos
-            # If you can currently see the remembered tile and the zombie is no
-            # longer there, you now know that old position is stale.
             if visible_cells.has(remembered): last_seen.erase(i)'''
-          if old not in s:
-              raise SystemExit('refresh_intents block not found')
+          if old not in s: raise SystemExit('intent block not found')
           s = s.replace(old, new, 1)
 
-          insert_after = '''func clamp_cell(p:Vector2i)->Vector2i: return Vector2i(clamp(p.x,1,W-2),clamp(p.y,1,H-2))\n'''
-          helpers = '''func compass_dir(from:Vector2i,to:Vector2i)->String:
+          marker = 'func clamp_cell(p:Vector2i)->Vector2i: return Vector2i(clamp(p.x,1,W-2),clamp(p.y,1,H-2))\n'
+          helper = '''func compass_dir(from:Vector2i,to:Vector2i)->String:
     var d=to-from
     var sx=sign(d.x); var sy=sign(d.y)
     if sx==0 and sy<0: return "N"
@@ -140,9 +130,8 @@ jobs:
     return "HERE"
 
 '''
-          if insert_after not in s:
-              raise SystemExit('helper insertion point not found')
-          s = s.replace(insert_after, insert_after + helpers, 1)
+          if marker not in s: raise SystemExit('helper marker not found')
+          s = s.replace(marker, marker + helper, 1)
 
           old = '''func draw_units():
     for z in zombies:
@@ -163,8 +152,6 @@ jobs:
             var c=cell_to_screen(z.pos)+Vector2(TILE/2,TILE/2)
             draw_line(c+Vector2(-8,-5),c+Vector2(8,5),Color(.35,.08,.08),3)
             draw_line(c+Vector2(-8,5),c+Vector2(8,-5),Color(.35,.08,.08),3)
-    # Remembered enemies are ghosts at their last confirmed position, not live
-    # tracking. They disappear once that tile is re-checked and found empty.
     for i in last_seen.keys():
         if i < 0 or i >= zombies.size(): continue
         var z=zombies[i]
@@ -183,8 +170,7 @@ jobs:
         if z.state=="CHASE": draw_circle(c,13,Color(1,.18,.12,.9),false,2)
         draw_string(font,c+Vector2(-20,-14),intent_text,HORIZONTAL_ALIGNMENT_LEFT,-1,9,intent_color)
         if debug_ai: draw_string(font,c+Vector2(-12,27),"%s %d"%[z.state,int(z.next)-tick],HORIZONTAL_ALIGNMENT_LEFT,-1,8,Color.WHITE)'''
-          if old not in s:
-              raise SystemExit('draw_units block not found')
+          if old not in s: raise SystemExit('draw units block not found')
           s = s.replace(old, new, 1)
 
           old = '''func draw_sounds():
@@ -195,7 +181,6 @@ jobs:
         draw_circle(c,14,Color(.95,.80,.28,.16),false,1)
         draw_string(font,c+Vector2(-10,4),"SND",HORIZONTAL_ALIGNMENT_LEFT,-1,9,Color(.98,.85,.36))'''
           new = '''func draw_sounds():
-    # Heard sounds are directional clues, not fake enemy/world positions.
     var recent:Array=[]
     for s in sound_marks:
         if tick-int(s.time)<=650: recent.append(s)
@@ -204,20 +189,18 @@ jobs:
     for n in range(recent.size()-1,-1,-1):
         var s=recent[n]
         var yy=float(22+shown*12)
-        draw_string(font,pc+Vector2(18,yy),"HEARD %s %s — %s"%[s.dir,s.band,s.label],HORIZONTAL_ALIGNMENT_LEFT,-1,9,Color(.98,.85,.36))
+        draw_string(font,pc+Vector2(18,yy),"HEARD %s %s - %s"%[s.dir,s.band,s.label],HORIZONTAL_ALIGNMENT_LEFT,-1,9,Color(.98,.85,.36))
         shown+=1
         if shown>=2: break'''
-          if old not in s:
-              raise SystemExit('draw_sounds block not found')
+          if old not in s: raise SystemExit('draw sound block not found')
           s = s.replace(old, new, 1)
-
           s = s.replace('"Green = visible zombie | SND = heard but unseen"', '"Green = visible | LAST = last seen | red ring = it sees you"', 1)
-
           p.write_text(s)
           PY
       - name: Commit perception pass
         shell: bash
         run: |
+          if [ "$GITHUB_ACTOR" = "github-actions[bot]" ]; then exit 0; fi
           if git diff --quiet; then exit 0; fi
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
