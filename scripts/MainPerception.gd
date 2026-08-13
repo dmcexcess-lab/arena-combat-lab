@@ -1,8 +1,8 @@
 extends "res://scripts/Main.gd"
 
-# Alpha 0.2 perception/readability layer.
-# Keep the original combat prototype intact underneath while we iterate on what
-# information the player should actually receive.
+# Alpha 0.5 perception/readability layer.
+# Visible threat state is physical/readable; survivor awareness changes how
+# precisely hidden sounds and subtler zombie behavior can be interpreted.
 
 var last_seen := {}
 
@@ -81,15 +81,20 @@ func emit_noise(source: Vector2i, intensity: int, label: String, player_made: bo
     if not player_made:
         var heard = intensity - int(costs.get(player.pos, 99999))
         if heard + awareness() * 2.0 >= 14:
-            var band := "FAINT"
-            if heard >= 50:
-                band = "LOUD"
-            elif heard >= 30:
-                band = "CLEAR"
+            # Better awareness means the yellow word lands closer to the real
+            # source. Loud noises are also naturally easier to locate.
+            var a := awareness()
+            var fuzz := 4
+            if a >= 1.5: fuzz = 3
+            if a >= 3.0: fuzz = 2
+            if a >= 4.5: fuzz = 1
+            if a >= 6.0: fuzz = 0
+            if heard >= 50: fuzz = max(0, fuzz - 1)
+            var approx = source + Vector2i(rng.randi_range(-fuzz, fuzz), rng.randi_range(-fuzz, fuzz))
             sound_marks.append({
-                "dir": compass_dir(player.pos, source),
-                "label": label,
-                "band": band,
+                "pos": clamp_cell(approx),
+                "source": source,
+                "label": label.to_lower(),
                 "time": tick
             })
             while sound_marks.size() > 5:
@@ -108,10 +113,10 @@ func refresh_intents():
         if visible_cells.has(z.pos):
             last_seen[i] = {"pos": z.pos, "time": tick}
 
-            # If it currently sees you, everyone understands that. Survivor
-            # skill only affects the subtler prediction of what it is doing.
+            # Chase is communicated only by the red ring. No floating text is
+            # needed once the physical danger is obvious.
             if z.state == "CHASE":
-                intent_reads[i] = "! SEES YOU"
+                intent_reads[i] = ""
                 continue
 
             if a < 2.2:
@@ -129,20 +134,6 @@ func refresh_intents():
             # the stale marker. We know it moved, but not where it went.
             if visible_cells.has(remembered):
                 last_seen.erase(i)
-
-func compass_dir(from: Vector2i, to: Vector2i) -> String:
-    var d = to - from
-    var sx = sign(d.x)
-    var sy = sign(d.y)
-    if sx == 0 and sy < 0: return "N"
-    if sx > 0 and sy < 0: return "NE"
-    if sx > 0 and sy == 0: return "E"
-    if sx > 0 and sy > 0: return "SE"
-    if sx == 0 and sy > 0: return "S"
-    if sx < 0 and sy > 0: return "SW"
-    if sx < 0 and sy == 0: return "W"
-    if sx < 0 and sy < 0: return "NW"
-    return "HERE"
 
 func draw_units():
     # Dead bodies are only shown when the tile is actually visible.
@@ -174,11 +165,12 @@ func draw_units():
         draw_circle(c, 10, Color(.35, .52, .31))
         arrow(c, z.facing, Color(.76, .90, .70), 11)
 
-        var intent_text = str(intent_reads.get(i, "?"))
-        var intent_color = Color(1, .32, .24) if z.state == "CHASE" else Color(1, .85, .38)
         if z.state == "CHASE":
             draw_circle(c, 13, Color(1, .18, .12, .9), false, 2)
-        draw_string(font, c + Vector2(-20, -14), intent_text, HORIZONTAL_ALIGNMENT_LEFT, -1, 9, intent_color)
+        else:
+            var intent_text = str(intent_reads.get(i, "?"))
+            if intent_text != "":
+                draw_string(font, c + Vector2(-20, -14), intent_text, HORIZONTAL_ALIGNMENT_LEFT, -1, 9, Color(1, .85, .38))
 
         if debug_ai:
             draw_string(font, c + Vector2(-12, 27), "%s %d" % [z.state, int(z.next) - tick], HORIZONTAL_ALIGNMENT_LEFT, -1, 8, Color.WHITE)
@@ -190,30 +182,12 @@ func draw_units():
         draw_circle(pc, 12, Color(.55, .75, 1), false, 1)
 
 func draw_sounds():
-    # A zombie actively seeing the player is never hidden behind an awareness
-    # roll. If the threat is outside the player's cone, this global warning is
-    # still shown; when visible, its red ring identifies which zombie it is.
-    var spotted := false
-    for z in zombies:
-        if not z.dead and z.state == "CHASE":
-            spotted = true
-            break
-    if spotted:
-        draw_string(font, Vector2(300, 30), "!! SPOTTED !!", HORIZONTAL_ALIGNMENT_LEFT, -1, 18, Color(1, .25, .18))
-
-    # Sounds are now relative information, not fake pins that look like hidden
-    # creatures. Show the two freshest cues next to the player.
-    var recent: Array = []
+    # Sounds are fuzzy yellow words on the map, not radar rings. The stored
+    # position is an awareness-dependent estimate made when the sound occurs.
     for s in sound_marks:
-        if tick - int(s.time) <= 650:
-            recent.append(s)
-
-    var pc = cell_to_screen(player.pos) + Vector2(TILE / 2, TILE / 2)
-    var shown := 0
-    for n in range(recent.size() - 1, -1, -1):
-        var s = recent[n]
-        var yy = float(22 + shown * 12)
-        draw_string(font, pc + Vector2(18, yy), "HEARD %s %s - %s" % [s.dir, s.band, s.label], HORIZONTAL_ALIGNMENT_LEFT, -1, 9, Color(.98, .85, .36))
-        shown += 1
-        if shown >= 2:
-            break
+        if tick - int(s.time) > 650:
+            continue
+        if s.has("source") and visible_cells.has(s.source):
+            continue
+        var c = cell_to_screen(s.pos) + Vector2(TILE / 2, TILE / 2)
+        draw_string(font, c + Vector2(-18, 4), str(s.label), HORIZONTAL_ALIGNMENT_CENTER, 36, 10, Color(.98, .85, .36))
