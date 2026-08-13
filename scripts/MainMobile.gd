@@ -181,7 +181,7 @@ func map_draw_origin() -> Vector2:
     var right_aligned := SCREEN_W - scaled_right
     var player_center := (ORIGIN.x + (float(player.pos.x) + .5) * TILE) * MAP_SCALE
     var ideal_x := SCREEN_W * .5 - player_center
-    var x := clamp(ideal_x, right_aligned, left_aligned)
+    var x: float = clampf(ideal_x, right_aligned, left_aligned)
     var y := MAP_TOP - ORIGIN.y * MAP_SCALE
     return Vector2(x, y)
 
