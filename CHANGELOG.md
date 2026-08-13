@@ -1,5 +1,19 @@
 # Arena Combat Lab — Changelog
 
+## 2026-08-13 — Boundless Combat HUD Revamp
+- Rebuilt the in-dungeon UI around Boundless combat instead of the First Fire-style control shelf.
+- Desktop keeps the existing WASD movement behavior; number keys 1–6 can now select equipped feats.
+- Mobile keeps the 90-degree facing controls but moves them into a compact left-side movement pad.
+- Up to six equipped weapon/offhand feats are always visible as a 2×3 button grid instead of living behind a FEATS popup.
+- Targeted feats arm on button press and fire on the next valid map tap; tapping the same feat again cancels it.
+- Arc and defensive feats still execute immediately when their button is pressed.
+- Added timeline-based feat cooldowns. Buttons show READY, ARMED, SPENT, or remaining cooldown ticks plus a cooldown progress bar.
+- Feat cooldowns use the same combat tick clock as movement and attacks, so taking other actions naturally burns cooldown time.
+- Regular attacks remain direct enemy taps; ranged attacks remain direct target taps.
+- Adjacent doors are now explicitly tap-to-open / tap-to-close; movement through an open doorway uses the movement controls.
+- Greatly reduced the status header and expanded the visible tactical map area.
+- The HUD now foregrounds HP, armor/DR, Fear, Fatigue, current tick, ammunition and selected feat state.
+
 ## 2026-08-13 — Alpha Equipment Generator + Loot Chests
 - Replaced randomized starter gear with four fixed Common starter kits: Stealth, Ranged, Guard, Ravager.
 - Baseline human is now fixed at MGT/FIN/AWR/VIT/WIL 2 with 22 base HP; equipment creates the build.
