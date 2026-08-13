@@ -1,10 +1,11 @@
 extends "res://scripts/MainPerception.gd"
 
-# Alpha 0.3 mobile input layer.
-# The arena is designed for landscape phone play. Keyboard controls remain in
+# Alpha 0.4 mobile input layer.
+# Landscape phone play is the primary interface. Keyboard controls remain in
 # the parent script strictly as a desktop/debug fallback.
 
 var touch_sprint := false
+var menu_open := false
 
 var btn_turn_left := Rect2(836, 500, 98, 56)
 var btn_turn_right := Rect2(942, 500, 98, 56)
@@ -15,8 +16,14 @@ var btn_shoot := Rect2(942, 566, 98, 56)
 var btn_use := Rect2(1048, 566, 98, 56)
 var btn_new := Rect2(1154, 566, 98, 56)
 
+var btn_menu := Rect2(1150, 18, 102, 44)
+var btn_resume := Rect2(470, 270, 340, 62)
+var btn_menu_new := Rect2(470, 346, 340, 62)
+var btn_exit_google := Rect2(470, 422, 340, 62)
+
 func reset_run():
     touch_sprint = false
+    menu_open = false
     super.reset_run()
 
 func _unhandled_input(e):
@@ -33,10 +40,37 @@ func _unhandled_input(e):
         get_viewport().set_input_as_handled()
         return
 
-    # Keep the existing keyboard input as a debug fallback only.
-    super._unhandled_input(e)
+    # Escape toggles the same menu during desktop testing.
+    if e is InputEventKey and e.pressed and not e.echo and e.keycode == KEY_ESCAPE:
+        menu_open = not menu_open
+        queue_redraw()
+        get_viewport().set_input_as_handled()
+        return
+
+    # Keep the existing keyboard input as a debug fallback only, but do not
+    # allow gameplay input while the menu is open.
+    if not menu_open:
+        super._unhandled_input(e)
 
 func handle_touch_point(pos: Vector2):
+    if btn_menu.has_point(pos):
+        menu_open = not menu_open
+        queue_redraw()
+        return
+
+    if menu_open:
+        if btn_resume.has_point(pos):
+            menu_open = false
+            queue_redraw()
+            return
+        if btn_menu_new.has_point(pos):
+            reset_run()
+            return
+        if btn_exit_google.has_point(pos):
+            exit_to_google()
+            return
+        return
+
     if btn_turn_left.has_point(pos):
         rotate_player(-1)
         return
@@ -108,6 +142,14 @@ func handle_touch_point(pos: Vector2):
     msg = "Tap an adjacent tile to move. Tap visible enemies to attack."
     queue_redraw()
 
+func exit_to_google():
+    # On the web this leaves the game completely. On desktop this opens the
+    # same destination in the normal browser so the menu is testable there too.
+    if OS.has_feature("web"):
+        JavaScriptBridge.eval("window.location.href='https://www.google.com';")
+    else:
+        OS.shell_open("https://www.google.com")
+
 func draw_hud():
     super.draw_hud()
 
@@ -126,6 +168,22 @@ func draw_hud():
     draw_touch_button(btn_new, "NEW", false)
 
     draw_string(font, Vector2(836, 642), "Tap adjacent tile = move | tap zed = attack", HORIZONTAL_ALIGNMENT_LEFT, -1, 11, Color(.72, .75, .72))
+
+    draw_touch_button(btn_menu, "MENU", menu_open)
+
+    if menu_open:
+        draw_menu_overlay()
+
+func draw_menu_overlay():
+    draw_rect(Rect2(0, 0, 1280, 720), Color(0, 0, 0, .72))
+    draw_rect(Rect2(430, 190, 420, 340), Color(.035, .045, .04, .99))
+    draw_rect(Rect2(430, 190, 420, 340), Color(.75, .68, .35), false, 2)
+    draw_string(font, Vector2(470, 232), "ARENA COMBAT LAB", HORIZONTAL_ALIGNMENT_LEFT, -1, 24, Color.WHITE)
+    draw_string(font, Vector2(470, 254), "Browser prototype - nothing is installed on your phone.", HORIZONTAL_ALIGNMENT_LEFT, -1, 11, Color(.72, .75, .72))
+    draw_touch_button(btn_resume, "RESUME", false)
+    draw_touch_button(btn_menu_new, "NEW RUN", false)
+    draw_touch_button(btn_exit_google, "EXIT TO GOOGLE", false)
+    draw_string(font, Vector2(470, 510), "Exit leaves this game page and opens google.com.", HORIZONTAL_ALIGNMENT_LEFT, -1, 11, Color(.72, .75, .72))
 
 func draw_touch_button(rect: Rect2, text: String, active: bool):
     var fill = Color(.24, .30, .25, .98) if active else Color(.12, .15, .13, .98)
