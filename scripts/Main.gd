@@ -425,7 +425,7 @@ func recalc_visibility():
         for x in range(max(0,player.pos.x-r),min(W,player.pos.x+r+1)):
             var p=Vector2i(x,y)
             if p==player.pos or (in_cone(player.pos,player.facing,p,r,.36) and has_los(player.pos,p)):
-                visible[p]=true; memory[p]=true
+                visible_cells[p]=true; memory[p]=true
 
 func refresh_intents():
     intent_reads.clear(); var a=awareness()
