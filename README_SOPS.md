@@ -1,128 +1,114 @@
 # Arena Combat Lab — AI Coding SOP
 
-> **AI-only. HARD RULE: for every user prompt that will edit code, reread this file and `PROJECT_CONTEXT.md` once before the first code edit.**
+> **AI-only. HARD RULE: for every user prompt that will edit code, reread this file and `PROJECT_CONTEXT.md` once before the first code edit.** One read per prompt is enough; refetch changed source/SHAs as needed during the prompt.
 >
-> One read per prompt is enough. Follow-up patches, CI fixes, input tweaks and hotfixes within that same prompt do **not** require another reread. Documentation-only prompts do not require the startup reread.
->
-> Current truth: `PROJECT_CONTEXT.md` · Future: `ROADMAP.md` · History: `CHANGELOG.md`
+> Current truth: `PROJECT_CONTEXT.md` · Future: `ROADMAP.md` · History: `CHANGELOG.md` · Regression contract: `TEST_MATRIX.md`
 
-## 1. Before the first code edit in each prompt
+## 1. Before coding
+1. Read SOP + Context once for the prompt.
+2. Fetch current `main` and every source file being touched; record SHAs.
+3. Confirm `main.tscn` and the live inheritance chain for runtime work.
+4. Read the deploy workflow when build assumptions matter.
+5. Choose the GitHub write strategy before drafting a large patch.
+6. For risky refactors, record the last known-good immutable commit SHA before changing `main`.
 
-1. Reread `README_SOPS.md`.
-2. Reread `PROJECT_CONTEXT.md`.
-3. Fetch current `main` and the exact files being touched; note current SHAs.
-4. Confirm `main.tscn` / live inheritance when runtime behavior is involved.
-5. Inspect `.github/workflows/deploy-web.yml` when build/deploy assumptions matter.
-6. Choose the GitHub write path before drafting a huge patch.
+If the batch changes current architecture/mechanics/status, update Context before finishing so the next prompt reads fresh truth.
 
-If CI fails and code needs another fix within the same prompt, keep working from current repo state without repeating steps 1–2. Still refetch any file whose content/SHA may have changed.
+## 2. Code best practices
 
-If the code batch changes current architecture, mechanics, runtime chain, balance truth or implemented status, update `PROJECT_CONTEXT.md` before finishing the prompt so the next prompt reads fresh truth.
+### One source of truth
+- A gameplay rule, catalog, stat definition or compatibility table should have **one authoritative implementation**.
+- Do not leave an obsolete implementation underneath a newer override merely as history; Git already stores history.
+- Prefer data tables for creature/item differences over copied functions.
 
-## 2. Working style
+### Inheritance discipline
+- Add a layer only when it owns a durable responsibility, not to patch one function temporarily.
+- Before adding a new layer, first ask whether the change belongs in the existing authoritative layer.
+- Most-derived overrides are authoritative, but excessive override chains are a smell: merge superseded patches when safe.
+- Use `super` deliberately. Know which ancestor implementation it reaches; avoid relying on accidental lexical-super behavior.
 
-- Direct `main` is normal; user prefers live testing over PR ceremony.
-- Batch coherent systems, not chains of tiny patches.
-- Build real small-scope systems, not fake scripted placeholders.
-- During alpha, remove/invalidate obsolete behavior instead of accumulating migration baggage unless preservation is requested.
-- If the user says **do not program yet**, do not touch code.
-- Complete design first when requested so coding does not invent foundational rules mid-pass.
+### Behavior-preserving refactors
+- Delete code proven unreachable/fully overridden before rewriting active behavior.
+- Preserve public method names, dictionary keys and state contracts while pruning internals.
+- Do not combine cleanup with balance/design changes unless requested; make regressions attributable.
+- Prefer several focused files with clear ownership over one giant script or dozens of one-function patch layers.
+- Keep `_ready()` side effects minimal; initialization order across inheritance is easy to break.
 
-## 3. GitHub write decision
+### GDScript / dynamic data
+- Be conservative with `:=` on Variant-heavy expressions; prefer explicit types or `=`.
+- Prefer explicit `float`/`clampf` where inference is fragile.
+- Treat Dictionary schemas as APIs: use stable keys (`max_hp`, `ai_intel`, etc.), sensible `.get()` fallbacks, and smoke-test required keys.
+- Avoid hidden benchmark RNG unless randomness itself is under test.
 
-### A — Contents API
-Default for small/medium text changes: fetch first, use current blob SHA, never parallel-write the same path.
+### Input
+- Desktop Firefox: WASD + mouse/map + optional 1–6 feats.
+- Mobile Safari: 90-degree movement/facing pad, touch authoritative, one contact → at most one action, map taps + visible feat buttons.
+- Inspect `MainMobileWeb.gd` before changing input routing; do not add early returns that bypass its touch dispatcher.
 
-### B — Git Data API
-For large/coordinated changes: current head/tree → blobs → one tree → one commit → move `main`. Attempt once.
+## 3. Test before publish
+- `TEST_MATRIX.md` is the regression contract.
+- CI must run the headless Arena smoke test before Web export.
+- Smoke tests should verify startup, fixed starters, procgen/objective connectivity, mixed roster, four chests, and gear schema/rarity rules.
+- Manual Safari/Firefox checks remain necessary for touch/mouse/UI behavior that headless CI cannot prove.
+- When fixing a bug, add/strengthen a smoke assertion when practical so the same class of failure cannot silently return.
 
-### C — self-cleaning Actions installer
-Fallback only when normal connector paths are structurally blocked. It must checkout `main`, install intended files, remove staging artifacts **and itself**, commit once, and push.
+## 4. GitHub best practices
 
-A `GITHUB_TOKEN` workflow push normally does not trigger another push workflow. After installer cleanup, use one appropriate normal connector-authored persistent update (usually required docs/changelog) to trigger the final deploy.
+### Small/medium text change — Contents API
+Fetch first, use the current blob SHA, update once. Never parallel-write the same path or reuse a stale SHA.
 
-**Stop-thrashing rule:** once a method fails for a known structural reason (payload/safety/stale SHA), change strategy once. Do not retry equivalent writes under different names or create nonsense architecture solely for transport.
+### Large/coordinated change — Git Data API
+Preferred for refactors: current head/tree → create all replacement blobs → create one tree → one commit → fast-forward `main`. Preflight the entire file set before moving the ref.
 
-## 4. Godot rules learned the hard way
+### Actions installer — fallback only
+Use only when normal connector routes are structurally blocked. Installer must remove staging artifacts **and itself**, commit once, and push. A `GITHUB_TOKEN` push normally will not trigger another push workflow, so use one legitimate normal connector-authored persistent update afterward if a final deploy trigger is required.
 
-- Be conservative with local `:=` inference in Variant-heavy code; prefer explicit types or `=`.
-- Prefer explicit `float` / `clampf` when inference is fragile.
-- Dynamic dictionary fields are not strongly typed just because values look obvious.
-- After adding an inheritance layer, verify `main.tscn` reaches it.
-- Before overriding input, inspect the parent dispatcher; an early return previously froze Safari touch.
-- Most-derived runtime override is authoritative; old parent constants/comments may be residue.
-- Benchmark systems should avoid hidden RNG unless randomness is the thing under test.
+### Stop-thrashing rule
+Once a transport fails for a known structural reason (payload/safety/stale SHA), change strategy once. Do not keep renaming files, retrying equivalent payloads, or distort architecture to satisfy the transport.
 
-## 5. Input invariants
+### Refactor safety
+- Keep the last known-good commit SHA handy; Git history is the rollback mechanism even if branch creation is unavailable.
+- Prefer one coherent refactor commit over many half-migrated commits.
+- Never delete the old implementation until the replacement files/blob/tree are prepared in the same commit.
+- Do not leave temporary workflows, encoded staging files, marker files or orphaned test scaffolding.
+- Compare the final tree/entrypoint against the intended file list before declaring completion.
 
-**Desktop / Firefox:** WASD, mouse/map targeting, optional keyboard feat shortcuts.
+## 5. Build/deploy truth
+Workflow: `.github/workflows/deploy-web.yml` · Godot 4.7.1 Web.
 
-**Mobile / Safari:** 90-degree movement/facing buttons, touch authoritative, one contact → at most one action until release, map taps for targeting/context, visible feat buttons for timed choices.
-
-Touch changes require inspection of `MainMobileWeb.gd` first.
-
-## 6. Build/deploy truth
-
-Workflow: `.github/workflows/deploy-web.yml` · Godot: 4.7.1 Web.
-
-A build is **compiled and live** only when all are true for the exact final `main` SHA:
-
-1. build job succeeds;
+A build is **compiled and live** only when, for the exact final `main` SHA:
+1. headless Arena smoke test succeeds;
 2. **Export Web build and reject script errors** succeeds;
-3. guard accepts no `SCRIPT ERROR`, `Parse Error`, or `Failed to load script`;
+3. no `SCRIPT ERROR`, `Parse Error`, or `Failed to load script` appears;
 4. Pages artifact upload succeeds;
 5. deploy job succeeds.
 
-Godot has previously packaged parse errors despite a successful-looking export. Never trust exporter exit code alone. A green run for an older SHA is not proof.
+Godot has previously packaged parse errors despite a successful-looking exporter result. Never trust exporter exit code or an older green SHA alone.
 
-Keep SHA-specific exported asset names, `.nojekyll`, `vram_texture_compression/for_mobile=false`, official editor/templates, and the script-error guard.
+Keep SHA-specific exported asset names, `.nojekyll`, `vram_texture_compression/for_mobile=false`, official editor/templates and both smoke/export guards.
 
-## 7. Documentation contract
-
+## 6. Documentation contract
 - `README.md` — humans: concise game/current alpha/controls/links.
-- `ROADMAP.md` — humans + AIs: future product vision/order.
-- `CHANGELOG.md` — humans + AIs: meaningful chronological history.
-- `README_SOPS.md` — AIs: workflow/tooling/coding/deploy rules.
+- `ROADMAP.md` — humans + AIs: future intent/order.
+- `CHANGELOG.md` — humans + AIs: meaningful history.
+- `README_SOPS.md` — AIs: coding/GitHub/test/deploy procedure.
 - `PROJECT_CONTEXT.md` — AIs: compact current implementation truth.
+- `TEST_MATRIX.md` — humans + AIs: regression contract.
 
-Maintenance:
-- gameplay/system change → Changelog;
-- current architecture/mechanics/status → Context;
-- future scope/order → Roadmap;
-- workflow/tooling lesson → SOP;
-- human-facing current identity/controls → README.
+Gameplay/system change → Changelog. Current truth → Context. Future scope → Roadmap. New engineering lesson → SOP. Human-facing identity/controls → README. Regression requirement → Test Matrix. Do not duplicate full sections across docs.
 
-Do not duplicate full sections across docs.
+## 7. Gameplay invariants
+Check Context before intentionally changing: no player levels; same baseline human; equipment creates build; variable-tick combat; no noise-spawn director; physical LOS/sound/facing/fog; armor-anchored Stealth/Ranged/Guard/Ravager; active feats mainly Weapon/Offhand; Epic/magic disabled; global `!! SPOTTED !!` intentional.
 
-## 8. Gameplay invariants
+## 8. Final self-check
+- SOP + Context read once before first code edit this prompt?
+- Current source/SHAs refetched after intermediate writes as needed?
+- Dead code removed only after proving it superseded?
+- No temporary artifacts/workflows left?
+- Context/Changelog/Test Matrix/SOP maintained by role?
+- `main.tscn` reaches intended runtime?
+- Exact final SHA passed smoke + guarded export + Pages deploy?
 
-Check Context before changing these intentionally established rules:
-
-- no player levels;
-- same baseline human; gear creates build;
-- easy monster ≠ level-one monster;
-- variable-tick combat;
-- no noise-spawn director;
-- physical LOS/sound/facing/fog;
-- armor-anchored Stealth/Ranged/Guard/Ravager identities;
-- active feats primarily from Weapon/Offhand;
-- Epic/magic disabled until intentionally enabled;
-- global `!! SPOTTED !!` is intentional.
-
-## 9. Final self-check
-
-Before saying done:
-
-- SOP + Context reread once before the first code edit for this prompt?
-- current source refetched as needed after intermediate commits?
-- Context updated if current game truth changed?
-- sane write path chosen without thrashing?
-- no temporary workflow/staging/encoded artifact left?
-- docs maintained by role?
-- correct live entrypoint?
-- exact final SHA passed guarded export?
-- exact final SHA deployed to Pages?
-
-For meaningful deployed Arena gameplay updates finish with:
+For meaningful deployed Arena updates finish with:
 - **Play:** `https://dmcexcess-lab.github.io/arena-combat-lab/?v=<fresh-token>`
 - **Changelog:** `https://github.com/dmcexcess-lab/arena-combat-lab/blob/main/CHANGELOG.md`
