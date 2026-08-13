@@ -158,6 +158,8 @@ func _unhandled_input(e):
                 player.crouched = not player.crouched
                 player.move_state = "CROUCH" if player.crouched else "STILL"
                 msg = "Crouched: quieter, slower." if player.crouched else "Standing."
+                recalc_visibility()
+                refresh_intents()
                 queue_redraw()
             KEY_SPACE: melee(player.pos + player.facing)
             KEY_G: shoot_nearest()
@@ -168,8 +170,11 @@ func _unhandled_input(e):
 func try_move(dir: Vector2i, sprint: bool):
     var dest: Vector2i = player.pos + dir
     player.facing = dir
-    if blocked(dest) or zombie_at(dest) != -1:
-        msg = "Blocked."
+    recalc_visibility()
+    refresh_intents()
+    var blocker := zombie_at(dest)
+    if blocked(dest) or blocker != -1:
+        msg = "A zombie blocks the way." if blocker != -1 and visible_cells.has(dest) else "Blocked."
         player.move_state = "STILL"
         queue_redraw(); return
     var cost := 100
@@ -598,7 +603,9 @@ func draw_sounds():
     for s in sound_marks:
         if tick-int(s.time)>650 or visible_cells.has(s.pos): continue
         var c=cell_to_screen(s.pos)+Vector2(TILE/2,TILE/2)
-        draw_circle(c,10,Color(.95,.80,.28,.20),false,2); draw_string(font,c+Vector2(-4,5),"?",HORIZONTAL_ALIGNMENT_LEFT,-1,14,Color(.98,.85,.36))
+        draw_circle(c,8,Color(.95,.80,.28,.26),false,2)
+        draw_circle(c,14,Color(.95,.80,.28,.16),false,1)
+        draw_string(font,c+Vector2(-10,4),"SND",HORIZONTAL_ALIGNMENT_LEFT,-1,9,Color(.98,.85,.36))
 
 func draw_hud():
     var x=HUD_X; var y=32.0; var s=player.skills
@@ -623,7 +630,8 @@ func draw_hud():
     y=600
     draw_string(font,Vector2(x,y),"WASD move | Shift sprint | C crouch | Q/E turn",HORIZONTAL_ALIGNMENT_LEFT,-1,12,Color(.78,.8,.78)); y+=18
     draw_string(font,Vector2(x,y),"Space melee | G shoot | F interact | click target",HORIZONTAL_ALIGNMENT_LEFT,-1,12,Color(.78,.8,.78)); y+=18
-    draw_string(font,Vector2(x,y),"R new run | F1 AI debug",HORIZONTAL_ALIGNMENT_LEFT,-1,12,Color(.78,.8,.78))
+    draw_string(font,Vector2(x,y),"R new run | F1 AI debug",HORIZONTAL_ALIGNMENT_LEFT,-1,12,Color(.78,.8,.78)); y+=18
+    draw_string(font,Vector2(x,y),"Green = visible zombie | SND = heard but unseen",HORIZONTAL_ALIGNMENT_LEFT,-1,11,Color(.68,.72,.68))
     if game_over:
         draw_rect(Rect2(Vector2(160,220),Vector2(470,120)),Color(.02,.025,.02,.94)); draw_rect(Rect2(Vector2(160,220),Vector2(470,120)),Color(.85,.72,.30),false,2)
         draw_string(font,Vector2(185,260),"OBJECTIVE COMPLETE" if won else "RUN FAILED",HORIZONTAL_ALIGNMENT_LEFT,-1,28,Color.WHITE)
