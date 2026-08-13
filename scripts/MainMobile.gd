@@ -1,54 +1,50 @@
 extends "res://scripts/MainPerception.gd"
 
-# Alpha 0.4 mobile input layer.
-# Landscape phone play is the primary interface. Keyboard controls remain in
-# the parent script strictly as a desktop/debug fallback.
+# Alpha 0.5 portrait mobile layer.
+# The board is panned horizontally and enlarged for phone play. Keyboard input
+# remains available only as a desktop/debug fallback.
 
-var touch_sprint := false
+const SCREEN_W := 720.0
+const SCREEN_H := 1280.0
+const INFO_H := 420.0
+const MAP_TOP := 430.0
+const MAP_SCALE := 1.25
+
 var menu_open := false
 
-var btn_turn_left := Rect2(836, 500, 98, 56)
-var btn_turn_right := Rect2(942, 500, 98, 56)
-var btn_crouch := Rect2(1048, 500, 98, 56)
-var btn_sprint := Rect2(1154, 500, 98, 56)
-var btn_melee := Rect2(836, 566, 98, 56)
-var btn_shoot := Rect2(942, 566, 98, 56)
-var btn_use := Rect2(1048, 566, 98, 56)
-var btn_new := Rect2(1154, 566, 98, 56)
+var btn_menu := Rect2(12, 12, 92, 48)
+var btn_forward := Rect2(300, 870, 120, 64)
+var btn_crouch := Rect2(300, 944, 120, 64)
+var btn_back := Rect2(300, 1018, 120, 64)
+var btn_turn_left := Rect2(18, 1018, 132, 64)
+var btn_turn_right := Rect2(570, 1018, 132, 64)
 
-var btn_menu := Rect2(1150, 18, 102, 44)
-var btn_resume := Rect2(470, 270, 340, 62)
-var btn_menu_new := Rect2(470, 346, 340, 62)
-var btn_exit_google := Rect2(470, 422, 340, 62)
+var btn_resume := Rect2(110, 500, 500, 74)
+var btn_menu_new := Rect2(110, 592, 500, 74)
+var btn_exit_google := Rect2(110, 684, 500, 74)
 
 func reset_run():
-    touch_sprint = false
     menu_open = false
     super.reset_run()
 
 func _unhandled_input(e):
-    # Native phone touch.
     if e is InputEventScreenTouch and e.pressed:
         handle_touch_point(e.position)
         get_viewport().set_input_as_handled()
         return
 
-    # Mouse clicks run through the same touch path so the phone UI can be
-    # tested on desktop without an Android build.
+    # Mouse follows the exact phone path for desktop testing.
     if e is InputEventMouseButton and e.pressed and e.button_index == MOUSE_BUTTON_LEFT:
         handle_touch_point(e.position)
         get_viewport().set_input_as_handled()
         return
 
-    # Escape toggles the same menu during desktop testing.
     if e is InputEventKey and e.pressed and not e.echo and e.keycode == KEY_ESCAPE:
         menu_open = not menu_open
         queue_redraw()
         get_viewport().set_input_as_handled()
         return
 
-    # Keep the existing keyboard input as a debug fallback only, but do not
-    # allow gameplay input while the menu is open.
     if not menu_open:
         super._unhandled_input(e)
 
@@ -77,46 +73,23 @@ func handle_touch_point(pos: Vector2):
     if btn_turn_right.has_point(pos):
         rotate_player(1)
         return
+    if btn_forward.has_point(pos):
+        step_forward()
+        return
+    if btn_back.has_point(pos):
+        step_backward()
+        return
     if btn_crouch.has_point(pos):
-        player.crouched = not player.crouched
-        if player.crouched:
-            touch_sprint = false
-            player.move_state = "CROUCH"
-            msg = "Crouched: quieter, slower."
-        else:
-            player.move_state = "STILL"
-            msg = "Standing."
-        recalc_visibility()
-        refresh_intents()
-        queue_redraw()
-        return
-    if btn_sprint.has_point(pos):
-        if player.crouched:
-            player.crouched = false
-        touch_sprint = not touch_sprint
-        player.move_state = "STILL"
-        msg = "Sprint mode ON." if touch_sprint else "Walk mode ON."
-        recalc_visibility()
-        refresh_intents()
-        queue_redraw()
-        return
-    if btn_melee.has_point(pos):
-        melee(player.pos + player.facing)
-        return
-    if btn_shoot.has_point(pos):
-        shoot_nearest()
-        return
-    if btn_use.has_point(pos):
-        interact()
-        return
-    if btn_new.has_point(pos):
-        reset_run()
+        toggle_crouch()
         return
 
-    # Board touch: adjacent tiles are context sensitive. This removes the need
-    # for separate move/attack/interact modes on a small screen.
-    var cell := screen_to_cell(pos)
-    if not inside(cell) or game_over:
+    # The top strip is information only. Everything beneath it is board space.
+    if pos.y < MAP_TOP or game_over:
+        return
+
+    var game_pos := screen_to_game(pos)
+    var cell := screen_to_cell(game_pos)
+    if not inside(cell):
         return
 
     var delta: Vector2i = cell - player.pos
@@ -131,64 +104,141 @@ func handle_touch_point(pos: Vector2):
         if doors.has(cell) or glass.has(cell) or cell == alarm:
             interact()
             return
-        try_move(delta, touch_sprint)
+        try_move(delta, false)
         return
 
-    # A visible distant enemy or explosive is a natural tap-to-target action.
+    # Distant taps are only for visible targets. This keeps shooting direct and
+    # removes the need for a permanent SHOOT button.
     if visible_cells.has(cell) and (zombie_at(cell) != -1 or barrels.has(cell)):
         click_target(cell)
         return
 
-    msg = "Tap an adjacent tile to move. Tap visible enemies to attack."
+    msg = "Use FORWARD/BACK to move, or tap a nearby tile."
+    queue_redraw()
+
+func step_forward():
+    if game_over:
+        return
+    var cell: Vector2i = player.pos + player.facing
+    if zombie_at(cell) != -1:
+        melee(cell)
+        return
+    if doors.has(cell) or glass.has(cell) or cell == alarm:
+        interact()
+        return
+    try_move(player.facing, false)
+
+func step_backward():
+    if game_over:
+        return
+    var keep_facing: Vector2i = player.facing
+    try_move(-keep_facing, false)
+    # Backing up does not magically turn the survivor around.
+    player.facing = keep_facing
+    player.last_dir = Vector2i.ZERO
+    if not player.crouched and not game_over:
+        player.move_state = "WALK"
+    recalc_visibility()
+    refresh_intents()
+    queue_redraw()
+
+func toggle_crouch():
+    player.crouched = not player.crouched
+    player.move_state = "CROUCH" if player.crouched else "STILL"
+    msg = "Crouched: quieter, slower." if player.crouched else "Standing."
+    recalc_visibility()
+    refresh_intents()
     queue_redraw()
 
 func exit_to_google():
-    # On the web this leaves the game completely. On desktop this opens the
-    # same destination in the normal browser so the menu is testable there too.
     if OS.has_feature("web"):
         JavaScriptBridge.eval("window.location.href='https://www.google.com';")
     else:
         OS.shell_open("https://www.google.com")
 
+func map_draw_origin() -> Vector2:
+    # The map is wider than a portrait phone, so follow the player horizontally
+    # while always keeping the complete north/south span visible.
+    var scaled_left := ORIGIN.x * MAP_SCALE
+    var scaled_right := (ORIGIN.x + W * TILE) * MAP_SCALE
+    var left_aligned := -scaled_left
+    var right_aligned := SCREEN_W - scaled_right
+    var player_center := (ORIGIN.x + (float(player.pos.x) + .5) * TILE) * MAP_SCALE
+    var ideal_x := SCREEN_W * .5 - player_center
+    var x := clamp(ideal_x, right_aligned, left_aligned)
+    var y := MAP_TOP - ORIGIN.y * MAP_SCALE
+    return Vector2(x, y)
+
+func screen_to_game(pos: Vector2) -> Vector2:
+    return (pos - map_draw_origin()) / MAP_SCALE
+
+func _draw():
+    var map_origin := map_draw_origin()
+    draw_set_transform(map_origin, 0.0, Vector2(MAP_SCALE, MAP_SCALE))
+    draw_map()
+    draw_units()
+    draw_fog()
+    draw_sounds()
+    draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+    draw_hud()
+
 func draw_hud():
-    super.draw_hud()
+    # Opaque portrait information strip. It intentionally covers any map cells
+    # that would otherwise scroll underneath it.
+    draw_rect(Rect2(0, 0, SCREEN_W, INFO_H), Color(.035, .045, .04, .99))
+    draw_rect(Rect2(0, INFO_H - 2, SCREEN_W, 2), Color(.38, .42, .38))
 
-    # Cover the old keyboard-help area with the actual phone controls. The
-    # underlying keyboard remains available for desktop debugging.
-    draw_rect(Rect2(820, 475, 444, 174), Color(.035, .045, .04, .97))
-    draw_string(font, Vector2(836, 493), "TOUCH CONTROLS", HORIZONTAL_ALIGNMENT_LEFT, -1, 13, Color(.95, .8, .36))
-
-    draw_touch_button(btn_turn_left, "TURN <", false)
-    draw_touch_button(btn_turn_right, "TURN >", false)
-    draw_touch_button(btn_crouch, "CROUCH", player.crouched)
-    draw_touch_button(btn_sprint, "SPRINT", touch_sprint)
-    draw_touch_button(btn_melee, "MELEE", false)
-    draw_touch_button(btn_shoot, "SHOOT", false)
-    draw_touch_button(btn_use, "USE", false)
-    draw_touch_button(btn_new, "NEW", false)
-
-    draw_string(font, Vector2(836, 642), "Tap adjacent tile = move | tap zed = attack", HORIZONTAL_ALIGNMENT_LEFT, -1, 11, Color(.72, .75, .72))
-
+    var s = player.skills
     draw_touch_button(btn_menu, "MENU", menu_open)
+    draw_string(font, Vector2(120, 34), "ARENA COMBAT LAB", HORIZONTAL_ALIGNMENT_LEFT, -1, 22, Color.WHITE)
+    draw_string(font, Vector2(120, 61), player.name, HORIZONTAL_ALIGNMENT_LEFT, -1, 18, Color(.65, .82, 1))
+
+    draw_string(font, Vector2(18, 94), "HP %d/%d   FEAR %d   TICK %d   FACING %s" % [player.hp, player.max_hp, player.fear, tick, DIR_NAMES[DIRS.find(player.facing)]], HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Color.WHITE)
+    draw_string(font, Vector2(18, 119), "Status: %s" % ", ".join(player.status), HORIZONTAL_ALIGNMENT_LEFT, 680, 13, Color(.82, .84, .82))
+
+    draw_string(font, Vector2(18, 151), "SKILLS", HORIZONTAL_ALIGNMENT_LEFT, -1, 13, Color(.95, .8, .36))
+    draw_string(font, Vector2(18, 174), "Combat %d   Scav %d   Survival %d" % [s.Combat, s.Scavenging, s.Survival], HORIZONTAL_ALIGNMENT_LEFT, -1, 13, Color.WHITE)
+    draw_string(font, Vector2(18, 195), "Medical %d   Technical %d   Social %d" % [s.Medical, s.Technical, s.Social], HORIZONTAL_ALIGNMENT_LEFT, -1, 13, Color.WHITE)
+
+    draw_string(font, Vector2(18, 228), "GEAR", HORIZONTAL_ALIGNMENT_LEFT, -1, 13, Color(.95, .8, .36))
+    draw_string(font, Vector2(18, 251), "%s | %s | %s | Ammo %d" % [player.weapon.name, player.clothes.name, player.gun if player.gun != "" else "No gun", player.ammo], HORIZONTAL_ALIGNMENT_LEFT, 684, 13, Color.WHITE)
+
+    draw_string(font, Vector2(18, 286), "OBJECTIVE", HORIZONTAL_ALIGNMENT_LEFT, -1, 13, Color(.95, .8, .36))
+    draw_string(font, Vector2(18, 309), "CACHE ACQUIRED - ESCAPE" if objective_taken else "GET THE SUPPLY CACHE", HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Color.WHITE)
+    draw_string(font, Vector2(18, 338), msg, HORIZONTAL_ALIGNMENT_LEFT, 684, 13, Color(.93, .94, .90))
+    draw_string(font, Vector2(18, 363), submsg, HORIZONTAL_ALIGNMENT_LEFT, 684, 11, Color(.68, .72, .68))
+    draw_string(font, Vector2(18, 396), "Kills %d  Alerted %d  Stealth %d  Shots %d  Noise %d" % [stats.kills, stats.alerted, stats.stealth, stats.shots, stats.noise], HORIZONTAL_ALIGNMENT_LEFT, -1, 11, Color(.75, .78, .75))
+
+    # Minimal controls float directly over the tactical board.
+    draw_touch_button(btn_forward, "FORWARD", false)
+    draw_touch_button(btn_crouch, "CROUCH", player.crouched)
+    draw_touch_button(btn_back, "BACK", false)
+    draw_touch_button(btn_turn_left, "TURN L", false)
+    draw_touch_button(btn_turn_right, "TURN R", false)
+
+    if game_over:
+        draw_rect(Rect2(120, 770, 480, 100), Color(.02, .025, .02, .94))
+        draw_rect(Rect2(120, 770, 480, 100), Color(.85, .72, .30), false, 2)
+        draw_string(font, Vector2(150, 812), "OBJECTIVE COMPLETE" if won else "RUN FAILED", HORIZONTAL_ALIGNMENT_LEFT, -1, 24, Color.WHITE)
+        draw_string(font, Vector2(150, 842), "MENU > NEW RUN to continue", HORIZONTAL_ALIGNMENT_LEFT, -1, 13, Color(.8, .82, .8))
 
     if menu_open:
         draw_menu_overlay()
 
 func draw_menu_overlay():
-    draw_rect(Rect2(0, 0, 1280, 720), Color(0, 0, 0, .72))
-    draw_rect(Rect2(430, 190, 420, 340), Color(.035, .045, .04, .99))
-    draw_rect(Rect2(430, 190, 420, 340), Color(.75, .68, .35), false, 2)
-    draw_string(font, Vector2(470, 232), "ARENA COMBAT LAB", HORIZONTAL_ALIGNMENT_LEFT, -1, 24, Color.WHITE)
-    draw_string(font, Vector2(470, 254), "Browser prototype - nothing is installed on your phone.", HORIZONTAL_ALIGNMENT_LEFT, -1, 11, Color(.72, .75, .72))
+    draw_rect(Rect2(0, 0, SCREEN_W, SCREEN_H), Color(0, 0, 0, .74))
+    draw_rect(Rect2(70, 390, 580, 430), Color(.035, .045, .04, .995))
+    draw_rect(Rect2(70, 390, 580, 430), Color(.75, .68, .35), false, 2)
+    draw_string(font, Vector2(110, 438), "ARENA COMBAT LAB", HORIZONTAL_ALIGNMENT_LEFT, -1, 25, Color.WHITE)
+    draw_string(font, Vector2(110, 468), "Browser prototype - nothing is installed on your phone.", HORIZONTAL_ALIGNMENT_LEFT, 500, 12, Color(.72, .75, .72))
     draw_touch_button(btn_resume, "RESUME", false)
     draw_touch_button(btn_menu_new, "NEW RUN", false)
     draw_touch_button(btn_exit_google, "EXIT TO GOOGLE", false)
-    draw_string(font, Vector2(470, 510), "Exit leaves this game page and opens google.com.", HORIZONTAL_ALIGNMENT_LEFT, -1, 11, Color(.72, .75, .72))
+    draw_string(font, Vector2(110, 790), "Exit leaves the game page and opens google.com.", HORIZONTAL_ALIGNMENT_LEFT, 500, 11, Color(.72, .75, .72))
 
 func draw_touch_button(rect: Rect2, text: String, active: bool):
-    var fill = Color(.24, .30, .25, .98) if active else Color(.12, .15, .13, .98)
-    var edge = Color(.95, .8, .36) if active else Color(.42, .48, .43)
+    var fill = Color(.24, .30, .25, .88) if active else Color(.08, .10, .09, .82)
+    var edge = Color(.95, .8, .36) if active else Color(.70, .74, .70)
     draw_rect(rect, fill)
     draw_rect(rect, edge, false, 2)
-    var baseline = rect.position + Vector2(10, 34)
-    draw_string(font, baseline, text, HORIZONTAL_ALIGNMENT_LEFT, rect.size.x - 16, 12, Color.WHITE)
+    draw_string(font, rect.position + Vector2(0, 40), text, HORIZONTAL_ALIGNMENT_CENTER, rect.size.x, 14, Color.WHITE)
