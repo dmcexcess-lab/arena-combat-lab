@@ -1,6 +1,6 @@
 extends "res://scripts/MainPerception.gd"
 
-# Alpha 0.5 portrait mobile layer.
+# Alpha 0.6 portrait mobile layer.
 # The board is panned horizontally and enlarged for phone play. Keyboard input
 # remains available only as a desktop/debug fallback.
 
@@ -9,15 +9,20 @@ const SCREEN_H := 1280.0
 const INFO_H := 420.0
 const MAP_TOP := 430.0
 const MAP_SCALE := 1.25
+const CONTROL_SHELF_TOP := 1106.0
 
 var menu_open := false
+var last_touch_ms := -10000
 
 var btn_menu := Rect2(12, 12, 92, 48)
-var btn_forward := Rect2(300, 870, 120, 64)
-var btn_crouch := Rect2(300, 944, 120, 64)
-var btn_back := Rect2(300, 1018, 120, 64)
-var btn_turn_left := Rect2(18, 1018, 132, 64)
-var btn_turn_right := Rect2(570, 1018, 132, 64)
+
+# Controls live in the empty strip below the tactical map. Left thumb gets
+# TURN L + CROUCH; right thumb gets FORWARD + TURN R + BACK.
+var btn_turn_left := Rect2(18, 1116, 154, 58)
+var btn_crouch := Rect2(18, 1192, 154, 58)
+var btn_forward := Rect2(548, 1110, 154, 48)
+var btn_turn_right := Rect2(548, 1164, 154, 48)
+var btn_back := Rect2(548, 1218, 154, 48)
 
 var btn_resume := Rect2(110, 500, 500, 74)
 var btn_menu_new := Rect2(110, 592, 500, 74)
@@ -29,12 +34,20 @@ func reset_run():
 
 func _unhandled_input(e):
     if e is InputEventScreenTouch and e.pressed:
+        # iPhone Safari can deliver a real touch and then an emulated mouse
+        # click for the same tap. Remember the touch so the synthetic click is
+        # ignored instead of firing the action twice.
+        last_touch_ms = Time.get_ticks_msec()
         handle_touch_point(e.position)
         get_viewport().set_input_as_handled()
         return
 
-    # Mouse follows the exact phone path for desktop testing.
+    # Mouse follows the phone path for desktop testing, but an emulated mouse
+    # event immediately following a real touch is discarded.
     if e is InputEventMouseButton and e.pressed and e.button_index == MOUSE_BUTTON_LEFT:
+        if Time.get_ticks_msec() - last_touch_ms < 750:
+            get_viewport().set_input_as_handled()
+            return
         handle_touch_point(e.position)
         get_viewport().set_input_as_handled()
         return
@@ -84,7 +97,7 @@ func handle_touch_point(pos: Vector2):
         return
 
     # The top strip is information only. Everything beneath it is board space.
-    if pos.y < MAP_TOP or game_over:
+    if pos.y < MAP_TOP or pos.y >= CONTROL_SHELF_TOP or game_over:
         return
 
     var game_pos := screen_to_game(pos)
@@ -221,12 +234,15 @@ func draw_hud():
     if any_zombie_spotted_player() and not game_over:
         draw_string(font, Vector2(0, 458), "!! SPOTTED !!", HORIZONTAL_ALIGNMENT_CENTER, SCREEN_W, 22, Color(1, .24, .18))
 
-    # Minimal controls float directly over the tactical board.
-    draw_touch_button(btn_forward, "FORWARD", false)
-    draw_touch_button(btn_crouch, "CROUCH", player.crouched)
-    draw_touch_button(btn_back, "BACK", false)
+    # Keep the controls off the map itself. The shelf is deliberately sparse so
+    # thumbs have room and the tactical board remains readable.
+    draw_rect(Rect2(0, CONTROL_SHELF_TOP, SCREEN_W, SCREEN_H - CONTROL_SHELF_TOP), Color(.025, .032, .028, .82))
+    draw_rect(Rect2(0, CONTROL_SHELF_TOP, SCREEN_W, 2), Color(.38, .42, .38))
     draw_touch_button(btn_turn_left, "TURN L", false)
+    draw_touch_button(btn_crouch, "CROUCH", player.crouched)
+    draw_touch_button(btn_forward, "FORWARD", false)
     draw_touch_button(btn_turn_right, "TURN R", false)
+    draw_touch_button(btn_back, "BACK", false)
 
     if game_over:
         draw_rect(Rect2(120, 770, 480, 100), Color(.02, .025, .02, .94))
@@ -249,8 +265,9 @@ func draw_menu_overlay():
     draw_string(font, Vector2(110, 790), "Exit leaves the game page and opens google.com.", HORIZONTAL_ALIGNMENT_LEFT, 500, 11, Color(.72, .75, .72))
 
 func draw_touch_button(rect: Rect2, text: String, active: bool):
-    var fill = Color(.24, .30, .25, .88) if active else Color(.08, .10, .09, .82)
+    var fill = Color(.24, .30, .25, .92) if active else Color(.08, .10, .09, .90)
     var edge = Color(.95, .8, .36) if active else Color(.70, .74, .70)
     draw_rect(rect, fill)
     draw_rect(rect, edge, false, 2)
-    draw_string(font, rect.position + Vector2(0, 40), text, HORIZONTAL_ALIGNMENT_CENTER, rect.size.x, 14, Color.WHITE)
+    var baseline_y := rect.position.y + rect.size.y * .5 + 5.0
+    draw_string(font, Vector2(rect.position.x, baseline_y), text, HORIZONTAL_ALIGNMENT_CENTER, rect.size.x, 14, Color.WHITE)
