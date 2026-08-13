@@ -1,6 +1,6 @@
 extends "res://scripts/MainPerception.gd"
 
-# Alpha 0.6 portrait mobile layer.
+# Alpha 0.7 portrait mobile layer.
 # The board is panned horizontally and enlarged for phone play. Keyboard input
 # remains available only as a desktop/debug fallback.
 
@@ -16,13 +16,15 @@ var last_touch_ms := -10000
 
 var btn_menu := Rect2(12, 12, 92, 48)
 
-# Controls live in the empty strip below the tactical map. Left thumb gets
-# TURN L + CROUCH; right thumb gets FORWARD + TURN R + BACK.
-var btn_turn_left := Rect2(18, 1116, 154, 58)
-var btn_crouch := Rect2(18, 1192, 154, 58)
-var btn_forward := Rect2(548, 1110, 154, 48)
-var btn_turn_right := Rect2(548, 1164, 154, 48)
-var btn_back := Rect2(548, 1218, 154, 48)
+# Controls live in the empty strip below the tactical map.
+# Primary turn buttons are the large, level anchors for each thumb.
+# Left: TURN L with a smaller offset CROUCH below it.
+# Right: smaller FORWARD above, large TURN R centered, smaller BACK below.
+var btn_turn_left := Rect2(18, 1154, 172, 68)
+var btn_crouch := Rect2(38, 1230, 134, 42)
+var btn_forward := Rect2(550, 1110, 134, 38)
+var btn_turn_right := Rect2(530, 1154, 172, 68)
+var btn_back := Rect2(550, 1230, 134, 42)
 
 var btn_resume := Rect2(110, 500, 500, 74)
 var btn_menu_new := Rect2(110, 592, 500, 74)
@@ -34,9 +36,6 @@ func reset_run():
 
 func _unhandled_input(e):
     if e is InputEventScreenTouch and e.pressed:
-        # iPhone Safari can deliver a real touch and then an emulated mouse
-        # click for the same tap. Remember the touch so the synthetic click is
-        # ignored instead of firing the action twice.
         last_touch_ms = Time.get_ticks_msec()
         handle_touch_point(e.position)
         get_viewport().set_input_as_handled()
@@ -62,11 +61,8 @@ func _unhandled_input(e):
         super._unhandled_input(e)
 
 func handle_touch_point(pos: Vector2):
-    if btn_menu.has_point(pos):
-        menu_open = not menu_open
-        queue_redraw()
-        return
-
+    # Once the overlay is open, the underlying MENU button is inert. The user
+    # must deliberately choose Resume, New Run, or Exit.
     if menu_open:
         if btn_resume.has_point(pos):
             menu_open = false
@@ -78,6 +74,11 @@ func handle_touch_point(pos: Vector2):
         if btn_exit_google.has_point(pos):
             exit_to_google()
             return
+        return
+
+    if btn_menu.has_point(pos):
+        menu_open = true
+        queue_redraw()
         return
 
     if btn_turn_left.has_point(pos):
@@ -208,7 +209,8 @@ func draw_hud():
     draw_rect(Rect2(0, INFO_H - 2, SCREEN_W, 2), Color(.38, .42, .38))
 
     var s = player.skills
-    draw_touch_button(btn_menu, "MENU", menu_open)
+    if not menu_open:
+        draw_touch_button(btn_menu, "MENU", false)
     draw_string(font, Vector2(120, 34), "ARENA COMBAT LAB", HORIZONTAL_ALIGNMENT_LEFT, -1, 22, Color.WHITE)
     draw_string(font, Vector2(120, 61), player.name, HORIZONTAL_ALIGNMENT_LEFT, -1, 18, Color(.65, .82, 1))
 
@@ -234,15 +236,15 @@ func draw_hud():
     if any_zombie_spotted_player() and not game_over:
         draw_string(font, Vector2(0, 458), "!! SPOTTED !!", HORIZONTAL_ALIGNMENT_CENTER, SCREEN_W, 22, Color(1, .24, .18))
 
-    # Keep the controls off the map itself. The shelf is deliberately sparse so
-    # thumbs have room and the tactical board remains readable.
+    # Keep the controls off the map itself. The large turn buttons are level and
+    # dominant; secondary movement/stance controls sit around them.
     draw_rect(Rect2(0, CONTROL_SHELF_TOP, SCREEN_W, SCREEN_H - CONTROL_SHELF_TOP), Color(.025, .032, .028, .82))
     draw_rect(Rect2(0, CONTROL_SHELF_TOP, SCREEN_W, 2), Color(.38, .42, .38))
-    draw_touch_button(btn_turn_left, "TURN L", false)
-    draw_touch_button(btn_crouch, "CROUCH", player.crouched)
-    draw_touch_button(btn_forward, "FORWARD", false)
-    draw_touch_button(btn_turn_right, "TURN R", false)
-    draw_touch_button(btn_back, "BACK", false)
+    draw_touch_button(btn_turn_left, "TURN L", false, 18)
+    draw_touch_button(btn_crouch, "CROUCH", player.crouched, 13)
+    draw_touch_button(btn_forward, "FORWARD", false, 13)
+    draw_touch_button(btn_turn_right, "TURN R", false, 18)
+    draw_touch_button(btn_back, "BACK", false, 13)
 
     if game_over:
         draw_rect(Rect2(120, 770, 480, 100), Color(.02, .025, .02, .94))
@@ -264,10 +266,10 @@ func draw_menu_overlay():
     draw_touch_button(btn_exit_google, "EXIT TO GOOGLE", false)
     draw_string(font, Vector2(110, 790), "Exit leaves the game page and opens google.com.", HORIZONTAL_ALIGNMENT_LEFT, 500, 11, Color(.72, .75, .72))
 
-func draw_touch_button(rect: Rect2, text: String, active: bool):
+func draw_touch_button(rect: Rect2, text: String, active: bool, font_size: int = 14):
     var fill = Color(.24, .30, .25, .92) if active else Color(.08, .10, .09, .90)
     var edge = Color(.95, .8, .36) if active else Color(.70, .74, .70)
     draw_rect(rect, fill)
     draw_rect(rect, edge, false, 2)
-    var baseline_y := rect.position.y + rect.size.y * .5 + 5.0
-    draw_string(font, Vector2(rect.position.x, baseline_y), text, HORIZONTAL_ALIGNMENT_CENTER, rect.size.x, 14, Color.WHITE)
+    var baseline_y := rect.position.y + rect.size.y * .5 + float(font_size) * .34
+    draw_string(font, Vector2(rect.position.x, baseline_y), text, HORIZONTAL_ALIGNMENT_CENTER, rect.size.x, font_size, Color.WHITE)
