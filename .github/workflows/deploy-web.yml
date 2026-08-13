@@ -43,9 +43,13 @@ jobs:
         run: |
           set -euxo pipefail
           mkdir -p build/web
-          "/tmp/godot/Godot_v${GODOT_VERSION}-${GODOT_STATUS}_linux.x86_64" --headless --path . --export-release Web build/web/index.html
+          SHORT_SHA="${GITHUB_SHA:0:12}"
+          BASENAME="arena-${SHORT_SHA}"
+          "/tmp/godot/Godot_v${GODOT_VERSION}-${GODOT_STATUS}_linux.x86_64" --headless --path . --export-release Web "build/web/${BASENAME}.html"
+          mv "build/web/${BASENAME}.html" build/web/index.html
           touch build/web/.nojekyll
           test -f build/web/index.html
+          test -f "build/web/${BASENAME}.pck"
 
       - name: Keep downloadable build artifact
         uses: actions/upload-artifact@v4
@@ -63,7 +67,7 @@ jobs:
     runs-on: ubuntu-latest
     environment:
       name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
+      url: $ {{ steps.deployment.outputs.page_url }}
     steps:
       - name: Configure GitHub Pages
         uses: actions/configure-pages@v5
