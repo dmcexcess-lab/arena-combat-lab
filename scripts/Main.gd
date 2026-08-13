@@ -23,7 +23,7 @@ var objective := Vector2i.ZERO
 var objective_taken := false
 var player := {}
 var zombies: Array = []
-var visible := {}
+var visible_cells := {}
 var memory := {}
 var sound_marks: Array = []
 var intent_reads := {}
@@ -244,7 +244,7 @@ func melee(target: Vector2i):
     commit_action(int(player.weapon.time))
 
 func click_target(cell: Vector2i):
-    if not visible.has(cell): msg = "You cannot target what you cannot see."; queue_redraw(); return
+    if not visible_cells.has(cell): msg = "You cannot target what you cannot see."; queue_redraw(); return
     var zi = zombie_at(cell)
     if zi != -1:
         if manhattan(player.pos,cell) == 1:
@@ -257,7 +257,7 @@ func shoot_nearest():
     var best := -1; var bd := 999
     for i in range(zombies.size()):
         var z = zombies[i]
-        if z.dead or not visible.has(z.pos): continue
+        if z.dead or not visible_cells.has(z.pos): continue
         if not in_cone(player.pos,player.facing,z.pos,view_range(),.25): continue
         var d = manhattan(player.pos,z.pos)
         if d < bd: bd = d; best = i
@@ -267,7 +267,7 @@ func shoot_nearest():
 func shoot(i: int):
     if player.gun == "" or int(player.ammo) <= 0: msg = "No loaded firearm."; queue_redraw(); return
     var z = zombies[i]
-    if z.dead or not visible.has(z.pos): return
+    if z.dead or not visible_cells.has(z.pos): return
     player.facing = dominant(z.pos - player.pos)
     var dist = manhattan(player.pos,z.pos)
     var chance = clamp(.50 + int(player.skills.Combat)*.065 - max(0,dist-2)*.035 - attack_penalty(), .10, .94)
@@ -420,7 +420,7 @@ func sound_map(source: Vector2i,intensity: int) -> Dictionary:
     return dist
 
 func recalc_visibility():
-    visible.clear(); var r=view_range()
+    visible_cells.clear(); var r=view_range()
     for y in range(max(0,player.pos.y-r),min(H,player.pos.y+r+1)):
         for x in range(max(0,player.pos.x-r),min(W,player.pos.x+r+1)):
             var p=Vector2i(x,y)
@@ -431,7 +431,7 @@ func refresh_intents():
     intent_reads.clear(); var a=awareness()
     for i in range(zombies.size()):
         var z=zombies[i]
-        if z.dead or not visible.has(z.pos): continue
+        if z.dead or not visible_cells.has(z.pos): continue
         if a < 2.2: intent_reads[i]="?"; continue
         var chance=clamp(.22+a*.075-float(player.fear)*.0035,.12,.93)
         if rng.randf()<=chance: intent_reads[i] = "HUNT" if z.state=="CHASE" else ("HEAR" if z.state=="INVESTIGATE" else "IDLE")
@@ -577,7 +577,7 @@ func draw_units():
             draw_line(c+Vector2(-8,5),c+Vector2(8,-5),Color(.35,.08,.08),3)
     for i in range(zombies.size()):
         var z=zombies[i]
-        if z.dead or not visible.has(z.pos): continue
+        if z.dead or not visible_cells.has(z.pos): continue
         var c=cell_to_screen(z.pos)+Vector2(TILE/2,TILE/2)
         draw_circle(c,10,Color(.35,.52,.31)); arrow(c,z.facing,Color(.76,.90,.70),11)
         draw_string(font,c+Vector2(-13,-14),str(intent_reads.get(i,"?")),HORIZONTAL_ALIGNMENT_LEFT,-1,10,Color(1,.85,.38))
@@ -590,13 +590,13 @@ func draw_fog():
     for y in range(H):
         for x in range(W):
             var p=Vector2i(x,y)
-            if visible.has(p): draw_rect(Rect2(cell_to_screen(p),Vector2(TILE,TILE)),Color(.85,.88,.70,.035))
+            if visible_cells.has(p): draw_rect(Rect2(cell_to_screen(p),Vector2(TILE,TILE)),Color(.85,.88,.70,.035))
             elif memory.has(p): draw_rect(Rect2(cell_to_screen(p),Vector2(TILE,TILE)),Color(.02,.025,.022,.58))
             else: draw_rect(Rect2(cell_to_screen(p),Vector2(TILE,TILE)),Color(.01,.012,.01,.92))
 
 func draw_sounds():
     for s in sound_marks:
-        if tick-int(s.time)>650 or visible.has(s.pos): continue
+        if tick-int(s.time)>650 or visible_cells.has(s.pos): continue
         var c=cell_to_screen(s.pos)+Vector2(TILE/2,TILE/2)
         draw_circle(c,10,Color(.95,.80,.28,.20),false,2); draw_string(font,c+Vector2(-4,5),"?",HORIZONTAL_ALIGNMENT_LEFT,-1,14,Color(.98,.85,.36))
 
