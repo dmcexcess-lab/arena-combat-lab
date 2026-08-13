@@ -727,6 +727,12 @@ func _unhandled_input(e):
         if e is InputEventKey and e.pressed and not e.echo and e.keycode == KEY_ENTER:
             _start_dungeon()
             get_viewport().set_input_as_handled()
+            return
+        # Do not swallow touchscreen/mouse events while the setup wrapper is open.
+        # MainMobileWeb owns Safari's one-touch/one-action routing and dispatches
+        # those events back into handle_touch_point(), where setup buttons live.
+        if e is InputEventScreenTouch or e is InputEventMouseButton:
+            super._unhandled_input(e)
         return
     if e is InputEventKey and e.pressed and not e.echo and e.keycode == KEY_I:
         character_open = not character_open
