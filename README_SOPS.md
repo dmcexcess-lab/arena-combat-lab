@@ -1,8 +1,10 @@
 # GPT CODING / GITHUB SOP — ARENA COMBAT LAB
 
-> **MANDATORY ENTRY CONDITION FOR GPT:** Before changing code in this repository, fetch and read this file first. Then inspect current `main`, the files to be changed, and the active deployment workflow. Do not code from remembered repository state.
+> **MANDATORY ENTRY CONDITION FOR GPT:** Before changing code in this repository, fetch and read this file first, then fetch and read `PROJECT_CONTEXT.md`. After that inspect current `main`, the files to be changed, and the active deployment workflow. Do not code from remembered repository state.
 
 This file exists primarily for ChatGPT/Arena Bot. It records the working habits, GitHub connector behavior, Godot pitfalls, deployment rules, and project conventions learned while building this repo with the user.
+
+`PROJECT_CONTEXT.md` is the companion current-state handoff: it describes what the game is, what is implemented now, the live runtime chain, and established scope boundaries. This SOP describes **how to work**; Project Context describes **what currently exists**.
 
 ---
 
@@ -25,12 +27,13 @@ This file exists primarily for ChatGPT/Arena Bot. It records the working habits,
 Do this before implementing a new piece:
 
 1. Fetch and read **this file** (`README_SOPS.md`).
-2. Fetch current repo/head metadata or current `main` commit.
-3. Fetch the exact source files that will be touched; record each blob SHA.
-4. Fetch `.github/workflows/deploy-web.yml` if deployment/build assumptions matter.
-5. Confirm `main.tscn` / current script entrypoint when changing inheritance or runtime layers.
-6. If the task depends on current gameplay architecture, inspect the live inheritance chain instead of assuming the remembered chain is still correct.
-7. Decide the GitHub write strategy **before** generating a giant patch.
+2. Fetch and read **`PROJECT_CONTEXT.md`** for current scope/status. Do not use old chat memory as a substitute.
+3. Fetch current repo/head metadata or current `main` commit.
+4. Fetch the exact source files that will be touched; record each blob SHA.
+5. Fetch `.github/workflows/deploy-web.yml` if deployment/build assumptions matter.
+6. Confirm `main.tscn` / current script entrypoint when changing inheritance or runtime layers.
+7. If the task depends on current gameplay architecture, inspect the live inheritance chain instead of assuming the remembered chain is still correct.
+8. Decide the GitHub write strategy **before** generating a giant patch.
 
 Do not ask the user to repeat repo information that GitHub can answer.
 
@@ -204,10 +207,11 @@ For a coherent gameplay pass:
 4. Implement UI/input exposure third.
 5. Update starter/test scenario so the new mechanic is immediately testable.
 6. Update `CHANGELOG.md` in the same overall pass.
-7. Verify final `main` entrypoint and no temporary files/workflows remain.
-8. Trigger final build.
-9. Verify exact final-head guarded export and Pages deploy.
-10. Give the user the Play + Changelog links.
+7. Update `PROJECT_CONTEXT.md` if the change alters current scope, architecture, mechanics, or implementation status.
+8. Verify final `main` entrypoint and no temporary files/workflows remain.
+9. Trigger final build.
+10. Verify exact final-head guarded export and Pages deploy.
+11. Give the user the Play + Changelog links.
 
 Avoid committing half a system live unless the user explicitly wants an intermediate test.
 
@@ -254,10 +258,12 @@ Fetch current `main` SHA and compare against workflow `head_sha`. A successful w
 Ask internally:
 
 - Did I read this SOP first?
+- Did I read `PROJECT_CONTEXT.md` for current project truth?
 - Did I fetch current source instead of trusting memory?
 - Did I choose a GitHub write path once instead of thrashing?
 - Are there any temp workflows, staging files, encoded blobs, or marker files left in the tree?
-- Is `CHANGELOG.md` updated?
+- Is `CHANGELOG.md` updated when appropriate?
+- Is `PROJECT_CONTEXT.md` updated when current truth changed?
 - Does `main.tscn` point at the intended runtime?
 - Did the exact final SHA pass the guarded Godot export?
 - Did Pages deploy that exact final SHA?
