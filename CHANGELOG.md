@@ -1,5 +1,16 @@
 # Arena Combat Lab — Changelog
 
+## 2026-08-13 — Alpha Equipment Generator + Loot Chests
+- Replaced randomized starter gear with four fixed Common starter kits: Stealth, Ranged, Guard, Ravager.
+- Baseline human is now fixed at MGT/FIN/AWR/VIT/WIL 2 with 22 base HP; equipment creates the build.
+- Added Offhand slot, full armor compatibility matrix, weapon restrictions, and unrestricted rings/amulets.
+- Added the complete non-magical alpha equipment catalog and Common, Uncommon, Rare, Enchanted generator. Epic/magic is disabled.
+- Uncommon adds one stat and one legal quality property; Rare adds two stats, one property, and one extra weapon/offhand feat; Enchanted adds three stats, two properties, and two extra feats.
+- Added HP, armor DR, Fear/Will interaction, Fatigue/Vitality interaction, and gear-driven tick/action-speed modifiers.
+- Added Stealth throwing knives, Ranged close-range penalties plus diagonal Quick Shot, Guard multi-target/shield play, and Ravager single-target execution play.
+- Added FEATS UI so generated weapon/offhand actions are usable on mobile.
+- Random dungeons now place four loot chests. Stepping onto a chest rolls one item at 45% Common / 30% Uncommon / 18% Rare / 7% Enchanted and adds it to inventory.
+
 ## 2026-08-13 — Wrapper Touch Fix
 - Fixed Safari/mobile start-screen buttons being completely unresponsive.
 - Root cause: the new setup wrapper returned from `_unhandled_input()` before `MainMobileWeb` could dispatch touch events.

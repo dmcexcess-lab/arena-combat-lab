@@ -121,7 +121,7 @@ func _rebuild_player_from_gear(heal_full:bool=false):
         var item:Dictionary=equipped[slot]
         for stat in ATTR_NAMES:attrs[stat]+=int(item["stats"].get(stat,0))
         armor_total+=int(item.get("armor",0));hp_bonus+=int(item.get("hp_bonus",0));noise_total+=int(item.get("noise",0));_merge_mods(gear_runtime,item["mods"])
-        if build_affinity.has(str(item["family"])):build_affinity[str(item["family"]]+=1)
+        if build_affinity.has(str(item["family"])):build_affinity[str(item["family"])] += 1
         if slot=="Weapon":weapon_item=item;weapon_data=gear_core.weapon_data(str(item["base_name"]))
         elif slot=="Offhand":offhand_item=item
     player["attrs"]=attrs;player["weapon"]=weapon_data;player["weapon_item"]=weapon_item;player["offhand_item"]=offhand_item;player["offhand_name"]=str(offhand_item.get("base_name",""))
