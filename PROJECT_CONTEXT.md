@@ -7,17 +7,17 @@ Same baseline human every run; equipment creates the build. Fixed Common Stealth
 
 Core invariants: variable action-time ticks; facing/FOV/LOS/fog/physical sound; HP/Fear/Fatigue; Weapon/Offhand feats; local awareness/memory; no noise-spawn director; global `!! SPOTTED !!`.
 
-Player still renders as the blue circle.
+Player identity comes from the setup-level `PlayerProfile`: editable name plus cosmetic body, skin, hair style and hair color. Appearance never changes stats. The tactical player icon is a code-drawn layered paper doll; currently equipped Armor/Cloak/Head/Gloves/Belt/Boots plus Weapon/Offhand visibly change the avatar.
 
 ## CSD2 handoff modules
-These exist now and are CI-smoke-tested, but **do not change live gameplay yet**:
-- `scripts/player/PlayerProfile.gd` — persistent identity record: id, display name, open-ended appearance data.
-- `scripts/arena/ArenaScenario.gd` — normalized starter/roster/layout/seed request for future setup, contracts and Dev Portal.
+These are live and covered by the CI smoke gate:
+- `scripts/player/PlayerProfile.gd` — normalized identity/appearance record and creator option catalog; wired into the live player at the setup/session boundary.
+- `scripts/arena/ArenaScenario.gd` — normalized starter/roster/layout/seed request for future setup, contracts and Dev Portal; does not change live gameplay yet.
 - `scripts/catalogs/CreatureCatalog.gd` — read-only adapter over live creature definitions; no duplicated creature stats.
 
-Next character-creator/paper-doll pass should wire `PlayerProfile` at the top setup/session boundary and keep visible body/armor/weapon work inside `MainArenaVisuals.gd`. Combat/gear code should expose state, not drawing logic.
+Character creator work lives in `MainArenaSetup.gd`. Player body/equipment rendering and identity HUD overlays live in `MainArenaVisuals.gd`. The previous Arena tile/creature visual implementation is preserved as `MainArenaBaseVisuals.gd`, directly beneath the player-visual layer. Combat/gear code exposes state and remains free of drawing logic.
 
 ## Live runtime
-`main.tscn` → `MainArenaSetup -> MainArenaVisuals -> MainArenaMap -> MainArenaCreatures -> MainAlphaAI -> MainAlphaDual -> MainAlphaWeapons -> MainAlphaGear -> MainAlphaWrapper -> MainAlphaCombat -> MainAlphaState -> MainBoundless -> MainMobileWeb -> MainMobile -> MainPerception -> Main`
+`main.tscn` → `MainArenaSetup -> MainArenaVisuals -> MainArenaBaseVisuals -> MainArenaMap -> MainArenaCreatures -> MainAlphaAI -> MainAlphaDual -> MainAlphaWeapons -> MainAlphaGear -> MainAlphaWrapper -> MainAlphaCombat -> MainAlphaState -> MainBoundless -> MainMobileWeb -> MainMobile -> MainPerception -> Main`
 
-Primary owners: Setup=launch roster; Visuals=rendering; Map=procgen; Creatures=creature stats/behavior; AlphaAI=awareness/tracking; AlphaGear/Combat/State=gear+combat state; MobileWeb=Safari touch; Perception=intent/memory/sound readability.
+Primary owners: Setup=creator + launch roster + PlayerProfile boundary; Visuals=player paper doll + identity overlays; BaseVisuals=tiles/creatures; Map=procgen; Creatures=creature stats/behavior; AlphaAI=awareness/tracking; AlphaGear/Combat/State=gear+combat state; MobileWeb=Safari touch; Perception=intent/memory/sound readability.

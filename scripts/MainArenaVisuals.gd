@@ -1,180 +1,100 @@
-extends "res://scripts/MainArenaMap.gd"
+extends "res://scripts/MainArenaBaseVisuals.gd"
 
-# Code-drawn Arena tile set and readable monster icons. Player intentionally remains
-# a simple circle until the later paper-doll / visible-equipment pass.
+func _pd_item(gear:Dictionary, slot:String)->Dictionary:
+    var v=gear.get(slot,{})
+    return v if typeof(v)==TYPE_DICTIONARY else {}
 
-func _tile_rect(p: Vector2i) -> Rect2:
-    return Rect2(cell_to_screen(p), Vector2(TILE, TILE))
+func _pd_color(family:String)->Color:
+    if family=="Stealth":return Color(.22,.23,.31)
+    if family=="Ranged":return Color(.24,.38,.25)
+    if family=="Guard":return Color(.42,.48,.54)
+    if family=="Ravager":return Color(.48,.24,.18)
+    return Color(.30,.36,.44)
 
-func _draw_floor_tile(p: Vector2i):
-    var r = _tile_rect(p)
-    var alt = ((p.x * 17 + p.y * 31) % 5) < 2
-    var base = Color(.18, .185, .20) if alt else Color(.15, .155, .17)
-    draw_rect(r, base)
-    draw_rect(r.grow(-1), Color(.26, .27, .29, .42), false, 1)
-    if (p.x + p.y) % 2 == 0:
-        draw_line(r.position + Vector2(2, TILE * .52), r.position + Vector2(TILE - 2, TILE * .52), Color(.10, .105, .12, .7), 1)
-    if (p.x * 3 + p.y) % 7 == 0:
-        draw_line(r.position + Vector2(7, 8), r.position + Vector2(13, 12), Color(.28, .29, .31, .65), 1)
-        draw_line(r.position + Vector2(13, 12), r.position + Vector2(10, 17), Color(.28, .29, .31, .65), 1)
+func _pd_axes(facing:Vector2i)->Array:
+    var f=Vector2(float(facing.x),float(facing.y))
+    if f.length_squared()<.5:f=Vector2.UP
+    f=f.normalized()
+    return [f,Vector2(-f.y,f.x)]
 
-func _draw_wall_tile(p: Vector2i):
-    var r = _tile_rect(p)
-    draw_rect(r, Color(.11, .115, .13))
-    draw_rect(r.grow(-2), Color(.29, .30, .33))
-    draw_line(r.position + Vector2(2, 3), r.position + Vector2(TILE - 2, 3), Color(.46, .47, .51, .75), 2)
-    draw_line(r.position + Vector2(2, TILE - 3), r.position + Vector2(TILE - 2, TILE - 3), Color(.07, .075, .09), 2)
-    draw_line(r.position + Vector2(2, TILE * .5), r.position + Vector2(TILE - 2, TILE * .5), Color(.16, .17, .19), 2)
-    var split = 10 if (p.x + p.y) % 2 == 0 else 19
-    draw_line(r.position + Vector2(split, 3), r.position + Vector2(split, TILE * .5), Color(.16, .17, .19), 2)
-
-func _draw_pillar_tile(p: Vector2i):
-    var c = cell_to_screen(p) + Vector2(TILE / 2, TILE / 2)
-    draw_rect(Rect2(c - Vector2(11, 11), Vector2(22, 22)), Color(.12, .13, .15))
-    draw_rect(Rect2(c - Vector2(8, 8), Vector2(16, 16)), Color(.38, .39, .42))
-    draw_circle(c, 6, Color(.19, .20, .23))
-    draw_circle(c, 7, Color(.57, .58, .61, .65), false, 1)
-
-func _draw_door_tile(p: Vector2i, opened: bool):
-    var r = _tile_rect(p)
-    if opened:
-        draw_rect(r.grow(-4), Color(.20, .21, .23), false, 3)
-        draw_line(r.position + Vector2(7, 5), r.position + Vector2(13, TILE - 5), Color(.48, .29, .17), 5)
+func _pd_hand(c:Vector2,s:float,f:Vector2,r:Vector2,item:Dictionary,side:float):
+    if item.is_empty():return
+    var p=c+r*side*7.0*s
+    var family=str(item.get("family",""))
+    var ink=Color(.78,.81,.84)
+    var w=maxf(1.0,1.5*s)
+    if family=="Ranged":
+        var bend=p+r*side*5.0*s
+        draw_line(p+f*10*s,bend,Color(.43,.28,.14),w)
+        draw_line(bend,p-f*8*s,Color(.43,.28,.14),w)
+        draw_line(p+f*10*s,p-f*8*s,Color(.78,.76,.65),maxf(1.0,.5*s))
         return
-    draw_rect(r.grow(-4), Color(.31, .17, .10))
-    draw_line(r.position + Vector2(8, 6), r.position + Vector2(8, TILE - 6), Color(.52, .31, .18), 3)
-    draw_line(r.position + Vector2(TILE - 8, 6), r.position + Vector2(TILE - 8, TILE - 6), Color(.19, .11, .07), 3)
-    draw_line(r.position + Vector2(4, 10), r.position + Vector2(TILE - 4, 10), Color(.52, .54, .57), 3)
-    draw_line(r.position + Vector2(4, TILE - 10), r.position + Vector2(TILE - 4, TILE - 10), Color(.52, .54, .57), 3)
-    draw_circle(r.position + Vector2(TILE - 9, TILE * .5), 2, Color(.88, .71, .29))
+    var variant=abs(str(item.get("base_name","")).hash())%3
+    var tip=p+f*(9.0+float(variant)*2.5)*s
+    draw_line(p-f*3*s,tip,ink,w)
+    if variant==1:draw_line(tip-r*3*s,tip+r*3*s,ink,w*1.6)
+    elif variant==2:draw_circle(tip,2.2*s,ink)
 
-func _draw_cask_tile(p: Vector2i):
-    var c = cell_to_screen(p) + Vector2(TILE / 2, TILE / 2)
-    draw_circle(c, 10, Color(.40, .18, .10))
-    draw_rect(Rect2(c + Vector2(-10, -4), Vector2(20, 3)), Color(.48, .50, .52))
-    draw_rect(Rect2(c + Vector2(-10, 4), Vector2(20, 3)), Color(.48, .50, .52))
-    draw_line(c + Vector2(-3, -8), c + Vector2(3, 8), Color(.82, .36, .18), 2)
-
-func _draw_stair_tile(p: Vector2i):
-    var r = _tile_rect(p)
-    for n in range(4):
-        draw_rect(Rect2(r.position + Vector2(4 + n * 3, 5 + n * 4), Vector2(22 - n * 6, 4)), Color(.42 + n * .04, .46 + n * .04, .48 + n * .04))
-    draw_rect(r, Color(.47, .77, .64, .8), false, 2)
-
-func _draw_cache_tile(p: Vector2i):
-    var r = _tile_rect(p)
-    draw_rect(Rect2(r.position + Vector2(5, 9), Vector2(20, 15)), Color(.44, .35, .12))
-    draw_rect(Rect2(r.position + Vector2(5, 9), Vector2(20, 15)), Color(.78, .66, .25), false, 2)
-    draw_line(r.position + Vector2(15, 9), r.position + Vector2(15, 24), Color(.86, .74, .32), 2)
-    draw_rect(r, Color(.95, .78, .30, .9), false, 2)
-
-func _draw_chest_tile(p: Vector2i, active: bool):
-    var r = _tile_rect(p)
-    var mod = 1.0 if active else .42
-    draw_rect(Rect2(r.position + Vector2(5, 11), Vector2(20, 13)), Color(.36 * mod, .20 * mod, .09 * mod, 1))
-    draw_rect(Rect2(r.position + Vector2(5, 11), Vector2(20, 13)), Color(.72 * mod, .48 * mod, .18 * mod, 1), false, 2)
-    draw_line(r.position + Vector2(5, 16), r.position + Vector2(25, 16), Color(.48 * mod, .50 * mod, .52 * mod, 1), 2)
-    draw_rect(Rect2(r.position + Vector2(13, 15), Vector2(4, 5)), Color(.88 * mod, .71 * mod, .29 * mod, 1))
-
-func draw_map():
-    for y in range(H):
-        for x in range(W):
-            _draw_floor_tile(Vector2i(x, y))
-    for p in walls.keys():
-        _draw_wall_tile(p)
-    for p in shelves.keys():
-        _draw_pillar_tile(p)
-    for p in doors.keys():
-        _draw_door_tile(p, bool(doors[p]))
-    for p in barrels.keys():
-        _draw_cask_tile(p)
-    _draw_stair_tile(exit_cell)
-    if not objective_taken:
-        _draw_cache_tile(objective)
-    for p in loot_chests.keys():
-        _draw_chest_tile(p, bool(loot_chests[p]))
-
-func _draw_walker_icon(c: Vector2, alpha: float = 1.0):
-    draw_circle(c + Vector2(0, 3), 8, Color(.31, .43, .28, alpha))
-    draw_circle(c + Vector2(1, -7), 5, Color(.53, .61, .45, alpha))
-    draw_line(c + Vector2(-6, 1), c + Vector2(-11, 7), Color(.42, .53, .36, alpha), 4)
-    draw_line(c + Vector2(6, 1), c + Vector2(11, 6), Color(.42, .53, .36, alpha), 4)
-    draw_line(c + Vector2(-3, 9), c + Vector2(-6, 13), Color(.42, .53, .36, alpha), 4)
-    draw_line(c + Vector2(3, 9), c + Vector2(6, 13), Color(.42, .53, .36, alpha), 4)
-    draw_circle(c + Vector2(-1, -8), 1.2, Color(.92, .82, .28, alpha))
-    draw_circle(c + Vector2(3, -8), 1.2, Color(.92, .82, .28, alpha))
-
-func _draw_ripper_icon(c: Vector2, alpha: float = 1.0):
-    draw_circle(c + Vector2(-1, 3), 8, Color(.48, .16, .16, alpha))
-    draw_circle(c + Vector2(7, -4), 4.5, Color(.69, .29, .22, alpha))
-    draw_line(c + Vector2(-6, 4), c + Vector2(-12, 11), Color(.63, .25, .20, alpha), 3)
-    draw_line(c + Vector2(2, 8), c + Vector2(-1, 14), Color(.63, .25, .20, alpha), 3)
-    draw_line(c + Vector2(5, 6), c + Vector2(10, 13), Color(.63, .25, .20, alpha), 3)
-    draw_line(c + Vector2(8, 0), c + Vector2(13, 6), Color(.63, .25, .20, alpha), 3)
-    draw_circle(c + Vector2(8, -5), 1.2, Color(1, .78, .29, alpha))
-    draw_line(c + Vector2(12, 2), c + Vector2(15, 4), Color(.88, .76, .60, alpha), 2)
-
-func _draw_brute_icon(c: Vector2, alpha: float = 1.0):
-    draw_rect(Rect2(c + Vector2(-10, -2), Vector2(20, 15)), Color(.35, .31, .41, alpha))
-    draw_circle(c + Vector2(0, -8), 7, Color(.56, .50, .60, alpha))
-    draw_circle(c + Vector2(-12, 4), 5, Color(.48, .42, .53, alpha))
-    draw_circle(c + Vector2(12, 4), 5, Color(.48, .42, .53, alpha))
-    draw_line(c + Vector2(-5, 12), c + Vector2(-7, 15), Color(.43, .38, .48, alpha), 5)
-    draw_line(c + Vector2(5, 12), c + Vector2(7, 15), Color(.43, .38, .48, alpha), 5)
-    draw_circle(c + Vector2(-2, -9), 1.3, Color(.94, .80, .32, alpha))
-    draw_circle(c + Vector2(3, -9), 1.3, Color(.94, .80, .32, alpha))
-
-func _draw_creature_icon(kind: String, c: Vector2, alpha: float = 1.0):
-    if kind == "Ripper":
-        _draw_ripper_icon(c, alpha)
-    elif kind == "Brute":
-        _draw_brute_icon(c, alpha)
-    else:
-        _draw_walker_icon(c, alpha)
+func _draw_player_paper_doll(c:Vector2,s:float,facing:Vector2i,appearance:Dictionary,gear:Dictionary):
+    var axes=_pd_axes(facing);var f:Vector2=axes[0];var r:Vector2=axes[1]
+    var widths=[.85,1.0,1.18]
+    var bw=float(widths[clampi(int(appearance.get("body",1)),0,2)])
+    var skins=[Color(.92,.76,.64),Color(.76,.56,.42),Color(.50,.32,.22),Color(.30,.19,.15)]
+    var hairs=[Color(.08,.07,.06),Color(.24,.13,.08),Color(.72,.56,.27),Color(.48,.18,.09),Color(.64,.66,.68)]
+    var skin=skins[clampi(int(appearance.get("skin",1)),0,3)]
+    var hair=hairs[clampi(int(appearance.get("hair_color",0)),0,4)]
+    var armor=_pd_item(gear,"Armor");var cloak=_pd_item(gear,"Cloak");var head=_pd_item(gear,"Head")
+    var gloves=_pd_item(gear,"Gloves");var belt=_pd_item(gear,"Belt");var boots=_pd_item(gear,"Boots")
+    var primary=_pd_item(gear,"Weapon");var secondary=_pd_item(gear,"Offhand")
+    if not cloak.is_empty():
+        var cape=_pd_color(str(cloak.get("family",""))).darkened(.18)
+        draw_colored_polygon(PackedVector2Array([c-r*6*bw*s-f*2*s,c+r*6*bw*s-f*2*s,c+r*7*bw*s-f*10*s,c-r*7*bw*s-f*10*s]),cape)
+    var leg=_pd_color(str(boots.get("family",""))).darkened(.12) if not boots.is_empty() else Color(.18,.20,.23)
+    draw_line(c-r*3*bw*s-f*4*s,c-r*3*bw*s-f*11*s,leg,maxf(1.0,2.5*s))
+    draw_line(c+r*3*bw*s-f*4*s,c+r*3*bw*s-f*11*s,leg,maxf(1.0,2.5*s))
+    var torso=_pd_color(str(armor.get("family",""))) if not armor.is_empty() else Color(.28,.38,.48)
+    draw_colored_polygon(PackedVector2Array([c+f*4*s-r*5*bw*s,c+f*4*s+r*5*bw*s,c-f*5*s+r*4*bw*s,c-f*5*s-r*4*bw*s]),torso)
+    var arms=_pd_color(str(gloves.get("family",""))) if not gloves.is_empty() else skin
+    draw_line(c-r*4*bw*s+f*2*s,c-r*7*bw*s,arms,maxf(1.0,2.4*s))
+    draw_line(c+r*4*bw*s+f*2*s,c+r*7*bw*s,arms,maxf(1.0,2.4*s))
+    if not belt.is_empty():
+        draw_line(c-r*4*bw*s-f*2*s,c+r*4*bw*s-f*2*s,_pd_color(str(belt.get("family",""))).lightened(.18),maxf(1.0,1.3*s))
+    var hc=c+f*8*s;var hs=clampi(int(appearance.get("hair_style",0)),0,4)
+    if hs!=4:draw_circle(hc-f*s,4.7*s,hair)
+    draw_circle(hc+f*.5*s,3.8*s,skin)
+    if hs==2:
+        draw_line(hc-r*3*s,hc-r*4*s-f*5*s,hair,maxf(1.0,2*s))
+        draw_line(hc+r*3*s,hc+r*4*s-f*5*s,hair,maxf(1.0,2*s))
+    elif hs==3:draw_line(hc-f*4*s,hc+f*s,hair,maxf(1.0,1.8*s))
+    if not head.is_empty():
+        draw_arc(hc,5*s,0,TAU,16,_pd_color(str(head.get("family",""))).lightened(.15),maxf(1.0,1.6*s))
+    if not secondary.is_empty() and str(secondary.get("family",""))=="Guard":
+        var sp=c-r*7*s
+        draw_circle(sp,6*s,_pd_color("Guard"));draw_circle(sp,6*s,Color(.80,.82,.83),false,maxf(1.0,s))
+    else:_pd_hand(c,s,f,r,secondary,-1.0)
+    _pd_hand(c,s,f,r,primary,1.0)
 
 func draw_units():
-    for z in zombies:
-        if z.dead and visible_cells.has(z.pos):
-            var dc = cell_to_screen(z.pos) + Vector2(TILE / 2, TILE / 2)
-            _draw_creature_icon(str(z.get("kind", "Walker")), dc, .45)
-            draw_line(dc + Vector2(-9, -7), dc + Vector2(9, 7), Color(.60, .08, .08), 3)
-            draw_line(dc + Vector2(-9, 7), dc + Vector2(9, -7), Color(.60, .08, .08), 3)
+    super.draw_units()
+    var c=cell_to_screen(player.pos)+Vector2(TILE/2,TILE/2)
+    draw_circle(c,10.6,Color(.08,.09,.11))
+    var look=player.get("appearance",{})
+    if typeof(look)!=TYPE_DICTIONARY:look={}
+    _draw_player_paper_doll(c,.72,player.facing,look,equipped)
+    arrow(c,player.facing,Color(1,1,1,.84),14)
+    if player.crouched:draw_circle(c,12,Color(.55,.75,1),false,1)
 
-    for key in last_seen.keys():
-        var i = int(key)
-        if i < 0 or i >= zombies.size():
-            continue
-        var z = zombies[i]
-        if z.dead or visible_cells.has(z.pos):
-            continue
-        var lp: Vector2i = last_seen[i].pos
-        var lc = cell_to_screen(lp) + Vector2(TILE / 2, TILE / 2)
-        _draw_creature_icon(str(z.get("kind", "Walker")), lc, .35)
-        draw_string(font, lc + Vector2(-12, -14), "LAST", HORIZONTAL_ALIGNMENT_LEFT, -1, 8, Color(.70, .72, .72, .8))
+func draw_hud():
+    super.draw_hud()
+    if menu_open or character_open:return
+    draw_rect(Rect2(112,36,478,24),Color(.028,.033,.040,.99))
+    draw_string(font,Vector2(112,53),"%s | %s"%[str(player.get("name","Arena Tester")),_build_name()],HORIZONTAL_ALIGNMENT_LEFT,478,11,Color(.68,.82,1))
 
-    for i in range(zombies.size()):
-        var z = zombies[i]
-        if z.dead or not visible_cells.has(z.pos):
-            continue
-        var c = cell_to_screen(z.pos) + Vector2(TILE / 2, TILE / 2)
-        var kind = str(z.get("kind", "Walker"))
-        _draw_creature_icon(kind, c)
-        arrow(c, z.facing, Color(.94, .91, .73), 11)
-        if z.state == "CHASE":
-            draw_circle(c, 14, Color(1, .18, .12, .92), false, 2)
-        else:
-            var intent_text = str(intent_reads.get(i, "?"))
-            if intent_text != "":
-                draw_string(font, c + Vector2(-20, -15), intent_text, HORIZONTAL_ALIGNMENT_LEFT, -1, 9, Color(1, .85, .38))
-        var hp_max = max(1, int(z.get("max_hp", z.hp)))
-        var hp_ratio = clamp(float(z.hp) / float(hp_max), 0.0, 1.0)
-        draw_rect(Rect2(c + Vector2(-11, 11), Vector2(22, 3)), Color(.12, .08, .08, .85))
-        draw_rect(Rect2(c + Vector2(-11, 11), Vector2(22.0 * hp_ratio, 3)), Color(.72, .18, .16, .95))
-        if debug_ai:
-            draw_string(font, c + Vector2(-20, 27), "%s %s %d" % [kind, str(z.state), int(z.next) - tick], HORIZONTAL_ALIGNMENT_LEFT, -1, 8, Color.WHITE)
-
-    var pc = cell_to_screen(player.pos) + Vector2(TILE / 2, TILE / 2)
-    draw_circle(pc, 10, Color(.25, .55, .90))
-    arrow(pc, player.facing, Color.WHITE, 13)
-    if player.crouched:
-        draw_circle(pc, 12, Color(.55, .75, 1), false, 1)
+func draw_character_overlay():
+    super.draw_character_overlay()
+    draw_rect(Rect2(24,76,664,30),Color(.018,.021,.028,.995))
+    draw_string(font,Vector2(28,98),"%s   IDENTITY: %s"%[str(player.get("name","Arena Tester")).to_upper(),_build_name()],HORIZONTAL_ALIGNMENT_LEFT,510,15,Color(.68,.82,1))
+    var look=player.get("appearance",{})
+    if typeof(look)!=TYPE_DICTIONARY:look={}
+    _draw_player_paper_doll(Vector2(620,150),2.2,Vector2i(0,-1),look,equipped)
+    draw_string(font,Vector2(548,194),"EQUIPPED LOOK",HORIZONTAL_ALIGNMENT_CENTER,144,8,Color(.58,.63,.66))

@@ -16,9 +16,12 @@ func check(ok: bool, label: String):
         push_error("SMOKE FAIL: %s" % label)
 
 func _run():
-    var profile = PlayerProfile.normalize({"name":"Smoke Gladiator","appearance":{"test":"ok"}})
+    var profile = PlayerProfile.normalize({"name":"Smoke Gladiator","appearance":{"body":99,"skin":-5,"hair_style":2,"hair_color":3,"test":"ok"}})
     check(str(profile["name"])=="Smoke Gladiator","player profile normalizes name")
-    check(str(profile["appearance"].get("test",""))=="ok","player profile preserves appearance data")
+    check(int(profile["appearance"].get("body",-1))==2,"player profile clamps body appearance")
+    check(int(profile["appearance"].get("skin",-1))==0,"player profile clamps skin appearance")
+    check(str(profile["appearance"].get("test",""))=="ok","player profile preserves open appearance data")
+    check(PlayerProfile.appearance_label(profile["appearance"],"hair_style")=="Long","player profile appearance labels")
 
     var scenario = ArenaScenario.normalize({"starter_index":1,"roster":{"Walker":8,"Ripper":3,"Brute":1}})
     check(int(scenario["starter_index"])==1,"scenario starter index")
@@ -34,6 +37,7 @@ func _run():
     await process_frame
 
     check(game.starter_loadouts.size()==4,"four starter identities")
+    check(game.has_method("_draw_player_paper_doll"),"paper doll renderer is live")
     for i in range(min(4,game.starter_loadouts.size())):
         var loadout: Dictionary = game.starter_loadouts[i]
         var family = str(loadout.get("family",""))
@@ -46,9 +50,12 @@ func _run():
         check("Quick Shot" in game.starter_loadouts[1]["gear"]["Weapon"].get("specials",[]),"Short Bow has Quick Shot")
         check("Dual Strike" in game.starter_loadouts[3]["gear"]["Offhand"].get("specials",[]),"Ravager starter has Dual Strike")
 
+    game.player_profile=PlayerProfile.normalize({"name":"Smoke Gladiator","appearance":{"body":2,"skin":3,"hair_style":4,"hair_color":1}})
     game.selected_starter=0
     game._start_dungeon()
     await process_frame
+    check(str(game.player.get("name",""))=="Smoke Gladiator","profile name reaches live player")
+    check(int(game.player.get("appearance",{}).get("body",-1))==2,"profile appearance reaches live player")
     check(not game.floor_cells.is_empty(),"arena has floor")
     check(game.loot_chests.size()==4,"arena has four chests")
     check(game.exit_cell!=game.objective,"exit differs from objective")

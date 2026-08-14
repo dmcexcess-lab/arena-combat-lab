@@ -5,7 +5,9 @@ Operational checklist for humans + AIs. Keep compact; add only behaviors whose r
 ## Automated CI smoke gate
 - Main scene instantiates without script/runtime errors.
 - Four fixed starter identities exist and equip valid Common gear.
-- `PlayerProfile` normalizes identity/appearance data.
+- `PlayerProfile` normalizes/clamps known cosmetic fields while preserving open appearance data.
+- Setup-level `PlayerProfile` name/appearance reaches the live runtime player.
+- Live runtime exposes the `MainArenaVisuals` paper-doll renderer.
 - `ArenaScenario` normalizes starter/roster data and expands the roster correctly.
 - `CreatureCatalog` exposes the live Walker/Ripper/Brute definitions without duplicated stats.
 - Arena generation produces floor cells, an exit, objective choices and four loot chests.
@@ -15,15 +17,21 @@ Operational checklist for humans + AIs. Keep compact; add only behaviors whose r
 
 ## Manual release smoke
 ### Desktop / Firefox
+- Creator opens first; name typing/backspace/Enter works; appearance +/- and random buttons update the live preview.
+- Setup profile strip reopens the creator and retains the chosen identity.
 - WASD moves/faces correctly; mouse targets/interacts; 1–6 selects feats.
 - Menu and character/inventory overlays open/close.
+- Paper doll rotates with facing and visibly changes when Weapon/Offhand/Armor/Head/Cloak/Gloves/Belt/Boots change.
 - Doors open/close; cache can be recovered; stair completes run only after cache.
 
 ### Mobile / Safari
 - One finger contact causes at most one action.
+- Creator name tap opens the device keyboard; Done returns to setup without launching the Arena.
+- Creator appearance controls are single-tap and update the equipped preview.
 - 90-degree movement/facing pad works without duplicate mouse actions.
 - Feat buttons select/arm/fire and display tick cooldowns.
 - Map taps attack creatures and interact with gates.
+- Tactical paper doll remains readable at map scale and equipped weapon/offhand do not obscure facing.
 
 ### Combat identities
 - Stealth: rear/unaware play, throwing knives, legal small-blade dual wield.

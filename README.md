@@ -24,6 +24,7 @@ See [ROADMAP.md](ROADMAP.md) for the intended game structure.
 
 Right now the playable build is focused on Arena combat. A run lets you:
 
+- create a cosmetic survivor identity with a name, body build, skin tone, hair style and hair color;
 - choose one fixed Common equipment identity: **Stealth, Ranged, Guard, Ravager**;
 - build a mixed roster of **Walkers, Rippers and Brutes** before launching;
 - generate a more open Arena-style floor with a central fighting space, wide lanes, gates and sparse pillars;
@@ -34,7 +35,7 @@ Right now the playable build is focused on Arena combat. A run lets you:
 - open four generated loot chests and equip Common through Enchanted gear;
 - recover the cache and return to the stair without needing to clear the floor.
 
-There are **no character levels**. The same baseline human starts every run; equipment creates the build.
+There are **no character levels**. The same baseline human starts every run; equipment creates the build. Character-creator choices are visual only.
 
 Current creatures deliberately test different difficulty axes:
 
@@ -42,7 +43,7 @@ Current creatures deliberately test different difficulty axes:
 - **Ripper:** fragile but very fast, with better senses, tracking and awareness sharing.
 - **Brute:** slow and unintelligent but physically durable and dangerous.
 
-The Arena now uses a code-drawn stone tile set and distinct creature icons. The player remains a simple circle for now; visible equipped gear is reserved for the later paper-doll pass.
+The Arena uses a code-drawn stone tile set and distinct creature icons. The player is now a layered paper-doll icon: body appearance stays underneath visible equipped armor, cloak, headgear, gloves, belt, boots, weapon and offhand.
 
 ## Controls
 
@@ -51,13 +52,15 @@ The Arena now uses a code-drawn stone tile set and distinct creature icons. The 
 - **WASD:** movement/facing
 - **Mouse:** targeting and context interactions
 - **1–6:** select visible feats
+- **Character creator:** click the name field and type; Enter accepts the name
 
 ### Mobile
 
 - portrait combat HUD;
 - left-side movement/facing controls;
 - right-side feat buttons;
-- tap enemies/objects on the map to target or interact.
+- tap enemies/objects on the map to target or interact;
+- tap the creator name field to open the device keyboard.
 
 ## Project principles
 

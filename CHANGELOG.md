@@ -2,6 +2,14 @@
 
 Current truth: `PROJECT_CONTEXT.md` · Future: `ROADMAP.md`
 
+## 2026-08-13 — Character Creator + Equipped Paper Doll
+- Wired `PlayerProfile` into the live setup/session boundary; the created name and appearance now reach the runtime player.
+- Added a mobile-first creator with editable name, body build, skin tone, hair style/color, random name/look, and a live selected-starter preview.
+- Replaced the blue player circle with a layered code-drawn paper doll that rotates with facing and visibly renders equipped armor, cloak, headgear, gloves, belt, boots, weapon and offhand.
+- Character/inventory and combat HUD now show the created identity; the character overlay includes a larger equipped-look preview.
+- Appearance is cosmetic only: the fixed baseline human and equipment-driven build rules are unchanged.
+- Strengthened smoke coverage for appearance normalization, setup→runtime profile wiring and the live paper-doll renderer.
+
 ## 2026-08-13 — Razor Refactor + Regression Gate
 - Audited the entire GDScript runtime stack and separated proven-dead prototype code from active Arena behavior.
 - Removed obsolete `MainDungeon.gd`; current Arena procgen is authoritative and Boundless now inherits directly from the mobile-web shell.
