@@ -2,11 +2,21 @@
 
 Current truth: `PROJECT_CONTEXT.md` · Future: `ROADMAP.md`
 
-## 2026-08-13 — Paper Doll Finish Pass
-- Fixed the inverted hair placement: hair now anchors at the crown away from the torso instead of reading as chin/beard hair.
-- Equipped headgear now replaces/hides hairstyle rendering, matching the creator UI promise.
-- Replaced hash-generic hand items with explicit knife, bow, crossbow, sword, mace, hammer and axe silhouettes; Buckler/Kite/Tower shields and starter headgear also render distinctly.
-- Added family-readable armor trim and regression checks for head/crown orientation plus weapon-kind classification; combat stats and equipment rules are unchanged.
+## 2026-08-13 — Developer Screen Final Pre-Test Pass
+- Reframed the standalone pre-run setup as the four-page **Developer Screen** intended to be opened from the future prison game through `open_dev_screen()`.
+- Replaced the hand-rolled creator name input with a real Godot `LineEdit`, keeping native virtual-keyboard behavior available for mobile Safari; random names now come from a dedicated fantasy-name pool.
+- Character preview now deliberately removes equipped headgear while editing appearance so hair style/color can always be inspected.
+- Added exact-rarity random gear spawning and a custom item builder. Custom items reuse live gear rules for base items, rarity stat/property/feat budgets, legal properties and legal extra feats; generated items enter starting inventory.
+- Expanded the live creature test catalog from 3 to 9: Walker, Ripper, Brute, Ghoul, Hound, Stalker, Marauder, Warden and Juggernaut.
+- Replaced the fixed three-counter spawn boundary with a catalog-driven roster dictionary and generic spawn loop; the Developer Screen paginates automatically across the full catalog with a combined cap of 40.
+- Added a Summary review gate for character, starter kit, dev gear queue and creature roster; Arena generation now happens from that final page.
+- Extended CI smoke coverage for Safari-ready name input structure, fantasy names, helm-hidden creator preview, exact-rarity/custom dev gear, expanded creature catalog, arbitrary scenario rosters and dev-gear handoff into starting inventory.
+
+## 2026-08-13 — Character Creator / Paper Doll Finish
+- Fixed head/crown orientation so hair stays on the crown instead of reading as chin hair.
+- Equipped headgear now replaces/hides hair, matching the creator note.
+- Replaced hash-derived weapon marks with named silhouettes for knives, swords, bows, crossbows, maces, hammers and axes; Guard shields and headgear also gained distinct shapes.
+- Added a geometry smoke assertion for crown direction and expanded manual paper-doll checks.
 
 ## 2026-08-13 — Character Creator + Equipped Paper Doll
 - Wired `PlayerProfile` into the live setup/session boundary; the created name and appearance now reach the runtime player.
@@ -29,9 +39,9 @@ Current truth: `PROJECT_CONTEXT.md` · Future: `ROADMAP.md`
 
 ## 2026-08-13 — Arena Tiles + Creature Roster
 - Added code-drawn stone Arena tiles, gates, pillars, casks, stairs, cache and chests.
-- Added distinct **Walker, Ripper and Brute** icons with HP bars; player stays a circle until paper-doll work.
+- Added distinct **Walker, Ripper and Brute** icons with HP bars.
 - Ripper is the fast, perceptive, higher-intelligence hunter; Brute is the slow, durable, low-intelligence physical threat.
-- Launch menu controls each creature count independently, combined cap 40, default 8/3/1.
+- Launch menu originally controlled each of the three creature counts independently, combined cap 40, default 8/3/1.
 - Procgen creates a large central space, four satellite rooms, wide lanes, loops and sparse cover.
 
 ## 2026-08-13 — Docs + Long-Term Shape

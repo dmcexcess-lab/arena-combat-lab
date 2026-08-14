@@ -18,15 +18,15 @@ Arena should also become the **canonical test ground for creatures and equipment
 
 Goal: **shared combat definitions where practical, adapters where necessary.**
 
-## Developer Portal
+## Developer Screen
 
-Build this early, before the content library gets large. It is a separate testing surface, not normal progression.
+The first Developer Screen foundation is now part of the current alpha; see `PROJECT_CONTEXT.md` for implemented truth. Its long-term role remains a separate testing surface, not normal progression. The future prison game should open this surface when the developer/testing action is invoked rather than reimplementing its controls.
 
-It should allow:
+Continue expanding it toward:
 
-- equip any implemented item and exact/generated rarity;
-- inspect stats, properties and feats;
-- build exact dual-wield/shield/ranged loadouts;
+- equip any implemented item and exact/generated rarity directly;
+- inspect every stat, property and feat;
+- build exact dual-wield/shield/ranged loadouts with fewer post-launch inventory steps;
 - set/reset HP, Fear and Fatigue;
 - spawn any implemented creature in exact quantities or mixed groups;
 - inspect creature stats and AI Intelligence;
@@ -34,7 +34,7 @@ It should allow:
 - rapidly restart the same scenario;
 - visualize LOS/FOV, sound propagation, AI state/last-known target, tick order, cooldowns, hit/damage math, Fear/Fatigue and gear compatibility.
 
-The target is: **test this exact monster with this exact gear in seconds.**
+The target remains: **test this exact monster with this exact gear in seconds.**
 
 ## Creature + equipment growth
 
@@ -48,7 +48,7 @@ Equipment keeps the readable **Stealth / Ranged / Guard / Ravager** armor identi
 
 Once combat is stable, replace the pure test wrapper with contracts that clearly expose opponents, objective, risk, reward, environment, special conditions and wager availability. Not every contract must require a full clear; recovery, extraction and survival objectives should remain valid.
 
-The Dev Portal should also launch contract-like scenarios directly for testing.
+The Developer Screen should also launch contract-like scenarios directly for testing.
 
 ## Prison systems
 
@@ -71,11 +71,11 @@ Keep this a **small finishable game**. Core world: **Prison + Arena**. Do not re
 
 ## Milestone order
 
-1. Stabilize current combat / gear / AI alpha.
-2. Build the Developer Portal.
-3. Add enough creatures/equipment to prove the test platform.
+1. Stabilize current combat / gear / AI alpha through extensive testing.
+2. Expand the live Developer Screen with direct equip/state/map/debug controls as testing demands.
+3. Add enough creatures/equipment to prove the test platform and give each creature genuinely distinct behavior where useful.
 4. Convert test runs into Arena Master contracts.
-5. Add persistent prison eat/sleep/train/recover state.
+5. Add persistent prison eat/sleep/train/recover state and wire its dev/testing action to `open_dev_screen()`.
 6. Add economy, gear purchasing and lodging progression.
 7. Add wagering and other-gladiator ecosystem.
 8. Formalize cross-game creature/equipment integration.

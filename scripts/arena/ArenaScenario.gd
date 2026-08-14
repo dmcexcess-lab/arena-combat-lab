@@ -5,22 +5,30 @@ const MAX_CREATURES := 40
 
 static func default_scenario() -> Dictionary:
     return {
-        "schema":1,
-        "source":"setup",
+        "schema":2,
+        "source":"dev_screen",
         "starter_index":0,
         "layout":"open_arena",
         "seed":0,
-        "roster":{"Walker":8, "Ripper":3, "Brute":1}
+        "roster":CreatureCatalog.default_roster()
     }
 
+# Compatibility helper for the original three-creature setup boundary.
 static func from_setup(starter_index: int, walker_count: int, ripper_count: int, brute_count: int) -> Dictionary:
+    var roster = CreatureCatalog.default_roster()
+    roster["Walker"] = walker_count
+    roster["Ripper"] = ripper_count
+    roster["Brute"] = brute_count
+    return from_dev(starter_index, roster)
+
+static func from_dev(starter_index: int, roster: Dictionary) -> Dictionary:
     return normalize({
-        "schema":1,
-        "source":"setup",
+        "schema":2,
+        "source":"dev_screen",
         "starter_index":starter_index,
         "layout":"open_arena",
         "seed":0,
-        "roster":{"Walker":walker_count, "Ripper":ripper_count, "Brute":brute_count}
+        "roster":roster
     })
 
 static func normalize(raw: Dictionary) -> Dictionary:
@@ -32,7 +40,7 @@ static func normalize(raw: Dictionary) -> Dictionary:
     var incoming: Dictionary = raw.get("roster", {})
     var roster := {}
     var remaining = MAX_CREATURES
-    for kind in CreatureCatalog.ORDER:
+    for kind in CreatureCatalog.kinds():
         var count = clampi(int(incoming.get(kind, 0)), 0, MAX_CREATURES)
         count = min(count, remaining)
         roster[kind] = count
@@ -44,7 +52,7 @@ static func expanded_roster(raw: Dictionary) -> Array:
     var scenario = normalize(raw)
     var out: Array = []
     var roster: Dictionary = scenario["roster"]
-    for kind in CreatureCatalog.ORDER:
+    for kind in CreatureCatalog.kinds():
         for n in range(int(roster.get(kind, 0))):
             out.append(kind)
     return out

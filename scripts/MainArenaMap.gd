@@ -1,4 +1,4 @@
-extends "res://scripts/MainArenaCreatures.gd"
+extends "res://scripts/MainArenaDevCreatures.gd"
 
 # Open arena-style procgen: a large central fighting space, four satellite rooms,
 # wide lanes, loops, sparse pillars, gates, casks and loot chests.

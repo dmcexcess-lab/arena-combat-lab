@@ -1,13 +1,13 @@
 extends RefCounted
 
 # Read-only adapter over the live creature source of truth.
-const RuntimeCreatures = preload("res://scripts/MainArenaCreatures.gd")
-const ORDER := ["Walker", "Ripper", "Brute"]
+const RuntimeCreatures = preload("res://scripts/MainArenaDevCreatures.gd")
 
 static func kinds() -> Array:
-    return ORDER.duplicate()
+    return RuntimeCreatures.DEV_CREATURE_ORDER.duplicate()
+
+static func default_roster() -> Dictionary:
+    return RuntimeCreatures.DEFAULT_ROSTER.duplicate(true)
 
 static func definition(kind: String) -> Dictionary:
-    var defs: Dictionary = RuntimeCreatures.CREATURES
-    var key = kind if defs.has(kind) else "Walker"
-    return defs[key].duplicate(true)
+    return RuntimeCreatures.catalog_definition(kind)

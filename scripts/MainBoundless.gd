@@ -151,6 +151,6 @@ func draw_menu_overlay():
     draw_rect(Rect2(70,390,580,430),Color(.75,.68,.35),false,2)
     draw_string(font,Vector2(110,438),"BOUNDLESS ADVENTURE",HORIZONTAL_ALIGNMENT_LEFT,-1,23,Color.WHITE)
     draw_touch_button(btn_resume,"RESUME",false)
-    draw_touch_button(btn_menu_new,"NEW SETUP",false)
+    draw_touch_button(btn_menu_new,"DEV SCREEN",false)
     draw_touch_button(btn_exit_google,"EXIT TO GOOGLE",false)
-    draw_string(font,Vector2(110,790),"New Setup returns to gear + creature selection.",HORIZONTAL_ALIGNMENT_LEFT,500,11,Color(.72,.75,.72))
+    draw_string(font,Vector2(110,790),"Dev Screen creates a new test character + Arena scenario.",HORIZONTAL_ALIGNMENT_LEFT,500,11,Color(.72,.75,.72))
