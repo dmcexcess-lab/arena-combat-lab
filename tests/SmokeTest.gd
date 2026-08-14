@@ -1,6 +1,9 @@
 extends SceneTree
 
 var failures: Array[String] = []
+const PlayerProfile = preload("res://scripts/player/PlayerProfile.gd")
+const ArenaScenario = preload("res://scripts/arena/ArenaScenario.gd")
+const CreatureCatalog = preload("res://scripts/catalogs/CreatureCatalog.gd")
 const EXPECTED_FAMILIES := ["Stealth","Ranged","Guard","Ravager"]
 const EXPECTED_RARITIES := ["Common","Uncommon","Rare","Enchanted"]
 const DIR4 := [Vector2i(0,-1),Vector2i(1,0),Vector2i(0,1),Vector2i(-1,0)]
@@ -13,6 +16,16 @@ func check(ok: bool, label: String):
         push_error("SMOKE FAIL: %s" % label)
 
 func _run():
+    var profile = PlayerProfile.normalize({"name":"Smoke Gladiator","appearance":{"test":"ok"}})
+    check(str(profile["name"])=="Smoke Gladiator","player profile normalizes name")
+    check(str(profile["appearance"].get("test",""))=="ok","player profile preserves appearance data")
+
+    var scenario = ArenaScenario.normalize({"starter_index":1,"roster":{"Walker":8,"Ripper":3,"Brute":1}})
+    check(int(scenario["starter_index"])==1,"scenario starter index")
+    check(ArenaScenario.expanded_roster(scenario).size()==12,"scenario expands roster")
+    check(CreatureCatalog.kinds()==["Walker","Ripper","Brute"],"creature catalog order")
+    check(int(CreatureCatalog.definition("Brute").get("hp",0))==28,"creature catalog exposes live definitions")
+
     var packed = load("res://main.tscn")
     check(packed is PackedScene,"main.tscn loads")
     if not packed is PackedScene: quit(1); return
