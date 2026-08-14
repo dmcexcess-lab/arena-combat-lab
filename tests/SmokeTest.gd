@@ -84,6 +84,7 @@ func _run():
     check("Overhead Smash" in custom["specials"],"custom gear applies legal extra feat")
 
     game.player_profile=PlayerProfile.normalize({"name":"Smoke Gladiator","appearance":{"body":2,"skin":3,"hair_style":4,"hair_color":1}})
+    game.name_editor.text="Smoke Gladiator"
     game.selected_starter=0
     game.creature_spawn_counts=CreatureCatalog.default_roster()
     game.creature_spawn_counts["Ghoul"]=2
