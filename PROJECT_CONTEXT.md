@@ -1,36 +1,23 @@
 # Arena Combat Lab — AI Project Context
 
-> **For every prompt that will edit code, read `README_SOPS.md` and this file once before the first code edit.** Current truth only; future scope is `ROADMAP.md`, history is `CHANGELOG.md`, regression contract is `TEST_MATRIX.md`.
+> Read `README_SOPS.md` + this file once before the first code edit of each coding prompt. Future: `ROADMAP.md` · History: `CHANGELOG.md` · Regression: `TEST_MATRIX.md`.
 
 ## Current alpha
-No levels. The same baseline human starts every run and equipment creates the build. Choose fixed Common Stealth/Ranged/Guard/Ravager starter gear, set a mixed creature roster, generate an Arena floor, open 4 gear chests, recover the cache, and return to the stair. Full clear is optional.
+Same baseline human every run; equipment creates the build. Fixed Common Stealth/Ranged/Guard/Ravager starters, mixed Walker/Ripper/Brute roster (default 8/3/1, cap 40), open Arena procgen, four gear chests, cache + return-to-stair objective. No levels. Epic/magic disabled.
 
-Launch defaults: **8 Walkers / 3 Rippers / 1 Brute**, independent counts, combined cap 40.
-- **Walker:** easy low-intelligence baseline; HP 12, move 130t, AI 1.
-- **Ripper:** fast hunter with stronger senses/tracking/sharing; HP 9, move 72t, AI 3.
-- **Brute:** slow physical threat with loud gate-smash behavior; HP 28, move 175t, AI 1.
+Core invariants: variable action-time ticks; facing/FOV/LOS/fog/physical sound; HP/Fear/Fatigue; Weapon/Offhand feats; local awareness/memory; no noise-spawn director; global `!! SPOTTED !!`.
 
-Arena procgen favors a large central fighting space, four satellite rooms, wide lanes, loop routes, paired gates, sparse pillars/casks, and 4 chests. Visuals are code-drawn stone tiles + distinct creature icons/HP bars. Player remains a blue circle until the paper-doll/equipment visual pass.
+Player still renders as the blue circle.
 
-Established invariants: variable action-time ticks; physical facing/FOV/LOS/fog/sound; HP/Fear/Fatigue; Weapon/Offhand feats; local awareness/memory rather than omniscience; no noise-spawn director; `!! SPOTTED !!`; Epic/magic disabled.
+## CSD2 handoff modules
+These exist now and are CI-smoke-tested, but **do not change live gameplay yet**:
+- `scripts/player/PlayerProfile.gd` — persistent identity record: id, display name, open-ended appearance data.
+- `scripts/arena/ArenaScenario.gd` — normalized starter/roster/layout/seed request for future setup, contracts and Dev Portal.
+- `scripts/catalogs/CreatureCatalog.gd` — read-only adapter over live creature definitions; no duplicated creature stats.
+
+Next character-creator/paper-doll pass should wire `PlayerProfile` at the top setup/session boundary and keep visible body/armor/weapon work inside `MainArenaVisuals.gd`. Combat/gear code should expose state, not drawing logic.
 
 ## Live runtime
-`main.tscn` → `scripts/MainArenaSetup.gd`
+`main.tscn` → `MainArenaSetup -> MainArenaVisuals -> MainArenaMap -> MainArenaCreatures -> MainAlphaAI -> MainAlphaDual -> MainAlphaWeapons -> MainAlphaGear -> MainAlphaWrapper -> MainAlphaCombat -> MainAlphaState -> MainBoundless -> MainMobileWeb -> MainMobile -> MainPerception -> Main`
 
-`MainArenaSetup -> MainArenaVisuals -> MainArenaMap -> MainArenaCreatures -> MainAlphaAI -> MainAlphaDual -> MainAlphaWeapons -> MainAlphaGear -> MainAlphaWrapper -> MainAlphaCombat -> MainAlphaState -> MainBoundless -> MainMobileWeb -> MainMobile -> MainPerception -> Main`
-
-The obsolete `MainDungeon` inheritance layer has been removed; current Arena procgen owns map generation directly.
-
-Primary ownership:
-- `MainArenaSetup.gd` — launch roster/top layer
-- `MainArenaVisuals.gd` — current tile/icon rendering
-- `MainArenaMap.gd` — current open Arena procgen
-- `MainArenaCreatures.gd` — current creature stats/behavior
-- `MainAlphaAI.gd` — generic awareness/memory/tracking
-- `MainAlphaDual.gd` / `MainAlphaWeapons.gd` — current dual-wield and Short/Long Bow patches
-- `MainAlphaGear.gd` / `MainAlphaWrapper.gd` / `MainAlphaCombat.gd` / `MainAlphaState.gd` — current gear UI, HUD/cooldowns, combat and player state
-- `MainBoundless.gd` — compact run/setup shell + shared Arena carve helpers
-- `MainMobileWeb.gd` — Safari touch authority
-- `MainPerception.gd` — compact intent/memory/sound readability
-
-Desktop remains WASD/mouse/1–6. Mobile remains 90-degree movement/facing + feat buttons + map taps. Most-derived overrides win. Historical lower-layer implementations were pruned where they were fully superseded; active patch layers remain until they can be merged without changing behavior.
+Primary owners: Setup=launch roster; Visuals=rendering; Map=procgen; Creatures=creature stats/behavior; AlphaAI=awareness/tracking; AlphaGear/Combat/State=gear+combat state; MobileWeb=Safari touch; Perception=intent/memory/sound readability.
