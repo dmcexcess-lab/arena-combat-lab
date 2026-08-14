@@ -5,6 +5,9 @@ Operational checklist for humans + AIs. Keep compact; add only behaviors whose r
 ## Automated CI smoke gate
 - Main scene instantiates without script/runtime errors.
 - Four fixed starter identities exist and equip valid Common gear.
+- `PlayerProfile` normalizes identity/appearance data.
+- `ArenaScenario` normalizes starter/roster data and expands the roster correctly.
+- `CreatureCatalog` exposes the live Walker/Ripper/Brute definitions without duplicated stats.
 - Arena generation produces floor cells, an exit, objective choices and four loot chests.
 - Default mixed roster spawns Walker/Ripper/Brute counts correctly.
 - Exit and objective are path-connected.
