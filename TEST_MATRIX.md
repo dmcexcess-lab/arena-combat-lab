@@ -22,6 +22,8 @@ Operational checklist for humans + AIs. Keep compact; add only behaviors whose r
 - WASD moves/faces correctly; mouse targets/interacts; 1–6 selects feats.
 - Menu and character/inventory overlays open/close.
 - Paper doll rotates with facing and visibly changes when Weapon/Offhand/Armor/Head/Cloak/Gloves/Belt/Boots change.
+- Hair stays on the crown for all facings; equipped headgear hides/replaces hair instead of stacking over it.
+- Knife/bow/crossbow/sword/mace/hammer/axe and Buckler/Kite/Tower silhouettes remain visually distinguishable in the large preview.
 - Doors open/close; cache can be recovered; stair completes run only after cache.
 
 ### Mobile / Safari

@@ -7,7 +7,7 @@ Same baseline human every run; equipment creates the build. Fixed Common Stealth
 
 Core invariants: variable action-time ticks; facing/FOV/LOS/fog/physical sound; HP/Fear/Fatigue; Weapon/Offhand feats; local awareness/memory; no noise-spawn director; global `!! SPOTTED !!`.
 
-Player identity comes from the setup-level `PlayerProfile`: editable name plus cosmetic body, skin, hair style and hair color. Appearance never changes stats. The tactical player icon is a code-drawn layered paper doll; currently equipped Armor/Cloak/Head/Gloves/Belt/Boots plus Weapon/Offhand visibly change the avatar.
+Player identity comes from the setup-level `PlayerProfile`: editable name plus cosmetic body, skin, hair style and hair color. Appearance never changes stats. The tactical player icon is a code-drawn layered paper doll; currently equipped Armor/Cloak/Head/Gloves/Belt/Boots plus Weapon/Offhand visibly change the avatar. Hair uses an explicit crown anchor away from the torso, equipped headgear hides hair, and weapon/shield/headgear silhouettes are item-aware rather than hash-generic.
 
 ## CSD2 handoff modules
 These are live and covered by the CI smoke gate:

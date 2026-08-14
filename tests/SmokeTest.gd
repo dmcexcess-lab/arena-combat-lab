@@ -38,6 +38,14 @@ func _run():
 
     check(game.starter_loadouts.size()==4,"four starter identities")
     check(game.has_method("_draw_player_paper_doll"),"paper doll renderer is live")
+    var paper_axes = game._pd_axes(Vector2i(0,-1))
+    var paper_forward: Vector2 = paper_axes[0]
+    var paper_head: Vector2 = game._pd_head_center(Vector2.ZERO, 1.0, paper_forward)
+    var paper_crown: Vector2 = game._pd_hair_crown(paper_head, 1.0, paper_forward)
+    check(paper_head.dot(paper_forward)>0.0,"paper doll head sits forward of torso")
+    check(paper_crown.dot(paper_forward)>paper_head.dot(paper_forward),"paper doll hair crown sits above face")
+    check(game._pd_weapon_kind("Great Axe")=="axe","paper doll recognizes axe silhouette")
+    check(game._pd_weapon_kind("Light Crossbow")=="crossbow","paper doll recognizes crossbow silhouette")
     for i in range(min(4,game.starter_loadouts.size())):
         var loadout: Dictionary = game.starter_loadouts[i]
         var family = str(loadout.get("family",""))

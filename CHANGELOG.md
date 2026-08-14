@@ -2,6 +2,12 @@
 
 Current truth: `PROJECT_CONTEXT.md` · Future: `ROADMAP.md`
 
+## 2026-08-13 — Paper Doll Finish Pass
+- Fixed the inverted hair placement: hair now anchors at the crown away from the torso instead of reading as chin/beard hair.
+- Equipped headgear now replaces/hides hairstyle rendering, matching the creator UI promise.
+- Replaced hash-generic hand items with explicit knife, bow, crossbow, sword, mace, hammer and axe silhouettes; Buckler/Kite/Tower shields and starter headgear also render distinctly.
+- Added family-readable armor trim and regression checks for head/crown orientation plus weapon-kind classification; combat stats and equipment rules are unchanged.
+
 ## 2026-08-13 — Character Creator + Equipped Paper Doll
 - Wired `PlayerProfile` into the live setup/session boundary; the created name and appearance now reach the runtime player.
 - Added a mobile-first creator with editable name, body build, skin tone, hair style/color, random name/look, and a live selected-starter preview.
