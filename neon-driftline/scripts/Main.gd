@@ -1174,6 +1174,11 @@ func _spawn_circle_bunch(hard_lane: bool, count: int) -> void:
             "lane_max": bounds.y
         })
 
+func _enemy_body_speed_multiplier(kind: int) -> float:
+    if kind == 1:
+        return 1.04
+    return 1.0
+
 func _spawn_hazard(difficulty: float, hard_lane: bool, lane_mode: bool = true) -> void:
     var kind := _choose_enemy_kind(hard_lane and lane_mode)
     var radius := rng.randf_range(17.0, 26.0)
@@ -1195,7 +1200,7 @@ func _spawn_hazard(difficulty: float, hard_lane: bool, lane_mode: bool = true) -
 
     if kind == 1:
         radius = rng.randf_range(15.0, 19.0)
-        speed *= 1.04
+        speed *= _enemy_body_speed_multiplier(kind)
         drift = 0.0
     elif kind == 2:
         radius = rng.randf_range(13.0, 17.0)
