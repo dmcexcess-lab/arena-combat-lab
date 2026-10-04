@@ -11,7 +11,9 @@ Drag anywhere left/right to steer.
 - **Choose before impact:** the approaching structure gives you a few seconds to commit left or right. Once the station reaches your ship, the center bulkhead makes changing sides physically impossible without crashing.
 - **Lethal structure:** station walls are not ordinary hazards. Touching an outer hull or the center divider is an **instant kill**, and forward-dash invulnerability does not protect you.
 - **Easy vs hard corridor:** each station segment randomly assigns one corridor as easier and the other as harder. The hard side carries denser/faster hazards and a **+35% score bonus** while you are physically inside the station segment.
-- **Forward dash:** tap DASH to surge much farther up-screen, then drift back more gradually to the normal flight line. Dashing activates a brief **x2 score window**, rewarding aggressive timing around pickups and near misses.
+- **Auto-fire pulse cannons:** twin forward cannons fire continuously with no extra button. Steer to aim; pulse shots destroy ordinary hazards for score but cannot damage station structure.
+- **Forward dash:** tap DASH to surge much farther up-screen, then drift back more gradually to the normal flight line. Dashing activates a brief **x2 score window**, rewarding aggressive timing around pickups, kills, and near misses.
+- **Repair cores:** when you are below the three-hit cap, repair pickups periodically enter the field. Collect one to restore exactly one lost hit.
 - **Near misses:** skim ordinary hazards without colliding to increase combo, trigger a brief slow-motion pulse, and shave time off dash recharge.
 - **Energy:** collect green nodes for score and combo.
 - **Finale:** at 50 seconds the field escalates and an extraction gate approaches from either side. Line up with it to finish the run.
