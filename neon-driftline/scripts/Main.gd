@@ -39,7 +39,6 @@ const STATION_HEIGHT_BASE := 300.0
 const STATION_HEIGHT_STEP := 45.0
 const STATION_HEIGHT_MAX := 660.0
 const STATION_SPEED := 210.0
-const STATION_START_TOP := -550.0
 const STATION_CENTER_WALL := 24.0
 const STATION_EDGE_WALL := 42.0
 const SHOT_RADIUS := 4.0
@@ -106,7 +105,7 @@ var current_weapon := "none"
 var weapon_banner_timer := 0.0
 var weapon_banner_text := ""
 var station_height := STATION_HEIGHT_BASE
-var station_top := STATION_START_TOP
+var station_top := -STATION_HEIGHT_BASE - 40.0
 var station_locked_side := ""
 var objects: Array[Dictionary] = []
 var shots: Array[Dictionary] = []
@@ -514,7 +513,7 @@ func _end_lane_event() -> void:
     lane_event_timer = 0.0
     lane_choice_banner_timer = 0.0
     station_locked_side = ""
-    station_top = STATION_START_TOP
+    station_top = -station_height - 40.0
 
 func _station_at_player() -> bool:
     if not lane_event_active:
