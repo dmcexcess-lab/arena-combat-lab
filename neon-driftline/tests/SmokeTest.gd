@@ -22,7 +22,7 @@ func _initialize() -> void:
         "_start_game", "_dash", "_fire_weapon", "_weapon_interval", "_weapon_damage",
         "_weapon_label", "_obstacle_max_hp", "_kill_score", "_enemy_kind_cap_for_level",
         "_spawn_circle_bunch", "_move_shots", "_consume_shot_hit",
-        "_apply_laser_damage", "_fire_enemy_shot", "_move_enemy_shots", "_energy_spawn_interval",
+        "_apply_laser_damage", "_fire_enemy_shot", "_fire_enemy_missile", "_move_enemy_shots", "_energy_spawn_interval",
         "_make_energy_orb", "_make_repair_pickup", "_kill_drop_kind", "_queue_kill_drop",
         "_flush_pending_drops", "_spawn_repair", "_spawn_pickup", "_register_near_miss",
         "_begin_lane_event", "_end_lane_event", "_neutralize_lane_objects", "_station_at_player",
@@ -343,7 +343,11 @@ func _initialize() -> void:
         return
     scene.level = 6
     if scene._enemy_kind_cap_for_level() != 3:
-        _fail("shooting rhomboids should unlock at level 6")
+        _fail("shooting trapezoids should unlock at level 6")
+        return
+    scene.level = 8
+    if scene._enemy_kind_cap_for_level() != 4:
+        _fail("pentagon missile turrets should unlock at level 8")
         return
 
     scene._start_game()
@@ -382,9 +386,12 @@ func _initialize() -> void:
         _fail("square and trapezoid drones should stay weak")
         return
     if scene._obstacle_max_hp(2) != 12.0 or scene._obstacle_max_hp(2) <= scene._obstacle_max_hp(1):
-        _fail("yellow diamond should remain the tankiest enemy")
+        _fail("yellow diamond should remain tankier than mobile weak drones")
         return
-    if scene._kill_score(0) != 1 or scene._kill_score(1) != 2 or scene._kill_score(2) != 5 or scene._kill_score(3) != 4:
+    if scene._obstacle_max_hp(4) != 20.0:
+        _fail("pentagon missile turret should have lots of health")
+        return
+    if scene._kill_score(0) != 1 or scene._kill_score(1) != 2 or scene._kill_score(2) != 5 or scene._kill_score(3) != 4 or scene._kill_score(4) != 7:
         _fail("kill scores should stay in single digits")
         return
 
@@ -650,6 +657,104 @@ func _initialize() -> void:
     scene._move_objects(0.1)
     if absf(float(scene.objects[0].drift)) < 5.0:
         _fail("trapezoid did not dodge incoming fire")
+        return
+
+    # Pentagon turret does not steer: it simply scrolls by and launches a homing 2-hit missile.
+    scene.objects.clear()
+    scene.enemy_shots.clear()
+    scene.shots.clear()
+    scene.level = 8
+    scene.player_x = 260.0
+    scene.player_y = scene.PLAYER_Y
+    scene.objects.append({
+        "id": 990003, "type": "hazard", "kind": 4,
+        "hp": 20.0, "max_hp": 20.0, "hard": false,
+        "x": 120.0, "y": 180.0, "r": 22.0,
+        "speed": 170.0, "drift": 0.0, "shoot_clock": 0.0,
+        "lane_speed_mult": 1.0, "lane_min": scene.LEFT, "lane_max": scene.RIGHT
+    })
+    var pent_x: float = float(scene.objects[0].x)
+    var pent_y: float = float(scene.objects[0].y)
+    scene._move_objects(0.1)
+    if absf(float(scene.objects[0].x) - pent_x) > 0.01:
+        _fail("pentagon turret should not steer or drift")
+        return
+    if float(scene.objects[0].y) <= pent_y:
+        _fail("pentagon turret should scroll by with the level")
+        return
+    if scene.enemy_shots.size() != 1 or not bool(scene.enemy_shots[0].homing) or int(scene.enemy_shots[0].damage) != 2:
+        _fail("pentagon did not fire a homing 2-hit missile")
+        return
+
+    # Homing missile should turn toward a later player position.
+    var missile_vx_before: float = float(scene.enemy_shots[0].vx)
+    scene.player_x = 340.0
+    scene._move_enemy_shots(0.1)
+    if float(scene.enemy_shots[0].vx) <= missile_vx_before:
+        _fail("pentagon missile did not home toward player")
+        return
+
+    # A missile costs two hits, but a shield cancels the whole missile for one charge.
+    scene.enemy_shots.clear()
+    scene.player_x = 195.0
+    scene.hp = 4
+    scene.max_hp = 4
+    scene.shield_charges = 0
+    scene.invuln = 0.0
+    scene.enemy_shots.append({
+        "type": "missile", "x": scene.player_x, "y": scene.player_y,
+        "vx": 0.0, "vy": 0.0, "r": scene.ENEMY_MISSILE_RADIUS,
+        "damage": 2, "homing": true
+    })
+    scene._move_enemy_shots(0.0)
+    if scene.hp != 2:
+        _fail("unshielded homing missile should cost two hits")
+        return
+    if absf(scene.invuln - scene.HIT_INVULN_TIME) > 0.01 or absf(scene.HIT_INVULN_TIME - 0.5) > 0.01:
+        _fail("post-hit invulnerability should be about half a second")
+        return
+
+    scene.enemy_shots.clear()
+    scene.hp = 4
+    scene.invuln = 0.0
+    scene.shield_charges = 2
+    scene.enemy_shots.append({
+        "type": "missile", "x": scene.player_x, "y": scene.player_y,
+        "vx": 0.0, "vy": 0.0, "r": scene.ENEMY_MISSILE_RADIUS,
+        "damage": 2, "homing": true
+    })
+    scene._move_enemy_shots(0.0)
+    if scene.hp != 4 or scene.shield_charges != 1:
+        _fail("one shield charge should absorb the entire 2-hit missile")
+        return
+
+    # Physical collisions hurt only the player; the enemy survives, and hit grace prevents rapid stacking.
+    scene.objects.clear()
+    scene.shots.clear()
+    scene.hp = 4
+    scene.max_hp = 4
+    scene.invuln = 0.0
+    scene.player_x = 195.0
+    scene.player_y = scene.PLAYER_Y
+    scene.objects.append({
+        "id": 990004, "type": "hazard", "kind": 1,
+        "hp": 4.0, "max_hp": 4.0, "hard": false,
+        "x": scene.player_x, "y": scene.player_y, "r": 16.0,
+        "speed": 0.0, "drift": 0.0, "shoot_clock": 999.0,
+        "lane_speed_mult": 1.0, "lane_min": scene.LEFT, "lane_max": scene.RIGHT
+    })
+    scene._move_objects(0.0)
+    if scene.hp != 3 or scene.objects.size() != 1 or float(scene.objects[0].hp) != 4.0:
+        _fail("collision should damage only the player and leave enemy unchanged")
+        return
+    scene._move_objects(0.0)
+    if scene.hp != 3:
+        _fail("immediate repeated collision ignored hit invulnerability")
+        return
+    scene.invuln = 0.0
+    scene._move_objects(0.0)
+    if scene.hp != 2:
+        _fail("collision did not hurt again after invulnerability expired")
         return
 
     scene.objects.clear()
