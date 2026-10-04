@@ -178,3 +178,11 @@ Phone steering now uses three fixed bottom buttons:
 - **RIGHT** — hold to steer right.
 
 Swipe/drag steering has been removed. Multi-touch allows steering with one thumb while triggering DASH with another. Desktop mouse input uses the same buttons for testing.
+
+
+## Split readability tuning
+
+- Weak square drones keep their slow lateral pursuit, but now move forward slightly faster than the neutral body-speed baseline.
+- During an active station split, the hard side receives a translucent red background wash.
+- The red wash exists only while the split is active and disappears when the station segment ends.
+- No pre-split divider line is restored.
