@@ -625,9 +625,9 @@ func _apply_laser_damage(delta: float) -> void:
         objects.remove_at(target_index)
 
 func _spawn_weapon_pickup() -> void:
-    var choices := ["single", "dual", "cone", "seeker", "laser"]
+    var choices: Array[String] = ["single", "dual", "cone", "seeker", "laser"]
     choices.erase(current_weapon)
-    var weapon := choices[rng.randi_range(0, choices.size() - 1)]
+    var weapon: String = choices[rng.randi_range(0, choices.size() - 1)]
     var hard_lane := lane_event_active and rng.randf() < 0.5
     var bounds := _lane_bounds(hard_lane) if lane_event_active else Vector2(LEFT, RIGHT)
     objects.append({
