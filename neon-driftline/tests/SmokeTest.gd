@@ -50,6 +50,18 @@ func _initialize() -> void:
     if scene._station_height_for_level() != scene.STATION_HEIGHT_BASE:
         _fail("level 1 should use the shortest station split")
         return
+    scene.elapsed = scene._first_split_time()
+    scene._begin_lane_event()
+    if scene.lane_events_started != 1 or scene.station_height != scene.STATION_HEIGHT_BASE:
+        _fail("level 1 did not start exactly one short split")
+        return
+    if scene.next_lane_event_at <= scene._level_duration():
+        _fail("level 1 scheduled an extra split")
+        return
+    scene._end_lane_event()
+    scene.elapsed = 0.0
+    scene.lane_events_started = 0
+    scene.next_lane_event_at = scene._first_split_time()
 
     # Unarmed means genuinely no automatic fire.
     scene.shots.clear()
@@ -117,7 +129,7 @@ func _initialize() -> void:
 
     # First purchasable gun is intentionally weak: one D1 projectile.
     scene.shots.clear()
-    scene.current_weapon = "none"
+    scene.current_weapon = "single"
     scene._fire_weapon()
     if scene.SINGLE_DAMAGE != 1.0 or scene.shots.size() != 1 or float(scene.shots[0].damage) != 1.0:
         _fail("single auto should be the weak D1 starter purchase")
