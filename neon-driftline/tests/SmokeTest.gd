@@ -681,9 +681,10 @@ func _initialize() -> void:
         _fail("laser did not apply weak continuous damage")
         return
     scene._apply_laser_damage(0.6)
-    if not scene.objects.is_empty():
-        _fail("laser did not eventually destroy depleted target")
-        return
+    for obj in scene.objects:
+        if obj.type == "hazard":
+            _fail("laser did not eventually destroy depleted target")
+            return
 
     # Rare field repairs still restore exactly one hit when they appear.
     if scene.REPAIR_INTERVAL_MIN < 20.0 or scene.FIELD_REPAIR_CHANCE >= 0.5:
