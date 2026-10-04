@@ -1424,18 +1424,45 @@ func _fire_enemy_shot(obj: Dictionary) -> void:
         to_player = Vector2.DOWN
     var velocity := to_player.normalized() * ENEMY_SHOT_SPEED
     enemy_shots.append({
+        "type": "bolt",
         "x": from_pos.x,
         "y": from_pos.y,
         "vx": velocity.x,
         "vy": velocity.y,
-        "r": ENEMY_SHOT_RADIUS
+        "r": ENEMY_SHOT_RADIUS,
+        "damage": 1,
+        "homing": false
+    })
+
+func _fire_enemy_missile(obj: Dictionary) -> void:
+    var from_pos := Vector2(float(obj.x), float(obj.y) + float(obj.r))
+    var to_player := Vector2(player_x, player_y) - from_pos
+    if to_player.length() < 1.0:
+        to_player = Vector2.DOWN
+    var velocity := to_player.normalized() * ENEMY_MISSILE_SPEED
+    enemy_shots.append({
+        "type": "missile",
+        "x": from_pos.x,
+        "y": from_pos.y,
+        "vx": velocity.x,
+        "vy": velocity.y,
+        "r": ENEMY_MISSILE_RADIUS,
+        "damage": ENEMY_MISSILE_DAMAGE,
+        "homing": true
     })
 
 func _move_enemy_shots(delta: float) -> void:
     var next: Array[Dictionary] = []
     for shot in enemy_shots:
+        if bool(shot.get("homing", false)):
+            var pos := Vector2(float(shot.x), float(shot.y))
+            var desired := (Vector2(player_x, player_y) - pos).normalized() * ENEMY_MISSILE_SPEED
+            shot.vx = lerpf(float(shot.vx), desired.x, minf(1.0, delta * ENEMY_MISSILE_TURN_RATE))
+            shot.vy = lerpf(float(shot.vy), desired.y, minf(1.0, delta * ENEMY_MISSILE_TURN_RATE))
+
         shot.x += float(shot.vx) * delta
         shot.y += float(shot.vy) * delta
+
         var blocked := false
         if lane_event_active:
             var point := Vector2(float(shot.x), float(shot.y))
@@ -1445,16 +1472,20 @@ func _move_enemy_shots(delta: float) -> void:
                     break
         if blocked:
             continue
+
+        var radius := float(shot.get("r", ENEMY_SHOT_RADIUS))
         var dx := absf(float(shot.x) - player_x)
         var dy := absf(float(shot.y) - player_y)
-        if dx < PLAYER_RADIUS + ENEMY_SHOT_RADIUS and dy < PLAYER_RADIUS + ENEMY_SHOT_RADIUS:
+        if dx < PLAYER_RADIUS + radius and dy < PLAYER_RADIUS + radius:
             if shield_charges > 0:
+                # Any enemy projectile, including a 2-hit missile, consumes only one shield charge.
                 shield_charges -= 1
                 _burst(Vector2(shot.x, shot.y), 12, Color("77f7ff"))
             elif invuln <= 0.0:
-                _take_hit()
-                _burst(Vector2(shot.x, shot.y), 6, Color("d48cff"))
+                _take_hit(int(shot.get("damage", 1)))
+                _burst(Vector2(shot.x, shot.y), 8 if bool(shot.get("homing", false)) else 6, Color("ff8f5b") if bool(shot.get("homing", false)) else Color("d48cff"))
             continue
+
         if shot.y < H + 40.0 and shot.y > -40.0 and shot.x > -40.0 and shot.x < W + 40.0:
             next.append(shot)
     enemy_shots = next
@@ -1617,6 +1648,15 @@ func _move_objects(delta: float) -> void:
                     _fire_enemy_shot(obj)
                     obj.shoot_clock = rng.randf_range(1.45, 2.10)
 
+            elif kind == 4:
+                # Pentagon turret has no steering or evasive movement; it simply scrolls by with the level.
+                obj.drift = 0.0
+                motion_y = float(obj.speed)
+                obj.shoot_clock = float(obj.shoot_clock) - delta
+                if float(obj.shoot_clock) <= 0.0 and float(obj.y) > 55.0 and float(obj.y) < player_y - 85.0:
+                    _fire_enemy_missile(obj)
+                    obj.shoot_clock = rng.randf_range(1.8, 2.5)
+
         obj.y += motion_y * delta
         obj.x += float(obj.drift) * delta
 
@@ -1637,9 +1677,10 @@ func _move_objects(delta: float) -> void:
             var hit_dist: float = obj.r + 14.0
             if absf(dy) < hit_dist and dx < hit_dist:
                 if invuln <= 0.0:
-                    _take_hit()
-                    _burst(Vector2(obj.x, obj.y), 13, Color("ff426f"))
-                continue
+                    _take_hit(1)
+                    _burst(Vector2(player_x, player_y), 13, Color("ff426f"))
+                # Physical collision hurts only the player. Enemy survives unchanged.
+
 
             var near_dist: float = obj.r + 40.0
             if obj.y > player_y + obj.r and not last_near_ids.has(obj.id):
@@ -1706,10 +1747,10 @@ func _register_near_miss() -> void:
     _burst(Vector2(player_x, player_y), 10, Color("77f7ff"))
     _play_sfx(near_sfx)
 
-func _take_hit() -> void:
-    hp -= 1
+func _take_hit(amount: int = 1) -> void:
+    hp -= maxi(1, amount)
     combo = 1
-    invuln = 1.0
+    invuln = HIT_INVULN_TIME
     flash = 0.22
     shake = 7.0
     if hp <= 0:
