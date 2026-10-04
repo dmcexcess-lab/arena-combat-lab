@@ -67,6 +67,18 @@ func _initialize() -> void:
     if scene._ship_speed_multiplier() <= 1.0 or scene._dash_speed() <= scene.DASH_FORWARD_SPEED or scene._dash_distance() <= scene.DASH_FORWARD_DISTANCE or scene._damage_multiplier() <= 1.0:
         _fail("research effects were not applied")
         return
+    scene._start_game()
+    scene.neutral_spawn_clock = 999.0
+    scene.easy_spawn_clock = 999.0
+    scene.hard_spawn_clock = 999.0
+    scene.pickup_clock = 999.0
+    scene.repair_clock = 999.0
+    scene.fire_clock = 999.0
+    var elapsed_before_speed: float = scene.elapsed
+    scene._process(1.0)
+    if scene.elapsed - elapsed_before_speed <= 1.0:
+        _fail("ship-speed research did not accelerate level scroll/progress")
+        return
     if scene._research_cost("shield") <= scene._research_cost("hits"):
         _fail("shield research should be more expensive than hits research")
         return
@@ -101,6 +113,9 @@ func _initialize() -> void:
     scene._register_near_miss()
     if scene.score <= base_dash_near:
         _fail("dash research did not raise dash near-miss score")
+        return
+    if scene._near_miss_research_multiplier(false) <= 1.0 or scene._near_miss_research_multiplier(true) <= scene._near_miss_research_multiplier(false):
+        _fail("near-miss research multipliers do not reflect speed and dash research")
         return
 
     # Starting a researched run applies permanent hits and shield.
