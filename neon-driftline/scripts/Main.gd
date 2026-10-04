@@ -459,7 +459,7 @@ func _move_objects(delta: float) -> void:
                 continue
 
             var near_dist: float = obj.r + 40.0
-            if obj.y > PLAYER_Y + obj.r and not last_near_ids.has(obj.id):
+            if obj.y > player_y + obj.r and not last_near_ids.has(obj.id):
                 last_near_ids[obj.id] = true
                 if dx < near_dist:
                     _register_near_miss()
@@ -478,7 +478,7 @@ func _move_objects(delta: float) -> void:
                     _burst(Vector2(player_x, player_y), 22, Color("77f7ff"))
                     _finish(true)
                     continue
-            if obj.y > PLAYER_Y + 32.0:
+            if obj.y > player_y + 32.0:
                 result_reason = "MISSED THE GATE"
                 _finish(false)
                 continue
