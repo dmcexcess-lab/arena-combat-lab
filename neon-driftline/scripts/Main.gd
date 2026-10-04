@@ -1195,7 +1195,7 @@ func _spawn_hazard(difficulty: float, hard_lane: bool, lane_mode: bool = true) -
 
     if kind == 1:
         radius = rng.randf_range(15.0, 19.0)
-        speed *= 0.92
+        speed *= 1.04
         drift = 0.0
     elif kind == 2:
         radius = rng.randf_range(13.0, 17.0)
@@ -1911,11 +1911,19 @@ func _draw() -> void:
     elif run_paused:
         _draw_pause_overlay()
 
+func _hard_lane_background_rect() -> Rect2:
+    if hard_lane_right:
+        return Rect2(LANE_SPLIT, 0.0, W - LANE_SPLIT, H)
+    return Rect2(0.0, 0.0, LANE_SPLIT, H)
+
 func _draw_background() -> void:
     var t := Time.get_ticks_msec() / 1000.0
 
     draw_circle(Vector2(74, 170), 118.0, Color(0.10, 0.16, 0.34, 0.055))
     draw_circle(Vector2(320, 520), 150.0, Color(0.24, 0.08, 0.30, 0.035))
+
+    if lane_event_active:
+        draw_rect(_hard_lane_background_rect(), Color(0.58, 0.03, 0.08, 0.18), true)
 
     for i in 44:
         var layer := float(i % 4)
