@@ -8,12 +8,12 @@ const RIGHT := 358.0
 const LEVEL_TIME_BASE := 18.0
 const LEVEL_TIME_STEP := 3.0
 const LEVEL_TIME_MAX := 45.0
-const SHOP_REPAIR_COST := 500
-const SHOP_SINGLE_COST := 350
-const SHOP_DUAL_COST := 650
-const SHOP_CONE_COST := 900
-const SHOP_SEEKER_COST := 1150
-const SHOP_LASER_COST := 850
+const SHOP_REPAIR_COST := 75
+const SHOP_SINGLE_COST := 45
+const SHOP_DUAL_COST := 90
+const SHOP_CONE_COST := 130
+const SHOP_SEEKER_COST := 160
+const SHOP_LASER_COST := 120
 const LANE_SPLIT := W * 0.5
 const LEFT_LANE_MIN := LEFT
 const LEFT_LANE_MAX := LANE_SPLIT - 7.0
@@ -56,6 +56,8 @@ const REPAIR_INTERVAL_MIN := 24.0
 const REPAIR_INTERVAL_MAX := 34.0
 const REPAIR_RETRY_FULL := 12.0
 const FIELD_REPAIR_CHANCE := 0.28
+const ENEMY_SHOT_SPEED := 255.0
+const ENEMY_SHOT_RADIUS := 5.0
 
 var rng := RandomNumberGenerator.new()
 var playing := false
@@ -109,6 +111,7 @@ var station_top := -STATION_HEIGHT_BASE - 40.0
 var station_locked_side := ""
 var objects: Array[Dictionary] = []
 var shots: Array[Dictionary] = []
+var enemy_shots: Array[Dictionary] = []
 var particles: Array[Dictionary] = []
 var last_near_ids: Dictionary = {}
 var sfx_player: AudioStreamPlayer
@@ -210,16 +213,20 @@ func _process(delta: float) -> void:
             return
         if easy_spawn_clock <= 0.0:
             _spawn_hazard(difficulty, false, true)
-            easy_spawn_clock = _spawn_interval(1.05, 0.52, difficulty) * rng.randf_range(0.88, 1.18)
+            easy_spawn_clock = (rng.randf_range(1.55, 1.95) if level == 1 else _spawn_interval(1.05, 0.52, difficulty) * rng.randf_range(0.88, 1.18))
         if hard_spawn_clock <= 0.0:
-            _spawn_hazard(difficulty, true, true)
-            hard_spawn_clock = _spawn_interval(0.82, 0.34, difficulty) * rng.randf_range(0.84, 1.14)
+            if level == 1:
+                _spawn_circle_bunch(true, rng.randi_range(2, 3))
+                hard_spawn_clock = rng.randf_range(1.65, 2.15)
+            else:
+                _spawn_hazard(difficulty, true, true)
+                hard_spawn_clock = _spawn_interval(0.82, 0.34, difficulty) * rng.randf_range(0.84, 1.14)
         if station_top > H + 40.0:
             _end_lane_event()
     else:
         if neutral_spawn_clock <= 0.0:
             _spawn_hazard(difficulty, false, false)
-            neutral_spawn_clock = _spawn_interval(1.10, 0.43, difficulty) * rng.randf_range(0.86, 1.18)
+            neutral_spawn_clock = (rng.randf_range(1.65, 2.20) if level == 1 else _spawn_interval(1.10, 0.43, difficulty) * rng.randf_range(0.86, 1.18))
         if lane_events_started < _split_count_for_level() and elapsed >= next_lane_event_at and elapsed < _level_duration() - 3.0:
             _begin_lane_event()
 
@@ -229,8 +236,8 @@ func _process(delta: float) -> void:
 
     _move_shots(game_delta)
     _move_objects(game_delta)
+    _move_enemy_shots(game_delta)
     _move_particles(delta)
-    score += int(game_delta * (22.0 + minf(difficulty, 1.5) * 22.0) * combo * _lane_score_multiplier() * _dash_score_multiplier())
 
     if elapsed >= _level_duration() and playing:
         _open_shop()
@@ -334,6 +341,7 @@ func _start_game() -> void:
     station_locked_side = ""
     objects.clear()
     shots.clear()
+    enemy_shots.clear()
     particles.clear()
     last_near_ids.clear()
 
@@ -388,7 +396,7 @@ func _open_shop() -> void:
         return
     playing = false
     shop_open = true
-    last_level_bonus = 350 + level * 100
+    last_level_bonus = 30 + level * 10
     score += last_level_bonus
     combo = 1
     dash_timer = 0.0
@@ -396,6 +404,7 @@ func _open_shop() -> void:
     invuln = 0.0
     objects.clear()
     shots.clear()
+    enemy_shots.clear()
     lane_event_active = false
     lane_event_timer = 0.0
     station_locked_side = ""
@@ -458,6 +467,7 @@ func _start_next_level() -> void:
     station_locked_side = ""
     objects.clear()
     shots.clear()
+    enemy_shots.clear()
     last_near_ids.clear()
 
 func _handle_shop_tap(pos: Vector2) -> void:
@@ -567,25 +577,86 @@ func _lane_center(hard_lane: bool) -> float:
     var bounds := _lane_bounds(hard_lane)
     return (bounds.x + bounds.y) * 0.5
 
+func _enemy_kind_cap_for_level() -> int:
+    if level <= 1:
+        return 0
+    if level <= 3:
+        return 1
+    if level <= 5:
+        return 2
+    return 3
+
+func _choose_enemy_kind(hard_lane: bool) -> int:
+    var cap := _enemy_kind_cap_for_level()
+    if cap <= 0:
+        return 0
+    var roll := rng.randf()
+    if cap == 1:
+        return 1 if roll < (0.42 if hard_lane else 0.30) else 0
+    if cap == 2:
+        if roll < (0.22 if hard_lane else 0.14):
+            return 2
+        if roll < (0.62 if hard_lane else 0.52):
+            return 1
+        return 0
+    if roll < (0.16 if hard_lane else 0.10):
+        return 3
+    if roll < (0.39 if hard_lane else 0.30):
+        return 2
+    if roll < (0.70 if hard_lane else 0.62):
+        return 1
+    return 0
+
+func _spawn_circle_bunch(hard_lane: bool, count: int) -> void:
+    var bounds := _lane_bounds(hard_lane)
+    var center := rng.randf_range(bounds.x + 34.0, bounds.y - 34.0)
+    for i in count:
+        var radius := rng.randf_range(17.0, 22.0)
+        var x := clampf(center + rng.randf_range(-24.0, 24.0), bounds.x + radius, bounds.y - radius)
+        var hp_value := _obstacle_max_hp(0)
+        objects.append({
+            "id": rng.randi(),
+            "type": "hazard",
+            "kind": 0,
+            "hp": hp_value,
+            "max_hp": hp_value,
+            "hard": hard_lane,
+            "x": x,
+            "y": -40.0 - float(i) * rng.randf_range(20.0, 34.0),
+            "r": radius,
+            "speed": rng.randf_range(180.0, 215.0),
+            "drift": 0.0,
+            "shoot_clock": 999.0,
+            "lane_min": bounds.x,
+            "lane_max": bounds.y
+        })
+
 func _spawn_hazard(difficulty: float, hard_lane: bool, lane_mode: bool = true) -> void:
-    var kind_threshold := 0.28 if hard_lane and lane_mode else 0.5
-    var kind_max := 1 if level == 1 else (2 if difficulty > kind_threshold else 1)
-    var kind := rng.randi_range(0, kind_max)
+    var kind := _choose_enemy_kind(hard_lane and lane_mode)
     var radius := rng.randf_range(17.0, 26.0)
-    var base_speed := rng.randf_range(205.0, 275.0) + difficulty * 125.0
+    var base_speed := rng.randf_range(190.0, 250.0) + difficulty * 105.0
+    if level == 1:
+        base_speed = rng.randf_range(170.0, 205.0)
     var speed := base_speed
     if lane_mode:
-        speed *= 1.16 if hard_lane else 0.9
+        speed *= 1.12 if hard_lane else 0.90
     var bounds := _lane_bounds(hard_lane) if lane_mode else Vector2(LEFT, RIGHT)
     var lane_min := bounds.x
     var lane_max := bounds.y
     var x := rng.randf_range(lane_min + radius, lane_max - radius)
     var drift := 0.0
+    var shoot_clock := 999.0
     if kind == 1:
-        drift = rng.randf_range(-64.0, 64.0) * (1.18 if hard_lane else 0.86)
+        drift = rng.randf_range(-58.0, 58.0) * (1.15 if hard_lane else 0.82)
     elif kind == 2:
-        radius = rng.randf_range(11.0, 16.0)
-        speed += 95.0 if hard_lane else 65.0
+        radius = rng.randf_range(13.0, 17.0)
+        speed += 45.0
+        drift = rng.randf_range(-24.0, 24.0)
+    elif kind == 3:
+        radius = rng.randf_range(14.0, 18.0)
+        speed *= 0.86
+        drift = rng.randf_range(-34.0, 34.0)
+        shoot_clock = rng.randf_range(1.0, 1.8)
     var obstacle_hp := _obstacle_max_hp(kind)
     objects.append({
         "id": rng.randi(),
@@ -599,6 +670,7 @@ func _spawn_hazard(difficulty: float, hard_lane: bool, lane_mode: bool = true) -
         "r": radius,
         "speed": speed,
         "drift": drift,
+        "shoot_clock": shoot_clock,
         "lane_min": lane_min,
         "lane_max": lane_max
     })
@@ -675,7 +747,21 @@ func _obstacle_max_hp(kind: int) -> float:
             return 6.0
         2:
             return 12.0
+        3:
+            return 8.0
     return 3.0
+
+func _kill_score(kind: int) -> int:
+    match kind:
+        0:
+            return 1
+        1:
+            return 2
+        2:
+            return 5
+        3:
+            return 4
+    return 1
 
 func _spawn_shot(x: float, y: float, vx: float, vy: float, damage: float, homing: bool = false) -> void:
     shots.append({
@@ -748,9 +834,8 @@ func _move_shots(delta: float) -> void:
 
 func _apply_damage_to_hazard(obj: Dictionary, damage: float) -> bool:
     obj.hp = maxf(0.0, float(obj.hp) - damage)
-    score += int(18.0 * damage * combo * _dash_score_multiplier())
     if float(obj.hp) <= 0.0:
-        score += int((90.0 + float(obj.max_hp) * 28.0) * combo * _dash_score_multiplier())
+        score += int(round(float(_kill_score(int(obj.kind))) * _lane_score_multiplier()))
         _burst(Vector2(obj.x, obj.y), 10, Color("ffd166"))
         return true
     if damage >= 1.0:
@@ -809,6 +894,45 @@ func _spawn_weapon_pickup() -> void:
         "lane_min": bounds.x,
         "lane_max": bounds.y
     })
+
+func _fire_enemy_shot(obj: Dictionary) -> void:
+    var from_pos := Vector2(float(obj.x), float(obj.y) + float(obj.r))
+    var to_player := Vector2(player_x, player_y) - from_pos
+    if to_player.length() < 1.0:
+        to_player = Vector2.DOWN
+    var velocity := to_player.normalized() * ENEMY_SHOT_SPEED
+    enemy_shots.append({
+        "x": from_pos.x,
+        "y": from_pos.y,
+        "vx": velocity.x,
+        "vy": velocity.y,
+        "r": ENEMY_SHOT_RADIUS
+    })
+
+func _move_enemy_shots(delta: float) -> void:
+    var next: Array[Dictionary] = []
+    for shot in enemy_shots:
+        shot.x += float(shot.vx) * delta
+        shot.y += float(shot.vy) * delta
+        var blocked := false
+        if lane_event_active:
+            var point := Vector2(float(shot.x), float(shot.y))
+            for barrier in _station_barrier_rects():
+                if barrier.has_point(point):
+                    blocked = true
+                    break
+        if blocked:
+            continue
+        var dx := absf(float(shot.x) - player_x)
+        var dy := absf(float(shot.y) - player_y)
+        if dx < PLAYER_RADIUS + ENEMY_SHOT_RADIUS and dy < PLAYER_RADIUS + ENEMY_SHOT_RADIUS:
+            if invuln <= 0.0:
+                _take_hit()
+                _burst(Vector2(shot.x, shot.y), 6, Color("d48cff"))
+            continue
+        if shot.y < H + 40.0 and shot.y > -40.0 and shot.x > -40.0 and shot.x < W + 40.0:
+            next.append(shot)
+    enemy_shots = next
 
 func _spawn_repair() -> void:
     if hp >= 3:
@@ -875,6 +999,15 @@ func _spawn_extraction_gate() -> void:
 func _move_objects(delta: float) -> void:
     var next: Array[Dictionary] = []
     for obj in objects:
+        if obj.type == "hazard":
+            if int(obj.kind) == 2:
+                var desired_drift := clampf((player_x - float(obj.x)) * 0.95, -92.0, 92.0)
+                obj.drift = lerpf(float(obj.drift), desired_drift, minf(1.0, delta * 1.7))
+            elif int(obj.kind) == 3:
+                obj.shoot_clock = float(obj.shoot_clock) - delta
+                if float(obj.shoot_clock) <= 0.0 and float(obj.y) > 35.0 and float(obj.y) < player_y - 90.0:
+                    _fire_enemy_shot(obj)
+                    obj.shoot_clock = rng.randf_range(1.35, 2.05)
         obj.y += obj.speed * delta
         obj.x += obj.drift * delta
 
@@ -904,8 +1037,8 @@ func _move_objects(delta: float) -> void:
         elif obj.type == "energy":
             if absf(dy) < obj.r + 18.0 and dx < obj.r + 20.0:
                 energy += 1
-                var pickup_base := 450 if obj.hard and lane_event_active else 300
-                score += int(pickup_base * combo * _dash_score_multiplier())
+                var pickup_base := 20 if obj.hard and lane_event_active else 10
+                score += int(round(float(pickup_base) * _lane_score_multiplier()))
                 combo = mini(combo + 1, 8)
                 best_combo = maxi(best_combo, combo)
                 _burst(Vector2(obj.x, obj.y), 9, Color("6bffb0"))
@@ -914,7 +1047,7 @@ func _move_objects(delta: float) -> void:
             if absf(dy) < obj.r + 18.0 and dx < obj.r + 20.0:
                 if hp < 3:
                     hp += 1
-                    score += int(250 * _dash_score_multiplier())
+                    score += 0
                     _burst(Vector2(obj.x, obj.y), 12, Color("e8fff3"))
                 continue
         elif obj.type == "weapon":
@@ -923,7 +1056,7 @@ func _move_objects(delta: float) -> void:
                 fire_clock = 0.04
                 weapon_banner_text = _weapon_label(current_weapon)
                 weapon_banner_timer = 1.35
-                score += int(180 * _dash_score_multiplier())
+                score += 0
                 _burst(Vector2(obj.x, obj.y), 12, Color("a882ff"))
                 continue
         elif obj.type == "extraction":
@@ -944,8 +1077,10 @@ func _move_objects(delta: float) -> void:
 func _register_near_miss() -> void:
     combo = mini(combo + 1, 8)
     best_combo = maxi(best_combo, combo)
-    score += int(180 * combo * _dash_score_multiplier())
-    near_miss_text = "NEAR MISS  x%d" % combo
+    var near_score := 100 + combo * 10 if dash_score_timer > 0.0 else 10 + combo * 5
+    near_score = int(round(float(near_score) * _lane_score_multiplier()))
+    score += near_score
+    near_miss_text = ("DASH NEAR +%d" if dash_score_timer > 0.0 else "NEAR +%d") % near_score
     near_miss_timer = 0.62
     slowmo_timer = 0.11
     cyan_flash = 0.13
@@ -1010,6 +1145,11 @@ func _draw() -> void:
         var col := Color("ffd166") if not shot.homing else Color("ff8fa6")
         draw_line(sp - Vector2(float(shot.vx), float(shot.vy)).normalized() * -10.0, sp, col, 4.0)
         draw_circle(sp, 3.0 if not shot.homing else 5.0, Color("fff4c2"))
+
+    for shot in enemy_shots:
+        var ep := Vector2(shot.x, shot.y) + offset
+        draw_circle(ep, ENEMY_SHOT_RADIUS + 3.0, Color(0.72, 0.35, 1.0, 0.16))
+        draw_circle(ep, ENEMY_SHOT_RADIUS, Color("d48cff"))
 
     if current_weapon == "laser" and playing:
         var laser_x := player_x + offset.x
@@ -1148,7 +1288,11 @@ func _draw_object(obj: Dictionary, offset: Vector2) -> void:
         draw_circle(p, obj.r * 0.42, Color("e8fff3"))
         return
 
-    var col := Color("ff426f") if obj.kind != 2 else Color("ffb347")
+    var col := Color("ff426f")
+    if int(obj.kind) == 2:
+        col = Color("ffb347")
+    elif int(obj.kind) == 3:
+        col = Color("b56cff")
     if obj.hard:
         col = col.lightened(0.1)
     draw_circle(p, obj.r + 4.0, Color(col.r, col.g, col.b, 0.11))
@@ -1158,8 +1302,17 @@ func _draw_object(obj: Dictionary, offset: Vector2) -> void:
     elif obj.kind == 1:
         draw_rect(Rect2(p - Vector2(obj.r, obj.r), Vector2(obj.r * 2.0, obj.r * 2.0)), col)
         draw_line(p + Vector2(-obj.r, -obj.r), p + Vector2(obj.r, obj.r), Color("410b1c"), 4.0)
-    else:
+    elif obj.kind == 2:
         draw_colored_polygon(PackedVector2Array([p + Vector2(0,-obj.r), p + Vector2(obj.r,0), p + Vector2(0,obj.r), p + Vector2(-obj.r,0)]), col)
+        draw_circle(p, 4.0, Color("fff2b8"))
+    else:
+        draw_colored_polygon(PackedVector2Array([
+            p + Vector2(-obj.r * 0.95, -obj.r * 0.70),
+            p + Vector2(obj.r * 1.20, -obj.r * 0.70),
+            p + Vector2(obj.r * 0.95, obj.r * 0.70),
+            p + Vector2(-obj.r * 1.20, obj.r * 0.70)
+        ]), col)
+        draw_circle(p, 4.0, Color("f1dcff"))
 
     if obj.has("hp") and float(obj.hp) < float(obj.max_hp):
         var bw := maxf(18.0, float(obj.r) * 1.8)
@@ -1206,7 +1359,7 @@ func _draw_title() -> void:
     _text("DRIFTLINE", Vector2(54, 276), 47, Color("f0fbff"))
     _text("START UNARMED. SURVIVE. SHOP.", Vector2(44, 351), 18, Color("ffd166"))
     _text("LEVEL 1: 18 SEC / 1 SHORT SPLIT", Vector2(48, 416), 16, Color("6bffb0"))
-    _text("EVERY LEVEL GETS HARDER", Vector2(70, 444), 18, Color("bdeef4"))
+    _text("NEW ENEMIES UNLOCK BY LEVEL", Vector2(61, 444), 16, Color("bdeef4"))
     _text("STATION WALLS = INSTANT DEATH", Vector2(55, 476), 16, Color("ff8fa6"))
     _text("SPEND SCORE ON GUNS + REPAIRS", Vector2(50, 506), 16, Color("ffd166"))
     _text("FIELD REPAIRS ARE RARE", Vector2(84, 533), 16, Color("6bffb0"))
