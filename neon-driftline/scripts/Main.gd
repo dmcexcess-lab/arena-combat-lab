@@ -157,6 +157,7 @@ var station_locked_side := ""
 var objects: Array[Dictionary] = []
 var shots: Array[Dictionary] = []
 var enemy_shots: Array[Dictionary] = []
+var pending_drops: Array[Dictionary] = []
 var particles: Array[Dictionary] = []
 var last_near_ids: Dictionary = {}
 var sfx_player: AudioStreamPlayer
@@ -425,6 +426,7 @@ func _start_game() -> void:
     objects.clear()
     shots.clear()
     enemy_shots.clear()
+    pending_drops.clear()
     particles.clear()
     last_near_ids.clear()
     _clear_run_snapshot()
@@ -798,6 +800,7 @@ func _quit_run_with_score() -> void:
     objects.clear()
     shots.clear()
     enemy_shots.clear()
+    pending_drops.clear()
     particles.clear()
     queue_redraw()
 
@@ -1327,7 +1330,7 @@ func _apply_damage_to_hazard(obj: Dictionary, damage: float) -> bool:
     obj.hp = maxf(0.0, float(obj.hp) - damage)
     if float(obj.hp) <= 0.0:
         score += int(round(float(_kill_score(int(obj.kind))) * _lane_score_multiplier()))
-        _roll_kill_drop(obj)
+        _queue_kill_drop(obj)
         _burst(Vector2(obj.x, obj.y), 10, Color("ffd166"))
         return true
     if damage >= 1.0:
@@ -1366,6 +1369,7 @@ func _apply_laser_damage(delta: float) -> void:
     var target: Dictionary = objects[target_index]
     if _apply_damage_to_hazard(target, LASER_DPS * _damage_multiplier() * delta):
         objects.remove_at(target_index)
+        _flush_pending_drops(objects)
 
 func _spawn_weapon_pickup() -> void:
     var choices: Array[String] = ["single", "dual", "cone", "seeker", "laser"]
@@ -1435,9 +1439,9 @@ func _energy_spawn_interval() -> float:
         interval *= 0.82
     return interval * rng.randf_range(0.88, 1.14)
 
-func _spawn_energy_at(x: float, y: float, hard: bool = false) -> void:
+func _make_energy_orb(x: float, y: float, hard: bool = false) -> Dictionary:
     var bounds := _lane_bounds(hard) if lane_event_active else Vector2(LEFT, RIGHT)
-    objects.append({
+    return {
         "id": rng.randi(),
         "type": "energy",
         "hard": hard and lane_event_active,
@@ -1448,10 +1452,10 @@ func _spawn_energy_at(x: float, y: float, hard: bool = false) -> void:
         "drift": rng.randf_range(-10.0, 10.0),
         "lane_min": bounds.x,
         "lane_max": bounds.y
-    })
+    }
 
-func _spawn_repair_at(x: float, y: float) -> void:
-    objects.append({
+func _make_repair_pickup(x: float, y: float) -> Dictionary:
+    return {
         "id": rng.randi(),
         "type": "repair",
         "hard": false,
@@ -1462,14 +1466,28 @@ func _spawn_repair_at(x: float, y: float) -> void:
         "drift": rng.randf_range(-8.0, 8.0),
         "lane_min": LEFT,
         "lane_max": RIGHT
-    })
+    }
 
-func _roll_kill_drop(obj: Dictionary) -> void:
-    var roll := rng.randf()
+func _kill_drop_kind(roll: float) -> String:
     if roll < KILL_REPAIR_DROP_CHANCE:
-        _spawn_repair_at(float(obj.x), float(obj.y))
-    elif roll < KILL_REPAIR_DROP_CHANCE + KILL_ORB_DROP_CHANCE:
-        _spawn_energy_at(float(obj.x), float(obj.y), bool(obj.get("hard", false)))
+        return "repair"
+    if roll < KILL_REPAIR_DROP_CHANCE + KILL_ORB_DROP_CHANCE:
+        return "energy"
+    return ""
+
+func _queue_kill_drop(obj: Dictionary) -> void:
+    var drop_kind := _kill_drop_kind(rng.randf())
+    if drop_kind == "repair":
+        pending_drops.append(_make_repair_pickup(float(obj.x), float(obj.y)))
+    elif drop_kind == "energy":
+        pending_drops.append(_make_energy_orb(float(obj.x), float(obj.y), bool(obj.get("hard", false))))
+
+func _flush_pending_drops(target: Array[Dictionary]) -> void:
+    if pending_drops.is_empty():
+        return
+    for drop in pending_drops:
+        target.append(drop)
+    pending_drops.clear()
 
 func _spawn_repair() -> void:
     if hp >= max_hp:
@@ -1477,13 +1495,13 @@ func _spawn_repair() -> void:
     var lane_hard := lane_event_active and rng.randf() < 0.5
     var bounds := _lane_bounds(lane_hard) if lane_event_active else Vector2(LEFT, RIGHT)
     var x := rng.randf_range(bounds.x + 18.0, bounds.y - 18.0)
-    _spawn_repair_at(x, -34.0)
+    objects.append(_make_repair_pickup(x, -34.0))
 
 func _spawn_pickup() -> void:
     var hard_lane := lane_event_active and rng.randf() < 0.82
     var bounds := _lane_bounds(hard_lane) if lane_event_active else Vector2(LEFT, RIGHT)
     var x := rng.randf_range(bounds.x + 16.0, bounds.y - 16.0)
-    _spawn_energy_at(x, -30.0, hard_lane)
+    objects.append(_make_energy_orb(x, -30.0, hard_lane))
 
 func _begin_finale() -> void:
     finale_active = true
@@ -1643,6 +1661,7 @@ func _move_objects(delta: float) -> void:
 
         if obj.y < H + 80.0:
             next.append(obj)
+    _flush_pending_drops(next)
     objects = next
 
 func _register_near_miss() -> void:
