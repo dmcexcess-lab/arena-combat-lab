@@ -5,15 +5,26 @@ const H := 844.0
 const PLAYER_Y := 680.0
 const LEFT := 32.0
 const RIGHT := 358.0
-const RUN_TIME := 60.0
-const FINALE_TIME := 50.0
-const EXTRACTION_SPAWN_TIME := 53.5
+const LEVEL_TIME := 30.0
+const SHOP_REPAIR_COST := 500
+const SHOP_SINGLE_COST := 350
+const SHOP_DUAL_COST := 650
+const SHOP_CONE_COST := 900
+const SHOP_SEEKER_COST := 1150
+const SHOP_LASER_COST := 850
 const LANE_SPLIT := W * 0.5
 const LEFT_LANE_MIN := LEFT
 const LEFT_LANE_MAX := LANE_SPLIT - 7.0
 const RIGHT_LANE_MIN := LANE_SPLIT + 7.0
 const RIGHT_LANE_MAX := RIGHT
 const DASH_RECT := Rect2(278.0, 748.0, 92.0, 64.0)
+const SHOP_REPAIR_RECT := Rect2(35.0, 236.0, 320.0, 56.0)
+const SHOP_SINGLE_RECT := Rect2(35.0, 318.0, 150.0, 58.0)
+const SHOP_DUAL_RECT := Rect2(205.0, 318.0, 150.0, 58.0)
+const SHOP_CONE_RECT := Rect2(35.0, 394.0, 150.0, 58.0)
+const SHOP_SEEKER_RECT := Rect2(205.0, 394.0, 150.0, 58.0)
+const SHOP_LASER_RECT := Rect2(35.0, 470.0, 320.0, 58.0)
+const SHOP_CONTINUE_RECT := Rect2(35.0, 562.0, 320.0, 72.0)
 const DASH_COOLDOWN := 2.4
 const DASH_DURATION := 0.23
 const DASH_FORWARD_SPEED := 760.0
@@ -39,17 +50,18 @@ const DUAL_DAMAGE := 1.0
 const CONE_DAMAGE := 3.0
 const SEEKER_DAMAGE := 7.0
 const LASER_DPS := 3.0
-const WEAPON_PICKUP_MIN := 7.0
-const WEAPON_PICKUP_MAX := 10.0
-const REPAIR_INTERVAL_MIN := 8.0
-const REPAIR_INTERVAL_MAX := 12.0
-const REPAIR_RETRY_FULL := 2.0
+const REPAIR_INTERVAL_MIN := 24.0
+const REPAIR_INTERVAL_MAX := 34.0
+const REPAIR_RETRY_FULL := 6.0
 
 var rng := RandomNumberGenerator.new()
 var playing := false
 var game_over := false
 var won := false
 var elapsed := 0.0
+var level := 1
+var shop_open := false
+var last_level_bonus := 0
 var score := 0
 var energy := 0
 var combo := 1
@@ -84,7 +96,6 @@ var next_lane_event_at := LANE_EVENT_FIRST
 var lane_choice_banner_timer := 0.0
 var neutral_spawn_clock := 0.0
 var fire_clock := 0.0
-var weapon_clock := 0.0
 var repair_clock := 0.0
 var current_weapon := "single"
 var weapon_banner_timer := 0.0
@@ -171,19 +182,14 @@ func _process(delta: float) -> void:
     neutral_spawn_clock -= game_delta
     pickup_clock -= game_delta
     fire_clock -= game_delta
-    weapon_clock -= game_delta
     repair_clock -= game_delta
-    var difficulty := clampf(elapsed / RUN_TIME, 0.0, 1.0)
+    var difficulty := _level_difficulty()
 
     if current_weapon == "laser":
         _apply_laser_damage(game_delta)
     elif fire_clock <= 0.0:
         _fire_weapon()
         fire_clock = _weapon_interval()
-
-    if weapon_clock <= 0.0:
-        _spawn_weapon_pickup()
-        weapon_clock = rng.randf_range(WEAPON_PICKUP_MIN, WEAPON_PICKUP_MAX)
 
     if repair_clock <= 0.0:
         if hp < 3:
@@ -201,41 +207,40 @@ func _process(delta: float) -> void:
             return
         if easy_spawn_clock <= 0.0:
             _spawn_hazard(difficulty, false, true)
-            easy_spawn_clock = lerpf(0.92, 0.54, difficulty) * rng.randf_range(0.86, 1.17)
+            easy_spawn_clock = _spawn_interval(1.05, 0.52, difficulty) * rng.randf_range(0.88, 1.18)
         if hard_spawn_clock <= 0.0:
             _spawn_hazard(difficulty, true, true)
-            hard_spawn_clock = lerpf(0.61, 0.31, difficulty) * rng.randf_range(0.82, 1.12)
+            hard_spawn_clock = _spawn_interval(0.82, 0.34, difficulty) * rng.randf_range(0.84, 1.14)
         if station_top > H + 40.0:
             _end_lane_event()
     else:
         if neutral_spawn_clock <= 0.0:
             _spawn_hazard(difficulty, false, false)
-            neutral_spawn_clock = lerpf(0.70, 0.38, difficulty) * rng.randf_range(0.84, 1.16)
-        if elapsed >= next_lane_event_at and elapsed < FINALE_TIME - 5.0:
+            neutral_spawn_clock = _spawn_interval(1.10, 0.43, difficulty) * rng.randf_range(0.86, 1.18)
+        if elapsed >= next_lane_event_at and elapsed < LEVEL_TIME - 8.0:
             _begin_lane_event()
 
     if pickup_clock <= 0.0:
         _spawn_pickup()
-        pickup_clock = rng.randf_range(1.45, 2.25)
-
-    if elapsed >= FINALE_TIME and not finale_active:
-        _begin_finale()
-    if elapsed >= EXTRACTION_SPAWN_TIME and not extraction_spawned:
-        _spawn_extraction_gate()
+        pickup_clock = rng.randf_range(1.8, 2.7)
 
     _move_shots(game_delta)
     _move_objects(game_delta)
     _move_particles(delta)
-    score += int(game_delta * (24.0 + difficulty * 24.0) * combo * _lane_score_multiplier() * _dash_score_multiplier())
+    score += int(game_delta * (22.0 + minf(difficulty, 1.5) * 22.0) * combo * _lane_score_multiplier() * _dash_score_multiplier())
 
-    if elapsed >= RUN_TIME + 2.5 and playing:
-        result_reason = "EXTRACTION MISSED"
-        _finish(false)
+    if elapsed >= LEVEL_TIME and playing:
+        _open_shop()
+        queue_redraw()
+        return
     queue_redraw()
 
 func _input(event: InputEvent) -> void:
     if event is InputEventScreenTouch:
         if event.pressed:
+            if shop_open:
+                _handle_shop_tap(event.position)
+                return
             if not playing:
                 _start_game()
                 return
@@ -250,7 +255,9 @@ func _input(event: InputEvent) -> void:
         if playing and event.index != dash_touch_index:
             _set_target(event.position.x)
     elif event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and event.pressed:
-        if not playing:
+        if shop_open:
+            _handle_shop_tap(event.position)
+        elif not playing:
             _start_game()
         elif DASH_RECT.has_point(event.position):
             _dash()
@@ -279,6 +286,9 @@ func _start_game() -> void:
     game_over = false
     won = false
     elapsed = 0.0
+    level = 1
+    shop_open = false
+    last_level_bonus = 0
     score = 0
     energy = 0
     combo = 1
@@ -291,13 +301,12 @@ func _start_game() -> void:
     flash = 0.0
     cyan_flash = 0.0
     shake = 0.0
-    easy_spawn_clock = 0.55
-    hard_spawn_clock = 0.38
-    pickup_clock = 0.9
-    neutral_spawn_clock = 0.45
-    fire_clock = 0.12
-    weapon_clock = 4.0
-    repair_clock = 2.0
+    easy_spawn_clock = 0.90
+    hard_spawn_clock = 0.72
+    pickup_clock = 1.3
+    neutral_spawn_clock = 0.95
+    fire_clock = 0.18
+    repair_clock = 18.0
     current_weapon = "single"
     weapon_banner_timer = 0.0
     weapon_banner_text = ""
@@ -322,6 +331,123 @@ func _start_game() -> void:
     shots.clear()
     particles.clear()
     last_near_ids.clear()
+
+func _level_difficulty() -> float:
+    var level_pressure := float(level - 1) * 0.18
+    var stage_pressure := clampf(elapsed / LEVEL_TIME, 0.0, 1.0) * 0.24
+    return minf(1.65, level_pressure + stage_pressure)
+
+func _spawn_interval(easy_value: float, hard_value: float, difficulty: float) -> float:
+    var base := lerpf(easy_value, hard_value, clampf(difficulty, 0.0, 1.0))
+    if difficulty > 1.0:
+        base /= 1.0 + (difficulty - 1.0) * 0.42
+    return maxf(0.24, base)
+
+func _shop_weapon_cost(weapon: String) -> int:
+    match weapon:
+        "single":
+            return SHOP_SINGLE_COST
+        "dual":
+            return SHOP_DUAL_COST
+        "cone":
+            return SHOP_CONE_COST
+        "seeker":
+            return SHOP_SEEKER_COST
+        "laser":
+            return SHOP_LASER_COST
+    return 999999
+
+func _open_shop() -> void:
+    if shop_open or game_over:
+        return
+    playing = false
+    shop_open = true
+    last_level_bonus = 350 + level * 100
+    score += last_level_bonus
+    combo = 1
+    dash_timer = 0.0
+    dash_score_timer = 0.0
+    invuln = 0.0
+    objects.clear()
+    shots.clear()
+    lane_event_active = false
+    lane_event_timer = 0.0
+    station_locked_side = ""
+    station_top = STATION_START_TOP
+    queue_redraw()
+
+func _buy_repair() -> bool:
+    if not shop_open or hp >= 3 or score < SHOP_REPAIR_COST:
+        return false
+    score -= SHOP_REPAIR_COST
+    hp += 1
+    return true
+
+func _buy_weapon(weapon: String) -> bool:
+    if not shop_open or weapon == current_weapon:
+        return false
+    var cost := _shop_weapon_cost(weapon)
+    if score < cost:
+        return false
+    score -= cost
+    current_weapon = weapon
+    return true
+
+func _start_next_level() -> void:
+    if not shop_open:
+        return
+    level += 1
+    elapsed = 0.0
+    shop_open = false
+    playing = true
+    player_x = W * 0.5
+    player_y = PLAYER_Y
+    target_x = player_x
+    combo = 1
+    invuln = 0.0
+    flash = 0.0
+    cyan_flash = 0.0
+    shake = 0.0
+    easy_spawn_clock = 0.72
+    hard_spawn_clock = 0.54
+    neutral_spawn_clock = 0.72
+    pickup_clock = 1.2
+    fire_clock = 0.15
+    repair_clock = rng.randf_range(18.0, 24.0)
+    dash_cooldown = 0.0
+    dash_timer = 0.0
+    dash_score_timer = 0.0
+    near_miss_timer = 0.0
+    slowmo_timer = 0.0
+    finale_active = false
+    extraction_spawned = false
+    extraction_lane = ""
+    lane_event_active = false
+    lane_event_timer = 0.0
+    next_lane_event_at = LANE_EVENT_FIRST
+    lane_choice_banner_timer = 0.0
+    station_top = STATION_START_TOP
+    station_locked_side = ""
+    objects.clear()
+    shots.clear()
+    last_near_ids.clear()
+
+func _handle_shop_tap(pos: Vector2) -> void:
+    if SHOP_REPAIR_RECT.has_point(pos):
+        _buy_repair()
+    elif SHOP_SINGLE_RECT.has_point(pos):
+        _buy_weapon("single")
+    elif SHOP_DUAL_RECT.has_point(pos):
+        _buy_weapon("dual")
+    elif SHOP_CONE_RECT.has_point(pos):
+        _buy_weapon("cone")
+    elif SHOP_SEEKER_RECT.has_point(pos):
+        _buy_weapon("seeker")
+    elif SHOP_LASER_RECT.has_point(pos):
+        _buy_weapon("laser")
+    elif SHOP_CONTINUE_RECT.has_point(pos):
+        _start_next_level()
+    queue_redraw()
 
 func _finish(success: bool) -> void:
     playing = false
@@ -416,7 +542,7 @@ func _spawn_hazard(difficulty: float, hard_lane: bool, lane_mode: bool = true) -
     var kind_max := 2 if difficulty > kind_threshold else 1
     var kind := rng.randi_range(0, kind_max)
     var radius := rng.randf_range(17.0, 26.0)
-    var base_speed := rng.randf_range(245.0, 320.0) + difficulty * 115.0
+    var base_speed := rng.randf_range(205.0, 275.0) + difficulty * 125.0
     var speed := base_speed
     if lane_mode:
         speed *= 1.16 if hard_lane else 0.9
@@ -828,6 +954,10 @@ func _draw() -> void:
     draw_rect(Rect2(Vector2.ZERO, Vector2(W, H)), Color("080b14"))
     _draw_background()
 
+    if shop_open:
+        _draw_shop()
+        return
+
     if not playing and not game_over:
         _draw_title()
         return
@@ -998,8 +1128,8 @@ func _draw_object(obj: Dictionary, offset: Vector2) -> void:
         draw_rect(Rect2(Vector2(p.x - bw * 0.5, p.y + obj.r + 7.0), Vector2(bw * ratio, 3.0)), Color("ffd166"), true)
 
 func _draw_hud() -> void:
-    _text("%02d" % int(maxf(0.0, RUN_TIME - elapsed)), Vector2(20, 50), 30, Color("f0fbff"))
-    _text("SCORE %07d" % score, Vector2(145, 46), 20, Color("bdeef4"))
+    _text("%02d" % int(maxf(0.0, LEVEL_TIME - elapsed)), Vector2(20, 50), 30, Color("f0fbff"))
+    _text("L%d  SCORE %06d" % [level, score], Vector2(120, 46), 19, Color("bdeef4"))
     _text("ENERGY %02d" % energy, Vector2(20, 88), 18, Color("6bffb0"))
     _text("x%d" % combo, Vector2(310, 88), 24, Color("ffd166"))
 
@@ -1019,7 +1149,7 @@ func _draw_hud() -> void:
         var c := Color("ff4f78") if i < hp else Color(0.3,0.3,0.38,0.55)
         draw_circle(Vector2(28 + i * 26, 146), 8.0, c)
 
-    var progress := clampf(elapsed / RUN_TIME, 0.0, 1.0)
+    var progress := clampf(elapsed / LEVEL_TIME, 0.0, 1.0)
     draw_rect(Rect2(Vector2(20, 169), Vector2(350, 6)), Color(0.2,0.25,0.3,0.7))
     draw_rect(Rect2(Vector2(20, 169), Vector2(350 * progress, 6)), Color("77f7ff"))
 
@@ -1034,25 +1164,60 @@ func _draw_dash_button() -> void:
 func _draw_title() -> void:
     _text("NEON", Vector2(102, 220), 52, Color("77f7ff"))
     _text("DRIFTLINE", Vector2(54, 276), 47, Color("f0fbff"))
-    _text("SURVIVE. THEN EXTRACT.", Vector2(57, 351), 21, Color("ffd166"))
-    _text("STATION SPLITS APPROACH", Vector2(73, 416), 18, Color("ffd166"))
-    _text("CHOOSE A LANE BEFORE IMPACT", Vector2(56, 444), 18, Color("bdeef4"))
-    _text("WALL CONTACT = INSTANT DEATH", Vector2(56, 476), 16, Color("ff8fa6"))
-    _text("5 AUTO WEAPONS — GRAB CORES", Vector2(58, 506), 16, Color("ffd166"))
-    _text("YELLOW DIAMONDS = TANKIEST", Vector2(64, 533), 16, Color("ffb347"))
-    _text("REPAIRS +1 HIT. DASH = x2.", Vector2(70, 560), 16, Color("6bffb0"))
+    _text("SURVIVE 30 SEC. SHOP. REPEAT.", Vector2(43, 351), 19, Color("ffd166"))
+    _text("LEVEL 1 STARTS LIGHT", Vector2(91, 416), 18, Color("6bffb0"))
+    _text("EVERY LEVEL GETS HARDER", Vector2(70, 444), 18, Color("bdeef4"))
+    _text("STATION WALLS = INSTANT DEATH", Vector2(55, 476), 16, Color("ff8fa6"))
+    _text("SPEND SCORE ON GUNS + REPAIRS", Vector2(50, 506), 16, Color("ffd166"))
+    _text("FIELD REPAIRS ARE RARE", Vector2(84, 533), 16, Color("6bffb0"))
+    _text("DASH FORWARD = x2 SCORE", Vector2(82, 560), 16, Color("bdeef4"))
     draw_rect(Rect2(Vector2(54, 606), Vector2(282, 76)), Color("123544"), true)
     draw_rect(Rect2(Vector2(54, 606), Vector2(282, 76)), Color("77f7ff"), false, 3.0)
     _text("TAP TO LAUNCH", Vector2(92, 656), 24, Color("f0fbff"))
+
+func _draw_shop_button(rect: Rect2, label: String, cost: int, enabled: bool, owned: bool = false) -> void:
+    var fill := Color("17303b") if enabled else Color(0.09, 0.10, 0.13, 0.92)
+    var border := Color("77f7ff") if enabled else Color(0.28, 0.32, 0.36, 0.8)
+    if owned:
+        fill = Color(0.13, 0.20, 0.16, 0.95)
+        border = Color("6bffb0")
+    draw_rect(rect, fill, true)
+    draw_rect(rect, border, false, 2.0)
+    var suffix := "OWNED" if owned else ("%d" % cost)
+    _text(label, rect.position + Vector2(10, 24), 15, Color("f0fbff"))
+    _text(suffix, rect.position + Vector2(10, 47), 14, Color("6bffb0") if owned else Color("ffd166"))
+
+func _draw_shop() -> void:
+    draw_rect(Rect2(Vector2.ZERO, Vector2(W, H)), Color("080b14"))
+    _text("LEVEL %d CLEAR" % level, Vector2(92, 82), 28, Color("77f7ff"))
+    _text("+%d CLEAR BONUS" % last_level_bonus, Vector2(112, 112), 16, Color("6bffb0"))
+    _text("SCORE / CREDITS  %06d" % score, Vector2(75, 154), 20, Color("ffd166"))
+    _text("HP %d/3   %s" % [hp, _weapon_label(current_weapon)], Vector2(74, 187), 16, Color("bdeef4"))
+
+    var can_repair := hp < 3 and score >= SHOP_REPAIR_COST
+    _draw_shop_button(SHOP_REPAIR_RECT, "REPAIR +1 HIT", SHOP_REPAIR_COST, can_repair, hp >= 3)
+
+    _draw_shop_button(SHOP_SINGLE_RECT, "SINGLE D2", SHOP_SINGLE_COST, score >= SHOP_SINGLE_COST and current_weapon != "single", current_weapon == "single")
+    _draw_shop_button(SHOP_DUAL_RECT, "DUAL D1x2", SHOP_DUAL_COST, score >= SHOP_DUAL_COST and current_weapon != "dual", current_weapon == "dual")
+    _draw_shop_button(SHOP_CONE_RECT, "CONE D3x3", SHOP_CONE_COST, score >= SHOP_CONE_COST and current_weapon != "cone", current_weapon == "cone")
+    _draw_shop_button(SHOP_SEEKER_RECT, "SEEKER D7", SHOP_SEEKER_COST, score >= SHOP_SEEKER_COST and current_weapon != "seeker", current_weapon == "seeker")
+    _draw_shop_button(SHOP_LASER_RECT, "THIN LASER 3 DPS", SHOP_LASER_COST, score >= SHOP_LASER_COST and current_weapon != "laser", current_weapon == "laser")
+
+    draw_rect(SHOP_CONTINUE_RECT, Color("123544"), true)
+    draw_rect(SHOP_CONTINUE_RECT, Color("77f7ff"), false, 3.0)
+    _text("START LEVEL %d" % (level + 1), SHOP_CONTINUE_RECT.position + Vector2(71, 43), 21, Color("f0fbff"))
+    _text("NEXT LEVEL: MORE SPEED + DENSITY", Vector2(62, 680), 15, Color("ffb347"))
+    _text("FIELD REPAIRS ARE RARE", Vector2(92, 710), 15, Color("8ea9b8"))
 
 func _draw_results() -> void:
     draw_rect(Rect2(Vector2(30, 210), Vector2(330, 410)), Color(0.03,0.05,0.09,0.94), true)
     draw_rect(Rect2(Vector2(30, 210), Vector2(330, 410)), Color("77f7ff") if won else Color("ff426f"), false, 3.0)
     _text("EXTRACTION!" if won else "RUN ENDED", Vector2(70 if won else 91, 275), 34, Color("77f7ff") if won else Color("ff6687"))
     _text(result_reason, Vector2(94, 314), 17, Color("8ea9b8"))
-    _text("SCORE  %07d" % score, Vector2(82, 370), 24, Color("f0fbff"))
-    _text("ENERGY %02d" % energy, Vector2(112, 416), 20, Color("6bffb0"))
-    _text("BEST COMBO x%d" % best_combo, Vector2(97, 455), 20, Color("ffd166"))
+    _text("LEVEL  %02d" % level, Vector2(118, 350), 22, Color("bdeef4"))
+    _text("SCORE  %07d" % score, Vector2(82, 392), 24, Color("f0fbff"))
+    _text("ENERGY %02d" % energy, Vector2(112, 435), 20, Color("6bffb0"))
+    _text("BEST COMBO x%d" % best_combo, Vector2(97, 474), 20, Color("ffd166"))
     _text("TAP TO RUN AGAIN", Vector2(80, 560), 22, Color("bdeef4"))
 
 func _text(s: String, pos: Vector2, size: int, color: Color) -> void:
