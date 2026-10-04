@@ -30,8 +30,9 @@ func _initialize() -> void:
         "_shop_weapon_cost", "_open_shop", "_buy_repair", "_buy_weapon",
         "_start_next_level", "_handle_shop_tap", "_ship_speed_multiplier", "_dash_distance",
         "_dash_speed", "_damage_multiplier", "_near_miss_research_multiplier",
-        "_research_cost", "_buy_research", "_pause_run", "_resume_run",
-        "_quit_run_with_score", "_bank_run_score", "_save_meta", "_save_run_snapshot",
+        "_research_cost", "_buy_research", "_weapon_research_cost", "_weapon_start_unlocked",
+        "_buy_start_weapon_research", "_select_start_weapon", "_valid_starting_weapon",
+        "_pause_run", "_resume_run", "_quit_run_with_score", "_bank_run_score", "_save_meta", "_save_run_snapshot",
         "_load_run_snapshot", "_clear_run_snapshot"
     ]:
         if not scene.has_method(method_name):
@@ -40,8 +41,8 @@ func _initialize() -> void:
 
     scene._start_game()
     await process_frame
-    if not scene.playing or scene.shop_open or scene.level != 1 or scene.hp != 3:
-        _fail("run did not initialize as level 1 gameplay")
+    if not scene.playing or scene.shop_open or scene.level != 1 or scene.hp != 2 or scene.max_hp != 2:
+        _fail("run did not initialize with the two-hit baseline")
         return
     if scene.current_weapon != "none":
         _fail("new run should start unarmed")
@@ -56,18 +57,73 @@ func _initialize() -> void:
         _fail("level 1 should use the shortest station split")
         return
 
+    # True baseline is intentionally weak.
+    if scene._ship_speed_multiplier() >= 1.0:
+        _fail("starting ship should scroll slower than nominal speed")
+        return
+    if scene.DASH_FORWARD_DISTANCE > 180.0 or scene.DASH_FORWARD_SPEED > 750.0:
+        _fail("starting dash is not short/slow enough")
+        return
+    if scene.research_shield != 0 or scene.shield_charges != 0:
+        _fail("baseline run should start with no shield")
+        return
+
     # Permanent research modifies the intended systems and uses accumulated banked score.
-    scene.research_credits = 100000
+    var base_ship_speed: float = scene._ship_speed_multiplier()
+    var base_dash_distance: float = scene._dash_distance()
+    var base_dash_speed: float = scene._dash_speed()
+    scene.research_credits = 1000000
     if not scene._buy_research("ship") or not scene._buy_research("dash") or not scene._buy_research("damage") or not scene._buy_research("hits") or not scene._buy_research("shield"):
         _fail("research purchase flow failed")
         return
     if scene.research_ship_speed != 1 or scene.research_dash != 1 or scene.research_damage != 1 or scene.research_hits != 1 or scene.research_shield != 1:
         _fail("research levels did not increment correctly")
         return
-    if scene._ship_speed_multiplier() <= 1.0 or scene._dash_speed() <= scene.DASH_FORWARD_SPEED or scene._dash_distance() <= scene.DASH_FORWARD_DISTANCE or scene._damage_multiplier() <= 1.0:
+    if scene._ship_speed_multiplier() <= base_ship_speed or scene._dash_distance() <= base_dash_distance or scene._dash_speed() <= base_dash_speed or scene._damage_multiplier() <= 1.0:
         _fail("research effects were not applied")
         return
+    if absf((scene._dash_speed() - base_dash_speed) - 40.0) > 0.01:
+        _fail("dash speed research should increase speed only slightly")
+        return
+
+    # Defense curves: shield begins cheap then explodes; hits begin expensive but climb gently.
+    scene.research_shield = 0
+    if scene._research_cost("shield") != 500:
+        _fail("first shield research should be cheap")
+        return
+    scene.research_shield = 1
+    var shield_second: int = scene._research_cost("shield")
+    scene.research_shield = 2
+    var shield_third: int = scene._research_cost("shield")
+    if shield_second != 2500 or shield_third != 12500 or shield_third <= shield_second * 4:
+        _fail("shield research does not rise steeply enough")
+        return
+    scene.research_hits = 0
+    var hits_first: int = scene._research_cost("hits")
+    scene.research_hits = 1
+    var hits_second: int = scene._research_cost("hits")
+    if hits_first != 5000 or hits_second <= hits_first or hits_second >= hits_first * 2:
+        _fail("hit research should start expensive and rise gently")
+        return
+    scene.research_hits = 1
+    scene.research_shield = 1
+
+    # Starting-weapon research costs at least 10x the normal run-shop price.
+    if scene._weapon_research_cost("single") != scene.SHOP_SINGLE_COST * 10     or scene._weapon_research_cost("dual") != scene.SHOP_DUAL_COST * 10     or scene._weapon_research_cost("laser") != scene.SHOP_LASER_COST * 10     or scene._weapon_research_cost("cone") != scene.SHOP_CONE_COST * 10     or scene._weapon_research_cost("seeker") != scene.SHOP_SEEKER_COST * 10:
+        _fail("starting weapon research is not at least 10x run price")
+        return
+    for weapon in ["single", "dual", "laser", "cone", "seeker"]:
+        if not scene._buy_start_weapon_research(weapon):
+            _fail("starting weapon research unlock failed for " + weapon)
+            return
+    if not scene._select_start_weapon("single") or scene._valid_starting_weapon() != "single":
+        _fail("researched starting weapon could not be selected")
+        return
+
     scene._start_game()
+    if scene.current_weapon != "single":
+        _fail("selected researched weapon did not equip at run start")
+        return
     scene.neutral_spawn_clock = 999.0
     scene.easy_spawn_clock = 999.0
     scene.hard_spawn_clock = 999.0
@@ -76,11 +132,8 @@ func _initialize() -> void:
     scene.fire_clock = 999.0
     var elapsed_before_speed: float = scene.elapsed
     scene._process(1.0)
-    if scene.elapsed - elapsed_before_speed <= 1.0:
+    if scene.elapsed - elapsed_before_speed <= base_ship_speed:
         _fail("ship-speed research did not accelerate level scroll/progress")
-        return
-    if scene._research_cost("shield") <= scene._research_cost("hits"):
-        _fail("shield research should be more expensive than hits research")
         return
 
     # Ship speed and dash research both increase near-miss scoring.
@@ -118,9 +171,11 @@ func _initialize() -> void:
         _fail("near-miss research multipliers do not reflect speed and dash research")
         return
 
-    # Starting a researched run applies permanent hits and shield.
+    # Starting a researched run applies permanent hits and shield charges.
+    scene.research_hits = 1
+    scene.research_shield = 1
     scene._start_game()
-    if scene.max_hp != 4 or scene.hp != 4 or scene.shield_charges != 1:
+    if scene.max_hp != 3 or scene.hp != 3 or scene.shield_charges != 1:
         _fail("researched hits/shield did not apply to new run")
         return
     scene.current_weapon = "single"
@@ -170,6 +225,12 @@ func _initialize() -> void:
     scene.research_damage = 0
     scene.research_hits = 0
     scene.research_shield = 0
+    scene.research_start_single = false
+    scene.research_start_dual = false
+    scene.research_start_laser = false
+    scene.research_start_cone = false
+    scene.research_start_seeker = false
+    scene.starting_weapon = "none"
     scene.research_credits = 0
     scene._save_meta()
     scene._clear_run_snapshot()
@@ -594,24 +655,30 @@ func _initialize() -> void:
         return
     scene.run_paused = false
 
-    # Dash surges almost to the top, then coasts back very slowly while the world scrolls.
+    # Baseline dash is deliberately short; research grows distance faster than speed.
     scene._start_next_level()
     scene.player_x = 195.0
     scene.target_x = 195.0
     scene.player_y = scene.PLAYER_Y
     scene.dash_cooldown = 0.0
     scene._dash()
+    scene._process(0.30)
+    var baseline_dash_distance: float = scene.PLAYER_Y - scene.player_y
+    if baseline_dash_distance < 145.0 or baseline_dash_distance > 175.0:
+        _fail("baseline dash should travel only about 160 pixels")
+        return
+    scene.research_dash = 3
+    scene.player_y = scene.PLAYER_Y
+    scene.dash_timer = 0.0
+    scene.dash_cooldown = 0.0
+    scene._dash()
     scene._process(0.40)
-    if scene.player_y > 155.0:
-        _fail("dash did not reach near the top of the screen")
+    var researched_dash_distance: float = scene.PLAYER_Y - scene.player_y
+    if researched_dash_distance <= baseline_dash_distance + 80.0:
+        _fail("dash research did not materially extend distance")
         return
-    var coast_y: float = scene.player_y
-    scene._process(0.80)
-    if scene.player_y >= scene.PLAYER_Y - 180.0:
-        _fail("dash coast returned toward baseline too quickly")
-        return
-    if scene.player_y <= coast_y:
-        _fail("dash coast did not begin a gradual return")
+    if scene._dash_speed() >= scene.DASH_FORWARD_SPEED + 150.0:
+        _fail("dash research increased speed too aggressively")
         return
 
     # Station structure remains instant-lethal through invulnerability.
