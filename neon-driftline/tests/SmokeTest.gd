@@ -1,104 +1,124 @@
 extends SceneTree
 
+func _fail(message: String) -> void:
+    print("SMOKE FAIL: " + message)
+    quit(1)
+
 func _initialize() -> void:
     var packed := load("res://main.tscn")
     if packed == null:
-        print("SMOKE FAIL: main scene did not load")
-        quit(1)
+        _fail("main scene did not load")
         return
 
     var scene = packed.instantiate()
     if scene == null:
-        print("SMOKE FAIL: main scene did not instantiate")
-        quit(1)
+        _fail("main scene did not instantiate")
         return
 
     root.add_child(scene)
     await process_frame
 
-    for method_name in ["_start_game", "_dash", "_fire_weapon", "_weapon_interval", "_weapon_damage", "_weapon_label", "_obstacle_max_hp", "_move_shots", "_consume_shot_hit", "_apply_laser_damage", "_spawn_weapon_pickup", "_spawn_repair", "_register_near_miss", "_begin_lane_event", "_end_lane_event", "_station_at_player", "_station_barrier_rects", "_check_station_collision", "_begin_finale", "_spawn_extraction_gate", "_lane_score_multiplier", "_dash_score_multiplier"]:
+    for method_name in [
+        "_start_game", "_dash", "_fire_weapon", "_weapon_interval", "_weapon_damage",
+        "_weapon_label", "_obstacle_max_hp", "_move_shots", "_consume_shot_hit",
+        "_apply_laser_damage", "_spawn_repair", "_register_near_miss",
+        "_begin_lane_event", "_end_lane_event", "_station_at_player",
+        "_station_barrier_rects", "_check_station_collision", "_lane_score_multiplier",
+        "_dash_score_multiplier", "_level_difficulty", "_spawn_interval",
+        "_shop_weapon_cost", "_open_shop", "_buy_repair", "_buy_weapon",
+        "_start_next_level", "_handle_shop_tap"
+    ]:
         if not scene.has_method(method_name):
-            print("SMOKE FAIL: missing gameplay method ", method_name)
-            quit(1)
+            _fail("missing gameplay method " + method_name)
             return
 
     scene._start_game()
     await process_frame
-    if scene.playing != true or scene.hp != 3:
-        print("SMOKE FAIL: run did not initialize")
-        quit(1)
+    if not scene.playing or scene.shop_open or scene.level != 1 or scene.hp != 3:
+        _fail("run did not initialize as level 1 gameplay")
+        return
+    if scene.current_weapon != "single":
+        _fail("new run should start with single auto")
+        return
+    if scene.LEVEL_TIME != 30.0:
+        _fail("levels should last 30 seconds")
         return
 
-    if scene.lane_event_active or scene._lane_score_multiplier() != 1.0:
-        print("SMOKE FAIL: station lanes should be absent during open-field play")
-        quit(1)
+    # Level 1 starts deliberately light and later levels scale upward.
+    scene.elapsed = 0.0
+    scene.level = 1
+    var level_one_start: float = scene._level_difficulty()
+    scene.elapsed = scene.LEVEL_TIME
+    var level_one_end: float = scene._level_difficulty()
+    scene.elapsed = 0.0
+    scene.level = 3
+    var level_three_start: float = scene._level_difficulty()
+    if level_one_start > 0.01 or level_one_end <= level_one_start or level_three_start <= level_one_start:
+        _fail("level difficulty does not ramp correctly")
+        return
+    if scene._spawn_interval(1.10, 0.43, level_one_start) <= scene._spawn_interval(1.10, 0.43, level_three_start):
+        _fail("later levels should have denser hazard cadence")
         return
 
-    # Obstacle durability must scale by shape: circle < square < yellow diamond.
+    # Restore clean level-1 state for combat tests.
+    scene._start_game()
+
+    # Obstacle durability: circle < square < yellow diamond.
     if not (scene._obstacle_max_hp(0) < scene._obstacle_max_hp(1) and scene._obstacle_max_hp(1) < scene._obstacle_max_hp(2)):
-        print("SMOKE FAIL: obstacle health ordering is incorrect")
-        quit(1)
+        _fail("obstacle health ordering is incorrect")
         return
     if scene._obstacle_max_hp(2) != 12.0:
-        print("SMOKE FAIL: yellow diamond should be the tankiest obstacle")
-        quit(1)
+        _fail("yellow diamond should be the tankiest obstacle")
         return
 
-    # Single auto: one accurate D2 projectile.
+    # Single auto.
     scene.shots.clear()
     scene.current_weapon = "single"
     scene._fire_weapon()
     if scene.shots.size() != 1 or float(scene.shots[0].damage) != scene.SINGLE_DAMAGE:
-        print("SMOKE FAIL: single auto weapon profile is wrong")
-        quit(1)
+        _fail("single auto weapon profile is wrong")
         return
 
-    # Dual auto: two D1 projectiles.
+    # Dual auto.
     scene.shots.clear()
     scene.current_weapon = "dual"
     scene._fire_weapon()
     if scene.shots.size() != 2:
-        print("SMOKE FAIL: dual auto did not fire two shots")
-        quit(1)
+        _fail("dual auto did not fire two shots")
         return
     for shot in scene.shots:
         if float(shot.damage) != scene.DUAL_DAMAGE:
-            print("SMOKE FAIL: dual auto damage is wrong")
-            quit(1)
+            _fail("dual auto damage is wrong")
             return
 
-    # Cone cannon: slow three-way D3 spread.
+    # Cone cannon.
     scene.shots.clear()
     scene.current_weapon = "cone"
     scene._fire_weapon()
     if scene.shots.size() != 3 or scene._weapon_interval() <= scene.DUAL_INTERVAL:
-        print("SMOKE FAIL: cone weapon cadence/spread is wrong")
-        quit(1)
+        _fail("cone weapon cadence/spread is wrong")
         return
     if not (float(scene.shots[0].vx) < 0.0 and float(scene.shots[1].vx) == 0.0 and float(scene.shots[2].vx) > 0.0):
-        print("SMOKE FAIL: cone shots do not form a spread")
-        quit(1)
+        _fail("cone shots do not form a spread")
         return
 
-    # Heat seeker: one slow, powerful D7 homing projectile.
+    # Heat seeker.
     scene.shots.clear()
     scene.current_weapon = "seeker"
     scene._fire_weapon()
     if scene.shots.size() != 1 or not scene.shots[0].homing or float(scene.shots[0].damage) != scene.SEEKER_DAMAGE:
-        print("SMOKE FAIL: heat seeker profile is wrong")
-        quit(1)
+        _fail("heat seeker profile is wrong")
         return
     if scene._weapon_interval() <= scene.CONE_INTERVAL:
-        print("SMOKE FAIL: heat seeker should be the slowest projectile weapon")
-        quit(1)
+        _fail("heat seeker should be the slowest projectile weapon")
         return
 
-    # Projectiles must respect obstacle HP rather than one-shot every shape.
+    # Persistent obstacle HP.
     scene.shots.clear()
     scene.current_weapon = "single"
     scene.objects.clear()
     var circle_hp: float = scene._obstacle_max_hp(0)
-    var target := {
+    scene.objects.append({
         "id": 999001,
         "type": "hazard",
         "kind": 0,
@@ -112,36 +132,28 @@ func _initialize() -> void:
         "drift": 0.0,
         "lane_min": scene.LEFT,
         "lane_max": scene.RIGHT
-    }
-    scene.objects.append(target)
-    scene._spawn_shot(float(target.x), float(target.y), 0.0, 0.0, scene.SINGLE_DAMAGE)
+    })
+    scene._spawn_shot(float(scene.objects[0].x), float(scene.objects[0].y), 0.0, 0.0, scene.SINGLE_DAMAGE)
     scene._move_objects(0.0)
-    if scene.objects.is_empty():
-        print("SMOKE FAIL: D2 single shot incorrectly one-shot a 3 HP circle")
-        quit(1)
-        return
-    if absf(float(scene.objects[0].hp) - 1.0) > 0.01:
-        print("SMOKE FAIL: obstacle damage was not applied correctly")
-        quit(1)
+    if scene.objects.is_empty() or absf(float(scene.objects[0].hp) - 1.0) > 0.01:
+        _fail("single shot did not leave correct persistent circle HP")
         return
     scene._spawn_shot(float(scene.objects[0].x), float(scene.objects[0].y), 0.0, 0.0, scene.SINGLE_DAMAGE)
     scene._move_objects(0.0)
     if not scene.objects.is_empty():
-        print("SMOKE FAIL: depleted obstacle was not destroyed")
-        quit(1)
+        _fail("depleted obstacle was not destroyed")
         return
 
-    # Thin laser is continuous, weak DPS and removes an obstacle only after enough exposure.
+    # Thin weak laser.
     scene.objects.clear()
     scene.current_weapon = "laser"
     scene.player_x = 195.0
-    var laser_hp: float = scene._obstacle_max_hp(0)
     scene.objects.append({
         "id": 999002,
         "type": "hazard",
         "kind": 0,
-        "hp": laser_hp,
-        "max_hp": laser_hp,
+        "hp": circle_hp,
+        "max_hp": circle_hp,
         "hard": false,
         "x": scene.player_x,
         "y": scene.player_y - 180.0,
@@ -152,42 +164,23 @@ func _initialize() -> void:
         "lane_max": scene.RIGHT
     })
     scene._apply_laser_damage(0.5)
-    if scene.objects.is_empty() or float(scene.objects[0].hp) >= laser_hp:
-        print("SMOKE FAIL: laser did not apply continuous weak damage")
-        quit(1)
+    if scene.objects.is_empty() or float(scene.objects[0].hp) >= circle_hp:
+        _fail("laser did not apply weak continuous damage")
         return
     scene._apply_laser_damage(0.6)
     if not scene.objects.is_empty():
-        print("SMOKE FAIL: laser did not eventually destroy depleted target")
-        quit(1)
+        _fail("laser did not eventually destroy depleted target")
         return
 
-    # Weapon pickups must offer a different weapon and swap on collection.
-    scene.objects.clear()
-    scene.current_weapon = "single"
-    scene._spawn_weapon_pickup()
-    if scene.objects.size() != 1 or scene.objects[0].type != "weapon" or String(scene.objects[0].weapon) == "single":
-        print("SMOKE FAIL: weapon pickup did not offer a different weapon")
-        quit(1)
+    # Rare field repairs still restore exactly one hit when they appear.
+    if scene.REPAIR_INTERVAL_MIN < 20.0 or scene.FIELD_REPAIR_CHANCE >= 0.5:
+        _fail("field repairs are not rare enough")
         return
-    var offered_weapon := String(scene.objects[0].weapon)
-    scene.objects[0].x = scene.player_x
-    scene.objects[0].y = scene.player_y
-    scene.objects[0].speed = 0.0
-    scene.objects[0].drift = 0.0
-    scene._move_objects(0.0)
-    if scene.current_weapon != offered_weapon:
-        print("SMOKE FAIL: weapon pickup did not swap current weapon")
-        quit(1)
-        return
-
-    # Repair core restores exactly one lost hit and never exceeds the cap.
     scene.objects.clear()
     scene.hp = 1
     scene._spawn_repair()
     if scene.objects.size() != 1 or scene.objects[0].type != "repair":
-        print("SMOKE FAIL: repair core did not spawn while damaged")
-        quit(1)
+        _fail("repair core did not spawn while damaged")
         return
     scene.objects[0].x = scene.player_x
     scene.objects[0].y = scene.player_y
@@ -195,59 +188,94 @@ func _initialize() -> void:
     scene.objects[0].drift = 0.0
     scene._move_objects(0.0)
     if scene.hp != 2:
-        print("SMOKE FAIL: repair core did not restore exactly one hit")
-        quit(1)
+        _fail("field repair did not restore exactly one hit")
         return
+
+    # Level clear opens a frozen shop and awards a clear bonus.
+    scene.score = 3000
+    scene.hp = 1
+    scene.current_weapon = "single"
+    scene.objects.append({
+        "id": 999003,
+        "type": "energy",
+        "hard": false,
+        "x": 100.0,
+        "y": 100.0,
+        "r": 12.0,
+        "speed": 0.0,
+        "drift": 0.0,
+        "lane_min": scene.LEFT,
+        "lane_max": scene.RIGHT
+    })
+    var score_before_shop: int = scene.score
+    scene._open_shop()
+    if scene.playing or not scene.shop_open or scene.level != 1:
+        _fail("level clear did not enter shop state")
+        return
+    if scene.score != score_before_shop + scene.last_level_bonus or scene.last_level_bonus <= 0:
+        _fail("level clear bonus was not awarded")
+        return
+    if not scene.objects.is_empty() or not scene.shots.is_empty():
+        _fail("shop did not freeze and clear active gameplay objects")
+        return
+
+    # Shop repair spends score and restores one hit.
+    var before_repair: int = scene.score
+    if not scene._buy_repair() or scene.hp != 2 or scene.score != before_repair - scene.SHOP_REPAIR_COST:
+        _fail("shop repair purchase failed")
+        return
+
+    # Shop weapon purchase swaps weapon and spends score.
+    var before_weapon: int = scene.score
+    if not scene._buy_weapon("dual"):
+        _fail("shop weapon purchase failed")
+        return
+    if scene.current_weapon != "dual" or scene.score != before_weapon - scene.SHOP_DUAL_COST:
+        _fail("shop weapon cost/swap is incorrect")
+        return
+    if scene._buy_weapon("dual"):
+        _fail("shop should not charge for currently equipped weapon")
+        return
+
+    # Insufficient score blocks a purchase.
+    scene.score = 0
+    if scene._buy_weapon("seeker"):
+        _fail("shop allowed unaffordable weapon")
+        return
+
+    # Next level preserves run resources/equipment but increases difficulty.
+    scene.score = 777
+    var hp_before_next: int = scene.hp
+    var weapon_before_next: String = scene.current_weapon
+    var difficulty_before_next: float = scene._level_difficulty()
+    scene._start_next_level()
+    if not scene.playing or scene.shop_open or scene.level != 2 or scene.elapsed != 0.0:
+        _fail("next level did not start correctly")
+        return
+    if scene.hp != hp_before_next or scene.current_weapon != weapon_before_next or scene.score != 777:
+        _fail("next level did not preserve run state")
+        return
+    if scene._level_difficulty() <= difficulty_before_next:
+        _fail("next level did not become harder")
+        return
+
+    # Timer reaching level duration must open the next shop rather than end the run.
+    scene.elapsed = scene.LEVEL_TIME - 0.01
     scene.objects.clear()
-    scene.hp = 3
-    scene._spawn_repair()
-    if not scene.objects.is_empty():
-        print("SMOKE FAIL: repair core should not spawn at full health")
-        quit(1)
+    scene.shots.clear()
+    scene.neutral_spawn_clock = 999.0
+    scene.easy_spawn_clock = 999.0
+    scene.hard_spawn_clock = 999.0
+    scene.pickup_clock = 999.0
+    scene.fire_clock = 999.0
+    scene.repair_clock = 999.0
+    scene._process(0.02)
+    if not scene.shop_open or scene.game_over or scene.level != 2:
+        _fail("level timer did not transition into shop")
         return
 
-    scene._begin_lane_event()
-    if not scene.lane_event_active or scene.station_top >= 0.0:
-        print("SMOKE FAIL: station lane segment did not approach from above")
-        quit(1)
-        return
-
-    scene.hard_lane_right = true
-    scene.player_x = 290.0
-    if scene._station_at_player() or scene._lane_score_multiplier() != 1.0:
-        print("SMOKE FAIL: hard-lane reward should not begin before the station reaches the player")
-        quit(1)
-        return
-
-    scene.station_top = scene.player_y - 120.0
-    if not scene._station_at_player():
-        print("SMOKE FAIL: station should overlap the player at test position")
-        quit(1)
-        return
-
-    scene.player_x = 100.0
-    scene._check_station_collision()
-    if not scene.playing or scene.station_locked_side != "LEFT":
-        print("SMOKE FAIL: safe left corridor did not lock correctly")
-        quit(1)
-        return
-
-    scene.player_x = 290.0
-    var right_hard: float = scene._lane_score_multiplier()
-    scene.player_x = 100.0
-    var left_easy: float = scene._lane_score_multiplier()
-    if right_hard <= left_easy:
-        print("SMOKE FAIL: hard corridor does not reward risk while inside station")
-        quit(1)
-        return
-
-    scene._end_lane_event()
-    if scene.lane_event_active or scene._station_at_player():
-        print("SMOKE FAIL: station segment did not clear back to open field")
-        quit(1)
-        return
-
-    # Dash must move forward (up-screen), not act as a lateral burst.
+    # Dash remains long and forward.
+    scene._start_next_level()
     scene.player_x = 195.0
     scene.target_x = 195.0
     scene.player_y = scene.PLAYER_Y
@@ -255,63 +283,19 @@ func _initialize() -> void:
     scene._dash()
     var dash_start_y: float = scene.player_y
     scene._process(0.20)
-    if scene.dash_cooldown <= 0.0 or scene.dash_timer <= 0.0:
-        print("SMOKE FAIL: dash did not stay active long enough for extended travel")
-        quit(1)
-        return
-    if dash_start_y - scene.player_y < 145.0:
-        print("SMOKE FAIL: dash did not travel far enough forward")
-        quit(1)
-        return
-    if absf(scene.player_x - 195.0) > 0.5:
-        print("SMOKE FAIL: centered forward dash introduced lateral movement")
-        quit(1)
-        return
-    if scene._dash_score_multiplier() <= 1.0 or scene.dash_score_timer <= 0.0:
-        print("SMOKE FAIL: dash score multiplier did not activate")
-        quit(1)
+    if scene.player_y >= dash_start_y - 145.0:
+        _fail("forward dash distance regressed")
         return
 
-    var far_y: float = scene.player_y
-    scene._process(0.12)
-    if scene.dash_timer > 0.0:
-        print("SMOKE FAIL: dash should be transitioning into return")
-        quit(1)
-        return
-    scene._process(0.08)
-    if scene.player_y >= scene.PLAYER_Y - 55.0:
-        print("SMOKE FAIL: return to flight line is too fast")
-        quit(1)
-        return
-    if scene.player_y <= far_y:
-        print("SMOKE FAIL: ship did not begin returning after dash")
-        quit(1)
-        return
-
-    var combo_before: int = scene.combo
-    scene._register_near_miss()
-    if scene.combo <= combo_before or scene.near_miss_timer <= 0.0 or scene.slowmo_timer <= 0.0:
-        print("SMOKE FAIL: near-miss feedback did not activate")
-        quit(1)
-        return
-
-    scene._begin_finale()
-    scene._spawn_extraction_gate()
-    if not scene.finale_active or not scene.extraction_spawned or scene.extraction_lane.is_empty():
-        print("SMOKE FAIL: extraction finale did not initialize")
-        quit(1)
-        return
-
-    # Station structure remains lethal during ordinary dash invulnerability.
+    # Station structure remains instant-lethal through invulnerability.
     scene._begin_lane_event()
     scene.station_top = scene.player_y - 120.0
     scene.player_x = scene.LANE_SPLIT
     scene.invuln = 999.0
     scene._check_station_collision()
     if scene.playing or scene.hp != 0 or scene.result_reason != "STATION COLLISION":
-        print("SMOKE FAIL: station barrier contact was not an instant kill")
-        quit(1)
+        _fail("station barrier contact was not an instant kill")
         return
 
-    print("NEON DRIFTLINE SMOKE OK")
+    print("NEON DRIFTLINE ROGUELITE SMOKE OK")
     quit(0)
