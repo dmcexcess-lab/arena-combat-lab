@@ -24,7 +24,8 @@ func _initialize() -> void:
         "_apply_laser_damage", "_spawn_repair", "_register_near_miss",
         "_begin_lane_event", "_end_lane_event", "_station_at_player",
         "_station_barrier_rects", "_check_station_collision", "_lane_score_multiplier",
-        "_dash_score_multiplier", "_level_difficulty", "_spawn_interval",
+        "_dash_score_multiplier", "_level_duration", "_split_count_for_level",
+        "_station_height_for_level", "_first_split_time", "_level_difficulty", "_spawn_interval",
         "_shop_weapon_cost", "_open_shop", "_buy_repair", "_buy_weapon",
         "_start_next_level", "_handle_shop_tap"
     ]:
@@ -37,24 +38,56 @@ func _initialize() -> void:
     if not scene.playing or scene.shop_open or scene.level != 1 or scene.hp != 3:
         _fail("run did not initialize as level 1 gameplay")
         return
-    if scene.current_weapon != "single":
-        _fail("new run should start with single auto")
+    if scene.current_weapon != "none":
+        _fail("new run should start unarmed")
         return
-    if scene.LEVEL_TIME != 30.0:
-        _fail("levels should last 30 seconds")
+    if scene._level_duration() != 18.0:
+        _fail("level 1 should be the shortest at 18 seconds")
+        return
+    if scene._split_count_for_level() != 1:
+        _fail("level 1 should contain exactly one split")
+        return
+    if scene._station_height_for_level() != scene.STATION_HEIGHT_BASE:
+        _fail("level 1 should use the shortest station split")
+        return
+
+    # Unarmed means genuinely no automatic fire.
+    scene.shots.clear()
+    scene.fire_clock = 0.0
+    scene.neutral_spawn_clock = 999.0
+    scene.easy_spawn_clock = 999.0
+    scene.hard_spawn_clock = 999.0
+    scene.pickup_clock = 999.0
+    scene.repair_clock = 999.0
+    scene._process(0.05)
+    if not scene.shots.is_empty():
+        _fail("unarmed ship fired a projectile")
         return
 
     # Level 1 starts deliberately light and later levels scale upward.
     scene.elapsed = 0.0
     scene.level = 1
     var level_one_start: float = scene._level_difficulty()
-    scene.elapsed = scene.LEVEL_TIME
+    scene.elapsed = scene._level_duration()
     var level_one_end: float = scene._level_difficulty()
     scene.elapsed = 0.0
+    scene.level = 2
+    var level_two_duration: float = scene._level_duration()
+    var level_two_splits: int = scene._split_count_for_level()
+    var level_two_height: float = scene._station_height_for_level()
     scene.level = 3
     var level_three_start: float = scene._level_difficulty()
     if level_one_start > 0.01 or level_one_end <= level_one_start or level_three_start <= level_one_start:
         _fail("level difficulty does not ramp correctly")
+        return
+    if level_two_duration != 21.0 or scene._level_duration() != 24.0:
+        _fail("level duration does not increase gradually")
+        return
+    if level_two_splits != 1 or scene._split_count_for_level() != 2:
+        _fail("split count does not increase gradually")
+        return
+    if level_two_height <= scene.STATION_HEIGHT_BASE or scene._station_height_for_level() <= level_two_height:
+        _fail("station split length does not increase by level")
         return
     if scene._spawn_interval(1.10, 0.43, level_one_start) <= scene._spawn_interval(1.10, 0.43, level_three_start):
         _fail("later levels should have denser hazard cadence")
@@ -62,6 +95,17 @@ func _initialize() -> void:
 
     # Restore clean level-1 state for combat tests.
     scene._start_game()
+
+    # Level 1 must stay circles + squares only, even if fed an artificially high difficulty.
+    scene.objects.clear()
+    scene.level = 1
+    for i in 40:
+        scene._spawn_hazard(1.65, false, false)
+    for obj in scene.objects:
+        if int(obj.kind) == 2:
+            _fail("level 1 spawned a yellow diamond")
+            return
+    scene.objects.clear()
 
     # Obstacle durability: circle < square < yellow diamond.
     if not (scene._obstacle_max_hp(0) < scene._obstacle_max_hp(1) and scene._obstacle_max_hp(1) < scene._obstacle_max_hp(2)):
@@ -71,12 +115,12 @@ func _initialize() -> void:
         _fail("yellow diamond should be the tankiest obstacle")
         return
 
-    # Single auto.
+    # First purchasable gun is intentionally weak: one D1 projectile.
     scene.shots.clear()
-    scene.current_weapon = "single"
+    scene.current_weapon = "none"
     scene._fire_weapon()
-    if scene.shots.size() != 1 or float(scene.shots[0].damage) != scene.SINGLE_DAMAGE:
-        _fail("single auto weapon profile is wrong")
+    if scene.SINGLE_DAMAGE != 1.0 or scene.shots.size() != 1 or float(scene.shots[0].damage) != 1.0:
+        _fail("single auto should be the weak D1 starter purchase")
         return
 
     # Dual auto.
@@ -135,13 +179,18 @@ func _initialize() -> void:
     })
     scene._spawn_shot(float(scene.objects[0].x), float(scene.objects[0].y), 0.0, 0.0, scene.SINGLE_DAMAGE)
     scene._move_objects(0.0)
+    if scene.objects.is_empty() or absf(float(scene.objects[0].hp) - 2.0) > 0.01:
+        _fail("D1 single shot did not leave correct persistent circle HP")
+        return
+    scene._spawn_shot(float(scene.objects[0].x), float(scene.objects[0].y), 0.0, 0.0, scene.SINGLE_DAMAGE)
+    scene._move_objects(0.0)
     if scene.objects.is_empty() or absf(float(scene.objects[0].hp) - 1.0) > 0.01:
-        _fail("single shot did not leave correct persistent circle HP")
+        _fail("second D1 shot did not leave correct persistent circle HP")
         return
     scene._spawn_shot(float(scene.objects[0].x), float(scene.objects[0].y), 0.0, 0.0, scene.SINGLE_DAMAGE)
     scene._move_objects(0.0)
     if not scene.objects.is_empty():
-        _fail("depleted obstacle was not destroyed")
+        _fail("third D1 shot did not destroy 3 HP circle")
         return
 
     # Thin weak laser.
@@ -194,7 +243,7 @@ func _initialize() -> void:
     # Level clear opens a frozen shop and awards a clear bonus.
     scene.score = 3000
     scene.hp = 1
-    scene.current_weapon = "single"
+    scene.current_weapon = "none"
     scene.objects.append({
         "id": 999003,
         "type": "energy",
@@ -225,16 +274,25 @@ func _initialize() -> void:
         _fail("shop repair purchase failed")
         return
 
-    # Shop weapon purchase swaps weapon and spends score.
+    # First shop can turn the unarmed ship into the weak single auto.
+    var before_single: int = scene.score
+    if not scene._buy_weapon("single"):
+        _fail("first shop could not buy single auto from unarmed state")
+        return
+    if scene.current_weapon != "single" or scene.score != before_single - scene.SHOP_SINGLE_COST:
+        _fail("single auto shop cost/swap is incorrect")
+        return
+    if scene._buy_weapon("single"):
+        _fail("shop should not charge for currently equipped weapon")
+        return
+
+    # Higher weapons remain available as later purchases.
     var before_weapon: int = scene.score
     if not scene._buy_weapon("dual"):
-        _fail("shop weapon purchase failed")
+        _fail("shop dual purchase failed")
         return
     if scene.current_weapon != "dual" or scene.score != before_weapon - scene.SHOP_DUAL_COST:
-        _fail("shop weapon cost/swap is incorrect")
-        return
-    if scene._buy_weapon("dual"):
-        _fail("shop should not charge for currently equipped weapon")
+        _fail("dual shop cost/swap is incorrect")
         return
 
     # Insufficient score blocks a purchase.
@@ -260,7 +318,7 @@ func _initialize() -> void:
         return
 
     # Timer reaching level duration must open the next shop rather than end the run.
-    scene.elapsed = scene.LEVEL_TIME - 0.01
+    scene.elapsed = scene._level_duration() - 0.01
     scene.objects.clear()
     scene.shots.clear()
     scene.neutral_spawn_clock = 999.0
