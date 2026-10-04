@@ -1816,8 +1816,14 @@ func _draw() -> void:
 
     for shot in enemy_shots:
         var ep := Vector2(shot.x, shot.y) + offset
-        draw_circle(ep, ENEMY_SHOT_RADIUS + 3.0, Color(0.72, 0.35, 1.0, 0.16))
-        draw_circle(ep, ENEMY_SHOT_RADIUS, Color("d48cff"))
+        if bool(shot.get("homing", false)):
+            var dir := Vector2(float(shot.vx), float(shot.vy)).normalized()
+            draw_circle(ep, ENEMY_MISSILE_RADIUS + 4.0, Color(1.0, 0.35, 0.18, 0.14))
+            draw_circle(ep, ENEMY_MISSILE_RADIUS, Color("ff7b45"))
+            draw_line(ep - dir * 7.0, ep - dir * 16.0, Color("ffd2a6"), 3.0)
+        else:
+            draw_circle(ep, ENEMY_SHOT_RADIUS + 3.0, Color(0.72, 0.35, 1.0, 0.16))
+            draw_circle(ep, ENEMY_SHOT_RADIUS, Color("d48cff"))
 
     if current_weapon == "laser" and playing:
         var laser_x := player_x + offset.x
@@ -2016,7 +2022,7 @@ func _draw_object(obj: Dictionary, offset: Vector2) -> void:
         ]), Color("332414"))
         draw_circle(p, 4.0, Color("fff0a8"))
 
-    else:
+    elif kind == 3:
         var r3 := float(obj.r)
         draw_circle(p, r3 + 6.0, Color(0.70, 0.38, 1.0, 0.10))
         draw_colored_polygon(PackedVector2Array([
@@ -2027,6 +2033,22 @@ func _draw_object(obj: Dictionary, offset: Vector2) -> void:
         ]), Color("66527d"))
         draw_line(p + Vector2(0, 3), p + Vector2(0, r3 + 8.0), Color("c9a5ff"), 3.0)
         draw_circle(p, 4.0, Color("e7d2ff"))
+
+    else:
+        var r4 := float(obj.r)
+        draw_circle(p, r4 + 8.0, Color(1.0, 0.24, 0.18, 0.10))
+        var pent := PackedVector2Array()
+        for i in 5:
+            var a := -PI * 0.5 + TAU * float(i) / 5.0
+            pent.append(p + Vector2(cos(a), sin(a)) * r4)
+        draw_colored_polygon(pent, Color("88413b"))
+        var inner := PackedVector2Array()
+        for i in 5:
+            var a2 := -PI * 0.5 + TAU * float(i) / 5.0
+            inner.append(p + Vector2(cos(a2), sin(a2)) * r4 * 0.56)
+        draw_colored_polygon(inner, Color("271719"))
+        draw_circle(p, 5.0, Color("ff9b68"))
+        draw_line(p + Vector2(0, 2), p + Vector2(0, r4 + 9.0), Color("ffb27c"), 4.0)
 
     if obj.has("hp") and float(obj.hp) < float(obj.max_hp):
         var bw := maxf(18.0, float(obj.r) * 1.8)
