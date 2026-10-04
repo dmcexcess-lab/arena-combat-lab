@@ -1684,7 +1684,7 @@ func _draw_hud() -> void:
         _text("OPEN FIELD", Vector2(145, 122), 15, Color("82d8e8"))
 
     if dash_score_timer > 0.0:
-        _text("DASH x2 SCORE", Vector2(134, 146), 16, Color("ffd166"))
+        _text("DASH NEAR BONUS", Vector2(126, 146), 16, Color("ffd166"))
     else:
         _text(_weapon_label(current_weapon), Vector2(118, 146), 14, Color("ffd166"))
 
