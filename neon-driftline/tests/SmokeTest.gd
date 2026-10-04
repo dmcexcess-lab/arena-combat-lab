@@ -22,6 +22,7 @@ func _initialize() -> void:
         "_start_game", "_dash", "_handle_tap", "_release_control_touch", "_clear_control_holds",
         "_fire_weapon", "_weapon_interval", "_weapon_damage",
         "_weapon_label", "_obstacle_max_hp", "_kill_score", "_enemy_kind_cap_for_level",
+        "_enemy_body_speed_multiplier", "_hard_lane_background_rect",
         "_spawn_circle_bunch", "_move_shots", "_consume_shot_hit",
         "_apply_laser_damage", "_fire_enemy_shot", "_fire_enemy_missile", "_move_enemy_shots", "_energy_spawn_interval",
         "_make_energy_orb", "_make_repair_pickup", "_kill_drop_kind", "_queue_kill_drop",
@@ -332,6 +333,20 @@ func _initialize() -> void:
     scene.objects.clear()
     scene.level = 4
     scene._begin_lane_event()
+
+    # Hard side gets a full-height red-tint region only while the split is active.
+    scene.hard_lane_right = true
+    var hard_right_rect: Rect2 = scene._hard_lane_background_rect()
+    if hard_right_rect.position.x != scene.LANE_SPLIT or hard_right_rect.size.x != scene.W - scene.LANE_SPLIT or hard_right_rect.size.y != scene.H:
+        _fail("hard-right split background rect is incorrect")
+        return
+    scene.hard_lane_right = false
+    var hard_left_rect: Rect2 = scene._hard_lane_background_rect()
+    if hard_left_rect.position.x != 0.0 or hard_left_rect.size.x != scene.LANE_SPLIT or hard_left_rect.size.y != scene.H:
+        _fail("hard-left split background rect is incorrect")
+        return
+    scene.hard_lane_right = true
+
     scene._spawn_hazard(0.6, true, true)
     if scene.objects.is_empty() or not bool(scene.objects[0].hard):
         _fail("hard-lane test enemy did not spawn as hard")
@@ -656,7 +671,12 @@ func _initialize() -> void:
         _fail("dash near miss should score in the hundreds")
         return
 
-    # Square drone is dumb/slow: it only creeps laterally toward the player.
+    # Square drone keeps dumb tracking but now has a modest forward-speed bump.
+    if scene._enemy_body_speed_multiplier(1) <= 1.0 or scene._enemy_body_speed_multiplier(1) > 1.10:
+        _fail("weak square drone forward-speed bump is outside the intended modest range")
+        return
+
+    # Square drone is dumb/slow laterally: it only creeps toward the player.
     scene.objects.clear()
     scene.player_x = 300.0
     scene.player_y = scene.PLAYER_Y
