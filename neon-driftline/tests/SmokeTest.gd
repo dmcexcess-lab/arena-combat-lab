@@ -16,7 +16,7 @@ func _initialize() -> void:
     root.add_child(scene)
     await process_frame
 
-    for method_name in ["_start_game", "_dash", "_register_near_miss", "_begin_lane_event", "_end_lane_event", "_station_at_player", "_station_barrier_rects", "_check_station_collision", "_begin_finale", "_spawn_extraction_gate", "_lane_score_multiplier", "_dash_score_multiplier"]:
+    for method_name in ["_start_game", "_dash", "_fire_weapon", "_move_shots", "_consume_shot_hit", "_spawn_repair", "_register_near_miss", "_begin_lane_event", "_end_lane_event", "_station_at_player", "_station_barrier_rects", "_check_station_collision", "_begin_finale", "_spawn_extraction_gate", "_lane_score_multiplier", "_dash_score_multiplier"]:
         if not scene.has_method(method_name):
             print("SMOKE FAIL: missing gameplay method ", method_name)
             quit(1)
@@ -31,6 +31,69 @@ func _initialize() -> void:
 
     if scene.lane_event_active or scene._lane_score_multiplier() != 1.0:
         print("SMOKE FAIL: station lanes should be absent during open-field play")
+        quit(1)
+        return
+
+    # Weapon must auto-fire forward from the ship.
+    scene.shots.clear()
+    scene.fire_clock = 0.0
+    scene._process(0.02)
+    if scene.shots.size() != 2:
+        print("SMOKE FAIL: auto-fire did not produce twin pulse shots")
+        quit(1)
+        return
+    for shot in scene.shots:
+        if shot.y >= scene.player_y:
+            print("SMOKE FAIL: auto-fire shot did not originate forward of the ship")
+            quit(1)
+            return
+
+    # Pulse shots destroy ordinary hazards and award score.
+    scene.objects.clear()
+    var shot_x: float = scene.shots[0].x
+    var shot_y: float = scene.shots[0].y
+    scene.objects.append({
+        "id": 999001,
+        "type": "hazard",
+        "kind": 0,
+        "hard": false,
+        "x": shot_x,
+        "y": shot_y,
+        "r": 18.0,
+        "speed": 0.0,
+        "drift": 0.0,
+        "lane_min": scene.LEFT,
+        "lane_max": scene.RIGHT
+    })
+    var score_before_shot: int = scene.score
+    scene._move_objects(0.0)
+    if not scene.objects.is_empty() or scene.score <= score_before_shot:
+        print("SMOKE FAIL: pulse shot did not destroy ordinary hazard")
+        quit(1)
+        return
+
+    # Repair core restores exactly one lost hit and never exceeds the cap.
+    scene.objects.clear()
+    scene.hp = 1
+    scene._spawn_repair()
+    if scene.objects.size() != 1 or scene.objects[0].type != "repair":
+        print("SMOKE FAIL: repair core did not spawn while damaged")
+        quit(1)
+        return
+    scene.objects[0].x = scene.player_x
+    scene.objects[0].y = scene.player_y
+    scene.objects[0].speed = 0.0
+    scene.objects[0].drift = 0.0
+    scene._move_objects(0.0)
+    if scene.hp != 2:
+        print("SMOKE FAIL: repair core did not restore exactly one hit")
+        quit(1)
+        return
+    scene.objects.clear()
+    scene.hp = 3
+    scene._spawn_repair()
+    if not scene.objects.is_empty():
+        print("SMOKE FAIL: repair core should not spawn at full health")
         quit(1)
         return
 
