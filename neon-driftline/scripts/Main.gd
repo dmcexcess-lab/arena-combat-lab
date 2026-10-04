@@ -1098,9 +1098,12 @@ func _spawn_circle_bunch(hard_lane: bool, count: int) -> void:
             "x": x,
             "y": -40.0 - float(i) * rng.randf_range(20.0, 34.0),
             "r": radius,
-            "speed": rng.randf_range(180.0, 215.0),
-            "drift": 0.0,
+            "speed": rng.randf_range(165.0, 195.0),
+            "drift": rng.randf_range(-5.0, 5.0),
             "shoot_clock": 999.0,
+            "angle": rng.randf_range(0.0, TAU),
+            "spin": rng.randf_range(-0.18, 0.18),
+            "lane_speed_mult": 1.0,
             "lane_min": bounds.x,
             "lane_max": bounds.y
         })
@@ -1108,29 +1111,36 @@ func _spawn_circle_bunch(hard_lane: bool, count: int) -> void:
 func _spawn_hazard(difficulty: float, hard_lane: bool, lane_mode: bool = true) -> void:
     var kind := _choose_enemy_kind(hard_lane and lane_mode)
     var radius := rng.randf_range(17.0, 26.0)
-    var base_speed := rng.randf_range(190.0, 250.0) + difficulty * 105.0
+    var base_speed := rng.randf_range(185.0, 235.0) + difficulty * 95.0
     if level == 1:
-        base_speed = rng.randf_range(170.0, 205.0)
-    var speed := base_speed
+        base_speed = rng.randf_range(155.0, 185.0)
+
+    var lane_speed_mult := 1.0
     if lane_mode:
-        speed *= 1.12 if hard_lane else 0.90
+        lane_speed_mult = 1.10 if hard_lane else 0.92
+
+    var speed := base_speed * lane_speed_mult
     var bounds := _lane_bounds(hard_lane) if lane_mode else Vector2(LEFT, RIGHT)
     var lane_min := bounds.x
     var lane_max := bounds.y
     var x := rng.randf_range(lane_min + radius, lane_max - radius)
-    var drift := 0.0
+    var drift := rng.randf_range(-5.0, 5.0)
     var shoot_clock := 999.0
+
     if kind == 1:
-        drift = rng.randf_range(-58.0, 58.0) * (1.15 if hard_lane else 0.82)
+        radius = rng.randf_range(15.0, 19.0)
+        speed *= 0.92
+        drift = 0.0
     elif kind == 2:
         radius = rng.randf_range(13.0, 17.0)
-        speed += 45.0
-        drift = rng.randf_range(-24.0, 24.0)
+        speed += 55.0
+        drift = rng.randf_range(-18.0, 18.0)
     elif kind == 3:
         radius = rng.randf_range(14.0, 18.0)
-        speed *= 0.86
-        drift = rng.randf_range(-34.0, 34.0)
-        shoot_clock = rng.randf_range(1.0, 1.8)
+        speed *= 0.58
+        drift = rng.randf_range(-12.0, 12.0)
+        shoot_clock = rng.randf_range(1.1, 1.7)
+
     var obstacle_hp := _obstacle_max_hp(kind)
     objects.append({
         "id": rng.randi(),
@@ -1145,6 +1155,9 @@ func _spawn_hazard(difficulty: float, hard_lane: bool, lane_mode: bool = true) -
         "speed": speed,
         "drift": drift,
         "shoot_clock": shoot_clock,
+        "angle": rng.randf_range(0.0, TAU),
+        "spin": rng.randf_range(-0.18, 0.18) if kind == 0 else 0.0,
+        "lane_speed_mult": lane_speed_mult,
         "lane_min": lane_min,
         "lane_max": lane_max
     })
