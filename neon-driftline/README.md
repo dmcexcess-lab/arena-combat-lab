@@ -6,8 +6,9 @@ A compact, phone-first Godot arcade survival game.
 
 Drag anywhere left/right to steer.
 
-- **Left lane — easier:** lower hazard pressure and slightly slower threats.
-- **Right lane — harder:** faster, denser hazards and **+35% score** while you stay there.
+- **Randomized lanes:** at the start of every run, either left or right becomes the hard lane. A launch banner and lane labels reveal the assignment, forcing a quick choice instead of a memorized route.
+- **Easy lane:** lower hazard pressure and slightly slower threats.
+- **Hard lane:** faster, denser hazards and **+35% score** while you stay there.
 - **Dash:** tap the DASH button for a short horizontal invulnerable burst. It recharges automatically.
 - **Near misses:** skim a hazard without colliding to increase combo, trigger a brief slow-motion pulse, and shave a little time off dash recharge.
 - **Energy:** collect green nodes for score and combo.
