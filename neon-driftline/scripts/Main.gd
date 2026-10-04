@@ -16,7 +16,9 @@ const RIGHT_LANE_MAX := RIGHT
 const DASH_RECT := Rect2(278.0, 748.0, 92.0, 64.0)
 const DASH_COOLDOWN := 2.4
 const DASH_DURATION := 0.14
-const DASH_SPEED := 760.0
+const DASH_FORWARD_SPEED := 760.0
+const DASH_FORWARD_DISTANCE := 110.0
+const DASH_RETURN_RATE := 8.0
 const DASH_SCORE_DURATION := 0.9
 const LANE_EVENT_FIRST := 7.0
 const LANE_EVENT_INTERVAL := 12.0
@@ -38,6 +40,7 @@ var combo := 1
 var best_combo := 1
 var hp := 3
 var player_x := W * 0.5
+var player_y := PLAYER_Y
 var target_x := W * 0.5
 var invuln := 0.0
 var flash := 0.0
@@ -48,8 +51,6 @@ var hard_spawn_clock := 0.0
 var pickup_clock := 0.0
 var dash_cooldown := 0.0
 var dash_timer := 0.0
-var dash_dir := 1.0
-var last_move_dir := 1.0
 var dash_touch_index := -1
 var dash_score_timer := 0.0
 var near_miss_timer := 0.0
@@ -131,14 +132,15 @@ func _process(delta: float) -> void:
     elapsed += game_delta
     invuln = maxf(0.0, invuln - game_delta)
 
-    if dash_timer > 0.0:
-        dash_timer = maxf(0.0, dash_timer - game_delta)
-        player_x += dash_dir * DASH_SPEED * game_delta
-        target_x = player_x
-    else:
-        player_x = lerpf(player_x, target_x, minf(1.0, game_delta * 13.0))
+    player_x = lerpf(player_x, target_x, minf(1.0, game_delta * 13.0))
     player_x = clampf(player_x, LEFT, RIGHT)
     target_x = clampf(target_x, LEFT, RIGHT)
+
+    if dash_timer > 0.0:
+        dash_timer = maxf(0.0, dash_timer - game_delta)
+        player_y = maxf(PLAYER_Y - DASH_FORWARD_DISTANCE, player_y - DASH_FORWARD_SPEED * game_delta)
+    else:
+        player_y = lerpf(player_y, PLAYER_Y, minf(1.0, game_delta * DASH_RETURN_RATE))
 
     easy_spawn_clock -= game_delta
     hard_spawn_clock -= game_delta
@@ -214,27 +216,17 @@ func _input(event: InputEvent) -> void:
             _set_target(event.position.x)
 
 func _set_target(x: float) -> void:
-    var delta_x := x - target_x
-    if absf(delta_x) > 2.0:
-        last_move_dir = signf(delta_x)
     target_x = clampf(x, LEFT, RIGHT)
 
 func _dash() -> void:
     if not playing or dash_cooldown > 0.0 or dash_timer > 0.0:
         return
-    var desired := target_x - player_x
-    if absf(desired) > 5.0:
-        dash_dir = signf(desired)
-    else:
-        dash_dir = last_move_dir
-    if absf(dash_dir) < 0.5:
-        dash_dir = 1.0
     dash_timer = DASH_DURATION
     dash_cooldown = DASH_COOLDOWN
     dash_score_timer = DASH_SCORE_DURATION
     invuln = maxf(invuln, 0.24)
     shake = maxf(shake, 3.5)
-    _burst(Vector2(player_x, PLAYER_Y), 10, Color("77f7ff"))
+    _burst(Vector2(player_x, player_y), 10, Color("77f7ff"))
     _play_sfx(dash_sfx)
 
 func _start_game() -> void:
@@ -248,6 +240,7 @@ func _start_game() -> void:
     best_combo = 1
     hp = 3
     player_x = W * 0.5
+    player_y = PLAYER_Y
     target_x = player_x
     invuln = 0.0
     flash = 0.0
@@ -260,8 +253,6 @@ func _start_game() -> void:
     dash_cooldown = 0.0
     dash_timer = 0.0
     dash_score_timer = 0.0
-    dash_dir = 1.0
-    last_move_dir = 1.0
     near_miss_timer = 0.0
     slowmo_timer = 0.0
     finale_active = false
@@ -319,7 +310,7 @@ func _end_lane_event() -> void:
 func _station_at_player() -> bool:
     if not lane_event_active:
         return false
-    return PLAYER_Y + PLAYER_RADIUS >= station_top and PLAYER_Y - PLAYER_RADIUS <= station_top + STATION_HEIGHT
+    return player_y + PLAYER_RADIUS >= station_top and player_y - PLAYER_RADIUS <= station_top + STATION_HEIGHT
 
 func _station_barrier_rects() -> Array[Rect2]:
     return [
@@ -333,7 +324,7 @@ func _check_station_collision() -> void:
         return
 
     var player_rect := Rect2(
-        Vector2(player_x - PLAYER_RADIUS, PLAYER_Y - PLAYER_RADIUS),
+        Vector2(player_x - PLAYER_RADIUS, player_y - PLAYER_RADIUS),
         Vector2(PLAYER_RADIUS * 2.0, PLAYER_RADIUS * 2.0)
     )
 
@@ -344,7 +335,7 @@ func _check_station_collision() -> void:
             flash = 0.45
             shake = 12.0
             result_reason = "STATION COLLISION"
-            _burst(Vector2(player_x, PLAYER_Y), 24, Color("ffb347"))
+            _burst(Vector2(player_x, player_y), 24, Color("ffb347"))
             _finish(false)
             return
 
@@ -456,7 +447,7 @@ func _move_objects(delta: float) -> void:
                 obj.drift *= -1.0
                 obj.x = clampf(obj.x, obj.lane_min + obj.r, obj.lane_max - obj.r)
 
-        var dy: float = obj.y - PLAYER_Y
+        var dy: float = obj.y - player_y
         var dx: float = absf(obj.x - player_x)
 
         if obj.type == "hazard":
@@ -484,7 +475,7 @@ func _move_objects(delta: float) -> void:
         elif obj.type == "extraction":
             if absf(dy) < 19.0:
                 if dx <= obj.half_width - 10.0:
-                    _burst(Vector2(player_x, PLAYER_Y), 22, Color("77f7ff"))
+                    _burst(Vector2(player_x, player_y), 22, Color("77f7ff"))
                     _finish(true)
                     continue
             if obj.y > PLAYER_Y + 32.0:
@@ -506,7 +497,7 @@ func _register_near_miss() -> void:
     cyan_flash = 0.13
     shake = maxf(shake, 2.8)
     dash_cooldown = maxf(0.0, dash_cooldown - 0.2)
-    _burst(Vector2(player_x, PLAYER_Y), 10, Color("77f7ff"))
+    _burst(Vector2(player_x, player_y), 10, Color("77f7ff"))
     _play_sfx(near_sfx)
 
 func _take_hit() -> void:
@@ -646,10 +637,10 @@ func _draw_station(offset: Vector2) -> void:
         _text("LOCKED %s" % station_locked_side, Vector2(135, 650), 17, Color("ffd166"))
 
 func _draw_player(offset: Vector2) -> void:
-    var pos := Vector2(player_x, PLAYER_Y) + offset
+    var pos := Vector2(player_x, player_y) + offset
     var c := Color("77f7ff") if invuln <= 0.0 or int(Time.get_ticks_msec() / 90) % 2 == 0 else Color(0.4, 0.4, 0.5, 0.5)
     if dash_timer > 0.0:
-        draw_line(pos - Vector2(dash_dir * 54.0, 0), pos, Color(0.35, 0.95, 1.0, 0.42), 10.0)
+        draw_line(pos + Vector2(0, 58.0), pos, Color(0.35, 0.95, 1.0, 0.42), 10.0)
     draw_circle(pos, 20.0, Color(0.2, 0.9, 1.0, 0.12))
     draw_colored_polygon(PackedVector2Array([pos + Vector2(0,-18), pos + Vector2(13,15), pos, pos + Vector2(-13,15)]), c)
     draw_line(pos + Vector2(0, 18), pos + Vector2(0, 38), Color(0.3, 0.85, 1.0, 0.35), 5.0)
@@ -724,7 +715,7 @@ func _draw_title() -> void:
     _text("STATION SPLITS APPROACH", Vector2(73, 416), 18, Color("ffd166"))
     _text("CHOOSE A LANE BEFORE IMPACT", Vector2(56, 444), 18, Color("bdeef4"))
     _text("WALL CONTACT = INSTANT DEATH", Vector2(56, 476), 16, Color("ff8fa6"))
-    _text("DASH = x2 SCORE BURST", Vector2(87, 506), 17, Color("ffd166"))
+    _text("FORWARD DASH = x2 SCORE", Vector2(72, 506), 17, Color("ffd166"))
     _text("Drag to steer. Tap DASH to burst.", Vector2(54, 533), 16, Color("bdeef4"))
     _text("Near misses slow time + build combo.", Vector2(48, 560), 16, Color("8ea9b8"))
     draw_rect(Rect2(Vector2(54, 606), Vector2(282, 76)), Color("123544"), true)
