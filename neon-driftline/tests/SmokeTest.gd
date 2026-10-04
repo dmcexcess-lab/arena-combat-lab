@@ -16,7 +16,7 @@ func _initialize() -> void:
     root.add_child(scene)
     await process_frame
 
-    for method_name in ["_start_game", "_dash", "_register_near_miss", "_begin_finale", "_spawn_extraction_gate", "_lane_score_multiplier"]:
+    for method_name in ["_start_game", "_dash", "_register_near_miss", "_begin_finale", "_spawn_extraction_gate", "_lane_score_multiplier", "_is_hard_position", "_lane_bounds"]:
         if not scene.has_method(method_name):
             print("SMOKE FAIL: missing gameplay method ", method_name)
             quit(1)
@@ -29,12 +29,29 @@ func _initialize() -> void:
         quit(1)
         return
 
+    scene.hard_lane_right = true
     scene.player_x = 100.0
-    var easy_multiplier: float = scene._lane_score_multiplier()
+    var left_easy: float = scene._lane_score_multiplier()
     scene.player_x = 290.0
-    var hard_multiplier: float = scene._lane_score_multiplier()
-    if hard_multiplier <= easy_multiplier:
-        print("SMOKE FAIL: hard lane does not reward risk")
+    var right_hard: float = scene._lane_score_multiplier()
+    if right_hard <= left_easy:
+        print("SMOKE FAIL: right-hard assignment does not reward risk")
+        quit(1)
+        return
+
+    scene.hard_lane_right = false
+    scene.player_x = 100.0
+    var left_hard: float = scene._lane_score_multiplier()
+    scene.player_x = 290.0
+    var right_easy: float = scene._lane_score_multiplier()
+    if left_hard <= right_easy:
+        print("SMOKE FAIL: left-hard assignment does not reward risk")
+        quit(1)
+        return
+
+    scene.player_x = 195.0
+    if scene._lane_score_multiplier() != 1.0:
+        print("SMOKE FAIL: center divider should be neutral")
         quit(1)
         return
 

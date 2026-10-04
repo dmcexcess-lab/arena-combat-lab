@@ -9,12 +9,10 @@ const RUN_TIME := 60.0
 const FINALE_TIME := 50.0
 const EXTRACTION_SPAWN_TIME := 53.5
 const LANE_SPLIT := W * 0.5
-const EASY_MIN := LEFT
-const EASY_MAX := LANE_SPLIT - 7.0
-const HARD_MIN := LANE_SPLIT + 7.0
-const HARD_MAX := RIGHT
-const EASY_CENTER := (EASY_MIN + EASY_MAX) * 0.5
-const HARD_CENTER := (HARD_MIN + HARD_MAX) * 0.5
+const LEFT_LANE_MIN := LEFT
+const LEFT_LANE_MAX := LANE_SPLIT - 7.0
+const RIGHT_LANE_MIN := LANE_SPLIT + 7.0
+const RIGHT_LANE_MAX := RIGHT
 const DASH_RECT := Rect2(278.0, 748.0, 92.0, 64.0)
 const DASH_COOLDOWN := 2.4
 const DASH_DURATION := 0.14
@@ -52,6 +50,8 @@ var finale_banner_timer := 0.0
 var extraction_spawned := false
 var extraction_lane := ""
 var result_reason := ""
+var hard_lane_right := true
+var lane_choice_banner_timer := 0.0
 var objects: Array[Dictionary] = []
 var particles: Array[Dictionary] = []
 var last_near_ids: Dictionary = {}
@@ -102,6 +102,7 @@ func _process(delta: float) -> void:
         return
 
     near_miss_timer = maxf(0.0, near_miss_timer - delta)
+    lane_choice_banner_timer = maxf(0.0, lane_choice_banner_timer - delta)
     finale_banner_timer = maxf(0.0, finale_banner_timer - delta)
     flash = maxf(0.0, flash - delta)
     cyan_flash = maxf(0.0, cyan_flash - delta)
@@ -231,6 +232,8 @@ func _start_game() -> void:
     extraction_spawned = false
     extraction_lane = ""
     result_reason = ""
+    hard_lane_right = rng.randf() < 0.5
+    lane_choice_banner_timer = 2.2
     objects.clear()
     particles.clear()
     last_near_ids.clear()
@@ -247,7 +250,24 @@ func _finish(success: bool) -> void:
     queue_redraw()
 
 func _lane_score_multiplier() -> float:
-    return 1.35 if player_x > LANE_SPLIT else 1.0
+    return 1.35 if _is_hard_position(player_x) else 1.0
+
+func _is_hard_position(x: float) -> bool:
+    if x >= RIGHT_LANE_MIN:
+        return hard_lane_right
+    if x <= LEFT_LANE_MAX:
+        return not hard_lane_right
+    return false
+
+func _lane_bounds(hard_lane: bool) -> Vector2:
+    var use_right := hard_lane == hard_lane_right
+    if use_right:
+        return Vector2(RIGHT_LANE_MIN, RIGHT_LANE_MAX)
+    return Vector2(LEFT_LANE_MIN, LEFT_LANE_MAX)
+
+func _lane_center(hard_lane: bool) -> float:
+    var bounds := _lane_bounds(hard_lane)
+    return (bounds.x + bounds.y) * 0.5
 
 func _spawn_hazard(difficulty: float, hard_lane: bool) -> void:
     var kind_max := 2 if difficulty > (0.28 if hard_lane else 0.5) else 1
@@ -255,8 +275,9 @@ func _spawn_hazard(difficulty: float, hard_lane: bool) -> void:
     var radius := rng.randf_range(17.0, 26.0)
     var base_speed := rng.randf_range(245.0, 320.0) + difficulty * 115.0
     var speed := base_speed * (1.16 if hard_lane else 0.9)
-    var lane_min := HARD_MIN if hard_lane else EASY_MIN
-    var lane_max := HARD_MAX if hard_lane else EASY_MAX
+    var bounds := _lane_bounds(hard_lane)
+    var lane_min := bounds.x
+    var lane_max := bounds.y
     var x := rng.randf_range(lane_min + radius, lane_max - radius)
     var drift := 0.0
     if kind == 1:
@@ -280,8 +301,9 @@ func _spawn_hazard(difficulty: float, hard_lane: bool) -> void:
 
 func _spawn_pickup() -> void:
     var hard_lane := rng.randf() < 0.66
-    var lane_min := HARD_MIN if hard_lane else EASY_MIN
-    var lane_max := HARD_MAX if hard_lane else EASY_MAX
+    var bounds := _lane_bounds(hard_lane)
+    var lane_min := bounds.x
+    var lane_max := bounds.y
     objects.append({
         "id": rng.randi(),
         "type": "energy",
@@ -307,7 +329,7 @@ func _spawn_extraction_gate() -> void:
     extraction_spawned = true
     var hard_lane := rng.randf() < 0.5
     extraction_lane = "HARD" if hard_lane else "EASY"
-    var x := HARD_CENTER if hard_lane else EASY_CENTER
+    var x := _lane_center(hard_lane)
     objects.append({
         "id": rng.randi(),
         "type": "extraction",
@@ -440,6 +462,11 @@ func _draw() -> void:
     _draw_hud()
     _draw_dash_button()
 
+    if lane_choice_banner_timer > 0.0:
+        var choice := "LEFT EASY  |  RIGHT HARD +35%" if hard_lane_right else "LEFT HARD +35%  |  RIGHT EASY"
+        draw_rect(Rect2(Vector2(42, 192), Vector2(306, 42)), Color(0.02, 0.04, 0.07, 0.9), true)
+        _text(choice, Vector2(57, 220), 16, Color("ffd166"))
+
     if near_miss_timer > 0.0:
         var pulse := 0.78 + sin(Time.get_ticks_msec() * 0.035) * 0.12
         _text(near_miss_text, Vector2(92, 608), 26, Color(0.47, 0.97, 1.0, pulse))
@@ -460,8 +487,12 @@ func _draw() -> void:
 func _draw_background() -> void:
     var t := Time.get_ticks_msec() / 1000.0
 
-    draw_rect(Rect2(Vector2(EASY_MIN, 0), Vector2(EASY_MAX - EASY_MIN, H)), Color(0.08, 0.18, 0.22, 0.25))
-    draw_rect(Rect2(Vector2(HARD_MIN, 0), Vector2(HARD_MAX - HARD_MIN, H)), Color(0.24, 0.07, 0.12, 0.28 if not finale_active else 0.42))
+    var easy_col := Color(0.08, 0.18, 0.22, 0.25)
+    var hard_col := Color(0.24, 0.07, 0.12, 0.28 if not finale_active else 0.42)
+    var left_col := easy_col if hard_lane_right else hard_col
+    var right_col := hard_col if hard_lane_right else easy_col
+    draw_rect(Rect2(Vector2(LEFT_LANE_MIN, 0), Vector2(LEFT_LANE_MAX - LEFT_LANE_MIN, H)), left_col)
+    draw_rect(Rect2(Vector2(RIGHT_LANE_MIN, 0), Vector2(RIGHT_LANE_MAX - RIGHT_LANE_MIN, H)), right_col)
     draw_line(Vector2(LANE_SPLIT, 0), Vector2(LANE_SPLIT, H), Color(0.45, 0.75, 0.85, 0.2), 2.0)
 
     for i in 18:
@@ -526,8 +557,9 @@ func _draw_hud() -> void:
     _text("ENERGY %02d" % energy, Vector2(20, 88), 18, Color("6bffb0"))
     _text("x%d" % combo, Vector2(310, 88), 24, Color("ffd166"))
 
-    _text("EASY", Vector2(72, 122), 15, Color("82d8e8"))
-    _text("HARD +35%", Vector2(238, 122), 15, Color("ff8fa6"))
+    var left_hard := not hard_lane_right
+    _text("HARD +35%" if left_hard else "EASY", Vector2(55 if left_hard else 72, 122), 15, Color("ff8fa6") if left_hard else Color("82d8e8"))
+    _text("HARD +35%" if hard_lane_right else "EASY", Vector2(238 if hard_lane_right else 267, 122), 15, Color("ff8fa6") if hard_lane_right else Color("82d8e8"))
 
     for i in 3:
         var c := Color("ff4f78") if i < hp else Color(0.3,0.3,0.38,0.55)
@@ -549,8 +581,8 @@ func _draw_title() -> void:
     _text("NEON", Vector2(102, 220), 52, Color("77f7ff"))
     _text("DRIFTLINE", Vector2(54, 276), 47, Color("f0fbff"))
     _text("SURVIVE. THEN EXTRACT.", Vector2(57, 351), 21, Color("ffd166"))
-    _text("LEFT: EASIER", Vector2(72, 416), 18, Color("82d8e8"))
-    _text("RIGHT: HARD +35% SCORE", Vector2(72, 444), 18, Color("ff8fa6"))
+    _text("EASY / HARD SIDES RANDOMIZE", Vector2(58, 416), 18, Color("ffd166"))
+    _text("READ THE LANES. CHOOSE FAST.", Vector2(61, 444), 18, Color("bdeef4"))
     _text("Drag to steer. Tap DASH to burst.", Vector2(54, 493), 16, Color("bdeef4"))
     _text("Near misses slow time + build combo.", Vector2(48, 520), 16, Color("8ea9b8"))
     _text("At 50 sec: reach the extraction gate.", Vector2(43, 547), 16, Color("8ea9b8"))
