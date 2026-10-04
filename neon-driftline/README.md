@@ -100,14 +100,27 @@ Normal in-run weapon prices remain:
 
 Ship Speed research raises all near-miss rewards. Dash research adds an additional multiplier specifically to dash near-misses.
 
-## Enemy progression
+## Space presentation and enemy archetypes
 
-- **Level 1:** sparse lazy circles only; short hard lane gets small circle clusters.
-- **Level 2:** moving squares begin.
-- **Level 4:** strong tracking yellow diamonds begin.
-- **Level 6:** shooting purple rhomboids begin.
+The playfield now reads as open space rather than a lane/road: layered scrolling stars and faint deep-space haze replace the old vertical guide lines. The pre-split center guide is gone; the station divider only exists when the physical station segment actually arrives.
+
+- **Asteroids (kind 0, 3 HP):** irregular grey rocks with craters and slow spin. They mostly ride the scroll and only barely drift laterally.
+- **Square drones (kind 1, 4 HP):** weak, dumb drones. They move downfield and make only a very slow lateral correction toward the player.
+- **Diamond drones (kind 2, 12 HP):** faster, strongest, smarter pursuit drones. They lead toward the player's intended horizontal movement but their lateral pursuit is capped so they remain avoidable.
+- **Trapezoid drones (kind 3, 4 HP):** weak ranged skirmishers. They can move both up and down, try to maintain a standoff above the player baseline, fire aimed shots, and dodge player projectiles that are on an intercept path. They never intentionally move below the player's baseline.
+
+Enemy progression remains gradual:
+
+- **Level 1:** sparse asteroids only; the short hard lane gets small asteroid clusters.
+- **Level 2:** square drones begin.
+- **Level 4:** smart diamond drones begin.
+- **Level 6:** ranged trapezoid drones begin.
 
 Levels gradually lengthen, station splits become longer and more numerous, and enemy pressure rises slowly.
+
+## Split cleanup
+
+Hard/easy lane difficulty now ends exactly when the station split ends. Surviving lane-bound objects are released back to full-width movement, their hard-lane tag is cleared, and any lane-only speed modifier is removed. New spawns after the split always use neutral full-width rules, so the former hard half cannot stay harder after the station has passed.
 
 ## Pause and persistence
 

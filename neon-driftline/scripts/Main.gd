@@ -983,6 +983,21 @@ func _end_lane_event() -> void:
     lane_choice_banner_timer = 0.0
     station_locked_side = ""
     station_top = -station_height - 40.0
+    hard_lane_right = false
+    neutral_spawn_clock = maxf(neutral_spawn_clock, 0.45)
+    _neutralize_lane_objects()
+
+func _neutralize_lane_objects() -> void:
+    for obj in objects:
+        if not obj.has("lane_min") or not obj.has("lane_max"):
+            continue
+        obj.lane_min = LEFT
+        obj.lane_max = RIGHT
+        obj.hard = false
+        if obj.type == "hazard" and obj.has("lane_speed_mult"):
+            var lane_mult := maxf(0.01, float(obj.lane_speed_mult))
+            obj.speed = float(obj.speed) / lane_mult
+            obj.lane_speed_mult = 1.0
 
 func _station_at_player() -> bool:
     if not lane_event_active:
@@ -1083,9 +1098,12 @@ func _spawn_circle_bunch(hard_lane: bool, count: int) -> void:
             "x": x,
             "y": -40.0 - float(i) * rng.randf_range(20.0, 34.0),
             "r": radius,
-            "speed": rng.randf_range(180.0, 215.0),
-            "drift": 0.0,
+            "speed": rng.randf_range(165.0, 195.0),
+            "drift": rng.randf_range(-5.0, 5.0),
             "shoot_clock": 999.0,
+            "angle": rng.randf_range(0.0, TAU),
+            "spin": rng.randf_range(-0.18, 0.18),
+            "lane_speed_mult": 1.0,
             "lane_min": bounds.x,
             "lane_max": bounds.y
         })
@@ -1093,29 +1111,36 @@ func _spawn_circle_bunch(hard_lane: bool, count: int) -> void:
 func _spawn_hazard(difficulty: float, hard_lane: bool, lane_mode: bool = true) -> void:
     var kind := _choose_enemy_kind(hard_lane and lane_mode)
     var radius := rng.randf_range(17.0, 26.0)
-    var base_speed := rng.randf_range(190.0, 250.0) + difficulty * 105.0
+    var base_speed := rng.randf_range(185.0, 235.0) + difficulty * 95.0
     if level == 1:
-        base_speed = rng.randf_range(170.0, 205.0)
-    var speed := base_speed
+        base_speed = rng.randf_range(155.0, 185.0)
+
+    var lane_speed_mult := 1.0
     if lane_mode:
-        speed *= 1.12 if hard_lane else 0.90
+        lane_speed_mult = 1.10 if hard_lane else 0.92
+
+    var speed := base_speed * lane_speed_mult
     var bounds := _lane_bounds(hard_lane) if lane_mode else Vector2(LEFT, RIGHT)
     var lane_min := bounds.x
     var lane_max := bounds.y
     var x := rng.randf_range(lane_min + radius, lane_max - radius)
-    var drift := 0.0
+    var drift := rng.randf_range(-5.0, 5.0)
     var shoot_clock := 999.0
+
     if kind == 1:
-        drift = rng.randf_range(-58.0, 58.0) * (1.15 if hard_lane else 0.82)
+        radius = rng.randf_range(15.0, 19.0)
+        speed *= 0.92
+        drift = 0.0
     elif kind == 2:
         radius = rng.randf_range(13.0, 17.0)
-        speed += 45.0
-        drift = rng.randf_range(-24.0, 24.0)
+        speed += 55.0
+        drift = rng.randf_range(-18.0, 18.0)
     elif kind == 3:
         radius = rng.randf_range(14.0, 18.0)
-        speed *= 0.86
-        drift = rng.randf_range(-34.0, 34.0)
-        shoot_clock = rng.randf_range(1.0, 1.8)
+        speed *= 0.58
+        drift = rng.randf_range(-12.0, 12.0)
+        shoot_clock = rng.randf_range(1.1, 1.7)
+
     var obstacle_hp := _obstacle_max_hp(kind)
     objects.append({
         "id": rng.randi(),
@@ -1130,6 +1155,9 @@ func _spawn_hazard(difficulty: float, hard_lane: bool, lane_mode: bool = true) -
         "speed": speed,
         "drift": drift,
         "shoot_clock": shoot_clock,
+        "angle": rng.randf_range(0.0, TAU),
+        "spin": rng.randf_range(-0.18, 0.18) if kind == 0 else 0.0,
+        "lane_speed_mult": lane_speed_mult,
         "lane_min": lane_min,
         "lane_max": lane_max
     })
@@ -1203,11 +1231,11 @@ func _obstacle_max_hp(kind: int) -> float:
         0:
             return 3.0
         1:
-            return 6.0
+            return 4.0
         2:
             return 12.0
         3:
-            return 8.0
+            return 4.0
     return 3.0
 
 func _kill_score(kind: int) -> int:
@@ -1458,20 +1486,73 @@ func _spawn_extraction_gate() -> void:
     finale_banner_timer = 2.8
     _play_sfx(finale_sfx)
 
+func _incoming_shot_dodge_direction(obj: Dictionary) -> float:
+    var obj_y := float(obj.y)
+    var obj_x := float(obj.x)
+    var radius := float(obj.r)
+    for shot in shots:
+        var vy := float(shot.vy)
+        if vy >= -1.0:
+            continue
+        var shot_y := float(shot.y)
+        if shot_y <= obj_y or shot_y - obj_y > 190.0:
+            continue
+        var time_to_y := (shot_y - obj_y) / -vy
+        if time_to_y < 0.0 or time_to_y > 0.55:
+            continue
+        var projected_x := float(shot.x) + float(shot.vx) * time_to_y
+        if absf(projected_x - obj_x) <= radius + 14.0:
+            return 1.0 if projected_x <= obj_x else -1.0
+    return 0.0
+
 func _move_objects(delta: float) -> void:
     var next: Array[Dictionary] = []
     for obj in objects:
+        var motion_y := float(obj.speed)
+
         if obj.type == "hazard":
-            if int(obj.kind) == 2:
-                var desired_drift := clampf((player_x - float(obj.x)) * 0.95, -92.0, 92.0)
-                obj.drift = lerpf(float(obj.drift), desired_drift, minf(1.0, delta * 1.7))
-            elif int(obj.kind) == 3:
+            var kind := int(obj.kind)
+            if obj.has("angle"):
+                obj.angle = float(obj.angle) + float(obj.get("spin", 0.0)) * delta
+
+            if kind == 0:
+                obj.drift = lerpf(float(obj.drift), 0.0, minf(1.0, delta * 0.20))
+
+            elif kind == 1:
+                var square_target := clampf((player_x - float(obj.x)) * 0.16, -22.0, 22.0)
+                obj.drift = lerpf(float(obj.drift), square_target, minf(1.0, delta * 0.85))
+
+            elif kind == 2:
+                var predicted_x := lerpf(player_x, target_x, 0.55)
+                var diamond_target := clampf((predicted_x - float(obj.x)) * 0.72, -82.0, 82.0)
+                obj.drift = lerpf(float(obj.drift), diamond_target, minf(1.0, delta * 2.2))
+
+            elif kind == 3:
+                var dodge_dir := _incoming_shot_dodge_direction(obj)
+                var trapezoid_target := clampf((player_x - float(obj.x)) * 0.14, -28.0, 28.0)
+                if dodge_dir != 0.0:
+                    trapezoid_target = dodge_dir * 72.0
+                obj.drift = lerpf(float(obj.drift), trapezoid_target, minf(1.0, delta * 2.4))
+
+                var preferred_y := player_y - 245.0
+                var y_error := preferred_y - float(obj.y)
+                if y_error > 55.0:
+                    motion_y = minf(72.0, float(obj.speed))
+                elif y_error < -45.0:
+                    motion_y = -58.0
+                else:
+                    motion_y = clampf(y_error * 0.30, -28.0, 28.0)
+
                 obj.shoot_clock = float(obj.shoot_clock) - delta
-                if float(obj.shoot_clock) <= 0.0 and float(obj.y) > 35.0 and float(obj.y) < player_y - 90.0:
+                if float(obj.shoot_clock) <= 0.0 and float(obj.y) > 45.0 and float(obj.y) < player_y - 75.0:
                     _fire_enemy_shot(obj)
-                    obj.shoot_clock = rng.randf_range(1.35, 2.05)
-        obj.y += obj.speed * delta
-        obj.x += obj.drift * delta
+                    obj.shoot_clock = rng.randf_range(1.45, 2.10)
+
+        obj.y += motion_y * delta
+        obj.x += float(obj.drift) * delta
+
+        if obj.type == "hazard" and int(obj.kind) == 3:
+            obj.y = minf(float(obj.y), player_y - float(obj.r) - 12.0)
 
         if obj.type != "extraction":
             if obj.x < obj.lane_min + obj.r or obj.x > obj.lane_max - obj.r:
@@ -1671,35 +1752,30 @@ func _draw() -> void:
 func _draw_background() -> void:
     var t := Time.get_ticks_msec() / 1000.0
 
-    for i in 18:
-        var y := fmod(float(i) * 57.0 + world_scroll * (0.32 + float(i % 3) * 0.07), H + 80.0) - 40.0
-        var x := 18.0 + float((i * 73) % 354)
-        draw_circle(Vector2(x, y), 1.5 + float(i % 2), Color(0.2, 0.45, 0.7, 0.24))
+    draw_circle(Vector2(74, 170), 118.0, Color(0.10, 0.16, 0.34, 0.055))
+    draw_circle(Vector2(320, 520), 150.0, Color(0.24, 0.08, 0.30, 0.035))
 
-    draw_line(Vector2(26, 0), Vector2(26, H), Color(0.15, 0.55, 0.72, 0.28), 2.0)
-    draw_line(Vector2(364, 0), Vector2(364, H), Color(0.15, 0.55, 0.72, 0.28), 2.0)
+    for i in 44:
+        var layer := float(i % 4)
+        var speed_factor := 0.18 + layer * 0.08
+        var y := fmod(float(i) * 43.0 + world_scroll * speed_factor, H + 90.0) - 45.0
+        var x := 10.0 + float((i * 83 + 37) % 370)
+        var twinkle := 0.58 + sin(t * (0.7 + layer * 0.18) + float(i) * 0.9) * 0.18
+        var radius := 0.8 + layer * 0.38
+        var star_col := Color(0.68 + layer * 0.06, 0.78 + layer * 0.04, 1.0, 0.22 + twinkle * 0.22)
+        draw_circle(Vector2(x, y), radius, star_col)
 
-    for i in 13:
-        var y := float(i) * 72.0 - fmod(world_scroll, 72.0)
-        draw_line(Vector2(190, y), Vector2(200, y), Color(0.2, 0.8, 0.95, 0.18), 2.0)
-
-    if finale_active:
-        var pulse := 0.12 + (sin(t * 8.0) + 1.0) * 0.04
-        draw_rect(Rect2(Vector2.ZERO, Vector2(W, H)), Color(1.0, 0.08, 0.15, pulse), true)
+    for i in 7:
+        var y2 := fmod(float(i) * 139.0 + world_scroll * 0.42, H + 120.0) - 60.0
+        var x2 := 28.0 + float((i * 127 + 91) % 330)
+        draw_circle(Vector2(x2, y2), 2.1, Color(0.88, 0.93, 1.0, 0.48))
 
 func _draw_station(offset: Vector2) -> void:
     if not lane_event_active:
         return
 
-    var easy_tint := Color(0.12, 0.34, 0.38, 0.13)
-    var hard_tint := Color(0.48, 0.08, 0.14, 0.16)
-    var left_tint := easy_tint if hard_lane_right else hard_tint
-    var right_tint := hard_tint if hard_lane_right else easy_tint
     var y0 := station_top
     var y1 := station_top + station_height
-
-    draw_rect(Rect2(Vector2(STATION_EDGE_WALL, y0), Vector2(LANE_SPLIT - STATION_CENTER_WALL * 0.5 - STATION_EDGE_WALL, station_height)), left_tint, true)
-    draw_rect(Rect2(Vector2(LANE_SPLIT + STATION_CENTER_WALL * 0.5, y0), Vector2(W - STATION_EDGE_WALL - (LANE_SPLIT + STATION_CENTER_WALL * 0.5), station_height)), right_tint, true)
 
     var metal := Color("596777")
     var metal_dark := Color("1e2833")
@@ -1729,9 +1805,25 @@ func _draw_player(offset: Vector2) -> void:
     var c := Color("77f7ff") if invuln <= 0.0 or int(Time.get_ticks_msec() / 90) % 2 == 0 else Color(0.4, 0.4, 0.5, 0.5)
     if dash_timer > 0.0:
         draw_line(pos + Vector2(0, 58.0), pos, Color(0.35, 0.95, 1.0, 0.42), 10.0)
-    draw_circle(pos, 20.0, Color(0.2, 0.9, 1.0, 0.12))
-    draw_colored_polygon(PackedVector2Array([pos + Vector2(0,-18), pos + Vector2(13,15), pos, pos + Vector2(-13,15)]), c)
-    draw_line(pos + Vector2(0, 18), pos + Vector2(0, 38), Color(0.3, 0.85, 1.0, 0.35), 5.0)
+    draw_circle(pos, 22.0, Color(0.2, 0.9, 1.0, 0.10))
+    draw_colored_polygon(PackedVector2Array([
+        pos + Vector2(0, -22),
+        pos + Vector2(8, -5),
+        pos + Vector2(18, 11),
+        pos + Vector2(7, 8),
+        pos + Vector2(0, 17),
+        pos + Vector2(-7, 8),
+        pos + Vector2(-18, 11),
+        pos + Vector2(-8, -5)
+    ]), c)
+    draw_colored_polygon(PackedVector2Array([
+        pos + Vector2(0, -13),
+        pos + Vector2(5, 2),
+        pos + Vector2(0, 8),
+        pos + Vector2(-5, 2)
+    ]), Color("173545"))
+    draw_line(pos + Vector2(-6, 14), pos + Vector2(-6, 33), Color(0.3, 0.85, 1.0, 0.34), 3.0)
+    draw_line(pos + Vector2(6, 14), pos + Vector2(6, 33), Color(0.3, 0.85, 1.0, 0.34), 3.0)
     if shield_charges > 0:
         draw_arc(pos, 27.0, -PI, PI, 40, Color("77f7ff"), 3.0)
 
@@ -1766,31 +1858,60 @@ func _draw_object(obj: Dictionary, offset: Vector2) -> void:
         draw_circle(p, obj.r * 0.42, Color("e8fff3"))
         return
 
-    var col := Color("ff426f")
-    if int(obj.kind) == 2:
-        col = Color("ffb347")
-    elif int(obj.kind) == 3:
-        col = Color("b56cff")
-    if obj.hard:
-        col = col.lightened(0.1)
-    draw_circle(p, obj.r + 4.0, Color(col.r, col.g, col.b, 0.11))
-    if obj.kind == 0:
-        draw_circle(p, obj.r, col)
-        draw_circle(p, obj.r * 0.48, Color("310a18"))
-    elif obj.kind == 1:
-        draw_rect(Rect2(p - Vector2(obj.r, obj.r), Vector2(obj.r * 2.0, obj.r * 2.0)), col)
-        draw_line(p + Vector2(-obj.r, -obj.r), p + Vector2(obj.r, obj.r), Color("410b1c"), 4.0)
-    elif obj.kind == 2:
-        draw_colored_polygon(PackedVector2Array([p + Vector2(0,-obj.r), p + Vector2(obj.r,0), p + Vector2(0,obj.r), p + Vector2(-obj.r,0)]), col)
-        draw_circle(p, 4.0, Color("fff2b8"))
-    else:
+    var kind := int(obj.kind)
+
+    if kind == 0:
+        var rock := PackedVector2Array()
+        var angle := float(obj.get("angle", 0.0))
+        for i in 10:
+            var a := TAU * float(i) / 10.0 + angle
+            var wobble := 0.78 + 0.18 * sin(float(obj.id % 997) * 0.013 + float(i) * 2.17)
+            rock.append(p + Vector2(cos(a), sin(a)) * float(obj.r) * wobble)
+        draw_colored_polygon(rock, Color("6d7278"))
+        var rock_outline := rock.duplicate()
+        rock_outline.append(rock[0])
+        draw_polyline(rock_outline, Color("9ca2a8"), 2.0)
+        var crater_a := Vector2(cos(angle + 0.8), sin(angle + 0.8)) * float(obj.r) * 0.30
+        var crater_b := Vector2(cos(angle + 3.1), sin(angle + 3.1)) * float(obj.r) * 0.42
+        draw_circle(p + crater_a, float(obj.r) * 0.18, Color("44484d"))
+        draw_circle(p + crater_b, float(obj.r) * 0.12, Color("50545a"))
+
+    elif kind == 1:
+        var r := float(obj.r)
+        draw_circle(p, r + 5.0, Color(0.25, 0.55, 0.75, 0.10))
+        draw_rect(Rect2(p - Vector2(r, r), Vector2(r * 2.0, r * 2.0)), Color("526b7a"), true)
+        draw_rect(Rect2(p - Vector2(r - 4.0, r - 4.0), Vector2((r - 4.0) * 2.0, (r - 4.0) * 2.0)), Color("182630"), true)
+        draw_line(p + Vector2(-r, 0), p + Vector2(r, 0), Color("7894a3"), 2.0)
+        draw_circle(p, 4.0, Color("7bd7ff"))
+
+    elif kind == 2:
+        var r2 := float(obj.r)
+        draw_circle(p, r2 + 7.0, Color(1.0, 0.66, 0.20, 0.12))
         draw_colored_polygon(PackedVector2Array([
-            p + Vector2(-obj.r * 0.95, -obj.r * 0.70),
-            p + Vector2(obj.r * 1.20, -obj.r * 0.70),
-            p + Vector2(obj.r * 0.95, obj.r * 0.70),
-            p + Vector2(-obj.r * 1.20, obj.r * 0.70)
-        ]), col)
-        draw_circle(p, 4.0, Color("f1dcff"))
+            p + Vector2(0, -r2 * 1.25),
+            p + Vector2(r2 * 1.15, 0),
+            p + Vector2(0, r2 * 1.25),
+            p + Vector2(-r2 * 1.15, 0)
+        ]), Color("c27a24"))
+        draw_colored_polygon(PackedVector2Array([
+            p + Vector2(0, -r2 * 0.65),
+            p + Vector2(r2 * 0.58, 0),
+            p + Vector2(0, r2 * 0.65),
+            p + Vector2(-r2 * 0.58, 0)
+        ]), Color("332414"))
+        draw_circle(p, 4.0, Color("fff0a8"))
+
+    else:
+        var r3 := float(obj.r)
+        draw_circle(p, r3 + 6.0, Color(0.70, 0.38, 1.0, 0.10))
+        draw_colored_polygon(PackedVector2Array([
+            p + Vector2(-r3 * 0.72, -r3 * 0.72),
+            p + Vector2(r3 * 0.72, -r3 * 0.72),
+            p + Vector2(r3 * 1.18, r3 * 0.70),
+            p + Vector2(-r3 * 1.18, r3 * 0.70)
+        ]), Color("66527d"))
+        draw_line(p + Vector2(0, 3), p + Vector2(0, r3 + 8.0), Color("c9a5ff"), 3.0)
+        draw_circle(p, 4.0, Color("e7d2ff"))
 
     if obj.has("hp") and float(obj.hp) < float(obj.max_hp):
         var bw := maxf(18.0, float(obj.r) * 1.8)
