@@ -1868,7 +1868,9 @@ func _draw_object(obj: Dictionary, offset: Vector2) -> void:
             var wobble := 0.78 + 0.18 * sin(float(obj.id % 997) * 0.013 + float(i) * 2.17)
             rock.append(p + Vector2(cos(a), sin(a)) * float(obj.r) * wobble)
         draw_colored_polygon(rock, Color("6d7278"))
-        draw_polyline(rock + PackedVector2Array([rock[0]]), Color("9ca2a8"), 2.0)
+        var rock_outline := rock.duplicate()
+        rock_outline.append(rock[0])
+        draw_polyline(rock_outline, Color("9ca2a8"), 2.0)
         var crater_a := Vector2(cos(angle + 0.8), sin(angle + 0.8)) * float(obj.r) * 0.30
         var crater_b := Vector2(cos(angle + 3.1), sin(angle + 3.1)) * float(obj.r) * 0.42
         draw_circle(p + crater_a, float(obj.r) * 0.18, Color("44484d"))
