@@ -122,6 +122,7 @@ The playfield now reads as open space rather than a lane/road: layered scrolling
 - **Square drones (kind 1, 4 HP):** weak, dumb drones. They move downfield and make only a very slow lateral correction toward the player.
 - **Diamond drones (kind 2, 12 HP):** faster, strongest, smarter pursuit drones. They lead toward the player's intended horizontal movement but their lateral pursuit is capped so they remain avoidable.
 - **Trapezoid drones (kind 3, 4 HP):** weak ranged skirmishers. They can move both up and down, try to maintain a standoff above the player baseline, fire aimed shots, and dodge player projectiles that are on an intercept path. They never intentionally move below the player's baseline.
+- **Pentagon missile turrets (kind 4, 20 HP):** heavy stationary-in-world emplacements. They have no lateral AI and simply scroll by with the level. While above the player they launch slow homing missiles. A missile deals **2 hits** if unshielded, but a shield absorbs the entire missile for exactly **1 shield charge**.
 
 Enemy progression remains gradual:
 
@@ -129,6 +130,7 @@ Enemy progression remains gradual:
 - **Level 2:** square drones begin.
 - **Level 4:** smart diamond drones begin.
 - **Level 6:** ranged trapezoid drones begin.
+- **Level 8:** heavy pentagon missile turrets begin. They do not pursue, dodge, or hold position on-screen; they simply scroll past with the level while firing homing missiles.
 
 Levels gradually lengthen, station splits become longer and more numerous, and enemy pressure rises slowly.
 
@@ -158,3 +160,10 @@ Paused runs are snapshotted to `user://neon_run.cfg`. Persistent Research is sto
 ## Automated smoke test
 
 `godot --headless --path . --script res://tests/SmokeTest.gd`
+
+
+## Impact rules
+
+Player impacts now use a short **0.5 second hit-invulnerability window** so overlapping impacts cannot drain several hits almost simultaneously.
+
+Physical contact between the player and an enemy damages **only the player**. The enemy is not damaged or removed by collision; only player weapons can damage enemies. Station-wall contact remains instant-lethal and ignores ordinary hit invulnerability.

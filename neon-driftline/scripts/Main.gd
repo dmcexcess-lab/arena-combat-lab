@@ -83,6 +83,11 @@ const KILL_ORB_DROP_CHANCE := 0.08
 const KILL_REPAIR_DROP_CHANCE := 0.02
 const ENEMY_SHOT_SPEED := 255.0
 const ENEMY_SHOT_RADIUS := 5.0
+const ENEMY_MISSILE_SPEED := 190.0
+const ENEMY_MISSILE_RADIUS := 7.0
+const ENEMY_MISSILE_DAMAGE := 2
+const ENEMY_MISSILE_TURN_RATE := 3.2
+const HIT_INVULN_TIME := 0.5
 
 var rng := RandomNumberGenerator.new()
 var playing := false
@@ -1065,7 +1070,9 @@ func _enemy_kind_cap_for_level() -> int:
         return 1
     if level <= 5:
         return 2
-    return 3
+    if level <= 7:
+        return 3
+    return 4
 
 func _choose_enemy_kind(hard_lane: bool) -> int:
     var cap := _enemy_kind_cap_for_level()
@@ -1080,11 +1087,21 @@ func _choose_enemy_kind(hard_lane: bool) -> int:
         if roll < (0.62 if hard_lane else 0.52):
             return 1
         return 0
-    if roll < (0.16 if hard_lane else 0.10):
+    if cap == 3:
+        if roll < (0.16 if hard_lane else 0.10):
+            return 3
+        if roll < (0.39 if hard_lane else 0.30):
+            return 2
+        if roll < (0.70 if hard_lane else 0.62):
+            return 1
+        return 0
+    if roll < (0.11 if hard_lane else 0.07):
+        return 4
+    if roll < (0.25 if hard_lane else 0.18):
         return 3
-    if roll < (0.39 if hard_lane else 0.30):
+    if roll < (0.48 if hard_lane else 0.37):
         return 2
-    if roll < (0.70 if hard_lane else 0.62):
+    if roll < (0.74 if hard_lane else 0.66):
         return 1
     return 0
 
@@ -1147,6 +1164,11 @@ func _spawn_hazard(difficulty: float, hard_lane: bool, lane_mode: bool = true) -
         speed *= 0.58
         drift = rng.randf_range(-12.0, 12.0)
         shoot_clock = rng.randf_range(1.1, 1.7)
+    elif kind == 4:
+        radius = rng.randf_range(20.0, 24.0)
+        speed = 170.0
+        drift = 0.0
+        shoot_clock = rng.randf_range(0.9, 1.4)
 
     var obstacle_hp := _obstacle_max_hp(kind)
     objects.append({
@@ -1243,6 +1265,8 @@ func _obstacle_max_hp(kind: int) -> float:
             return 12.0
         3:
             return 4.0
+        4:
+            return 20.0
     return 3.0
 
 func _kill_score(kind: int) -> int:
@@ -1255,6 +1279,8 @@ func _kill_score(kind: int) -> int:
             return 5
         3:
             return 4
+        4:
+            return 7
     return 1
 
 func _spawn_shot(x: float, y: float, vx: float, vy: float, damage: float, homing: bool = false) -> void:
@@ -1398,18 +1424,45 @@ func _fire_enemy_shot(obj: Dictionary) -> void:
         to_player = Vector2.DOWN
     var velocity := to_player.normalized() * ENEMY_SHOT_SPEED
     enemy_shots.append({
+        "type": "bolt",
         "x": from_pos.x,
         "y": from_pos.y,
         "vx": velocity.x,
         "vy": velocity.y,
-        "r": ENEMY_SHOT_RADIUS
+        "r": ENEMY_SHOT_RADIUS,
+        "damage": 1,
+        "homing": false
+    })
+
+func _fire_enemy_missile(obj: Dictionary) -> void:
+    var from_pos := Vector2(float(obj.x), float(obj.y) + float(obj.r))
+    var to_player := Vector2(player_x, player_y) - from_pos
+    if to_player.length() < 1.0:
+        to_player = Vector2.DOWN
+    var velocity := to_player.normalized() * ENEMY_MISSILE_SPEED
+    enemy_shots.append({
+        "type": "missile",
+        "x": from_pos.x,
+        "y": from_pos.y,
+        "vx": velocity.x,
+        "vy": velocity.y,
+        "r": ENEMY_MISSILE_RADIUS,
+        "damage": ENEMY_MISSILE_DAMAGE,
+        "homing": true
     })
 
 func _move_enemy_shots(delta: float) -> void:
     var next: Array[Dictionary] = []
     for shot in enemy_shots:
+        if bool(shot.get("homing", false)):
+            var pos := Vector2(float(shot.x), float(shot.y))
+            var desired := (Vector2(player_x, player_y) - pos).normalized() * ENEMY_MISSILE_SPEED
+            shot.vx = lerpf(float(shot.vx), desired.x, minf(1.0, delta * ENEMY_MISSILE_TURN_RATE))
+            shot.vy = lerpf(float(shot.vy), desired.y, minf(1.0, delta * ENEMY_MISSILE_TURN_RATE))
+
         shot.x += float(shot.vx) * delta
         shot.y += float(shot.vy) * delta
+
         var blocked := false
         if lane_event_active:
             var point := Vector2(float(shot.x), float(shot.y))
@@ -1419,16 +1472,20 @@ func _move_enemy_shots(delta: float) -> void:
                     break
         if blocked:
             continue
+
+        var radius := float(shot.get("r", ENEMY_SHOT_RADIUS))
         var dx := absf(float(shot.x) - player_x)
         var dy := absf(float(shot.y) - player_y)
-        if dx < PLAYER_RADIUS + ENEMY_SHOT_RADIUS and dy < PLAYER_RADIUS + ENEMY_SHOT_RADIUS:
+        if dx < PLAYER_RADIUS + radius and dy < PLAYER_RADIUS + radius:
             if shield_charges > 0:
+                # Any enemy projectile, including a 2-hit missile, consumes only one shield charge.
                 shield_charges -= 1
                 _burst(Vector2(shot.x, shot.y), 12, Color("77f7ff"))
             elif invuln <= 0.0:
-                _take_hit()
-                _burst(Vector2(shot.x, shot.y), 6, Color("d48cff"))
+                _take_hit(int(shot.get("damage", 1)))
+                _burst(Vector2(shot.x, shot.y), 8 if bool(shot.get("homing", false)) else 6, Color("ff8f5b") if bool(shot.get("homing", false)) else Color("d48cff"))
             continue
+
         if shot.y < H + 40.0 and shot.y > -40.0 and shot.x > -40.0 and shot.x < W + 40.0:
             next.append(shot)
     enemy_shots = next
@@ -1591,6 +1648,15 @@ func _move_objects(delta: float) -> void:
                     _fire_enemy_shot(obj)
                     obj.shoot_clock = rng.randf_range(1.45, 2.10)
 
+            elif kind == 4:
+                # Pentagon turret has no steering or evasive movement; it simply scrolls by with the level.
+                obj.drift = 0.0
+                motion_y = float(obj.speed)
+                obj.shoot_clock = float(obj.shoot_clock) - delta
+                if float(obj.shoot_clock) <= 0.0 and float(obj.y) > 55.0 and float(obj.y) < player_y - 85.0:
+                    _fire_enemy_missile(obj)
+                    obj.shoot_clock = rng.randf_range(1.8, 2.5)
+
         obj.y += motion_y * delta
         obj.x += float(obj.drift) * delta
 
@@ -1611,9 +1677,10 @@ func _move_objects(delta: float) -> void:
             var hit_dist: float = obj.r + 14.0
             if absf(dy) < hit_dist and dx < hit_dist:
                 if invuln <= 0.0:
-                    _take_hit()
-                    _burst(Vector2(obj.x, obj.y), 13, Color("ff426f"))
-                continue
+                    _take_hit(1)
+                    _burst(Vector2(player_x, player_y), 13, Color("ff426f"))
+                # Physical collision hurts only the player. Enemy survives unchanged.
+
 
             var near_dist: float = obj.r + 40.0
             if obj.y > player_y + obj.r and not last_near_ids.has(obj.id):
@@ -1680,10 +1747,10 @@ func _register_near_miss() -> void:
     _burst(Vector2(player_x, player_y), 10, Color("77f7ff"))
     _play_sfx(near_sfx)
 
-func _take_hit() -> void:
-    hp -= 1
+func _take_hit(amount: int = 1) -> void:
+    hp -= maxi(1, amount)
     combo = 1
-    invuln = 1.0
+    invuln = HIT_INVULN_TIME
     flash = 0.22
     shake = 7.0
     if hp <= 0:
@@ -1749,8 +1816,14 @@ func _draw() -> void:
 
     for shot in enemy_shots:
         var ep := Vector2(shot.x, shot.y) + offset
-        draw_circle(ep, ENEMY_SHOT_RADIUS + 3.0, Color(0.72, 0.35, 1.0, 0.16))
-        draw_circle(ep, ENEMY_SHOT_RADIUS, Color("d48cff"))
+        if bool(shot.get("homing", false)):
+            var dir := Vector2(float(shot.vx), float(shot.vy)).normalized()
+            draw_circle(ep, ENEMY_MISSILE_RADIUS + 4.0, Color(1.0, 0.35, 0.18, 0.14))
+            draw_circle(ep, ENEMY_MISSILE_RADIUS, Color("ff7b45"))
+            draw_line(ep - dir * 7.0, ep - dir * 16.0, Color("ffd2a6"), 3.0)
+        else:
+            draw_circle(ep, ENEMY_SHOT_RADIUS + 3.0, Color(0.72, 0.35, 1.0, 0.16))
+            draw_circle(ep, ENEMY_SHOT_RADIUS, Color("d48cff"))
 
     if current_weapon == "laser" and playing:
         var laser_x := player_x + offset.x
@@ -1949,7 +2022,7 @@ func _draw_object(obj: Dictionary, offset: Vector2) -> void:
         ]), Color("332414"))
         draw_circle(p, 4.0, Color("fff0a8"))
 
-    else:
+    elif kind == 3:
         var r3 := float(obj.r)
         draw_circle(p, r3 + 6.0, Color(0.70, 0.38, 1.0, 0.10))
         draw_colored_polygon(PackedVector2Array([
@@ -1960,6 +2033,22 @@ func _draw_object(obj: Dictionary, offset: Vector2) -> void:
         ]), Color("66527d"))
         draw_line(p + Vector2(0, 3), p + Vector2(0, r3 + 8.0), Color("c9a5ff"), 3.0)
         draw_circle(p, 4.0, Color("e7d2ff"))
+
+    else:
+        var r4 := float(obj.r)
+        draw_circle(p, r4 + 8.0, Color(1.0, 0.24, 0.18, 0.10))
+        var pent := PackedVector2Array()
+        for i in 5:
+            var a := -PI * 0.5 + TAU * float(i) / 5.0
+            pent.append(p + Vector2(cos(a), sin(a)) * r4)
+        draw_colored_polygon(pent, Color("88413b"))
+        var inner := PackedVector2Array()
+        for i in 5:
+            var a2 := -PI * 0.5 + TAU * float(i) / 5.0
+            inner.append(p + Vector2(cos(a2), sin(a2)) * r4 * 0.56)
+        draw_colored_polygon(inner, Color("271719"))
+        draw_circle(p, 5.0, Color("ff9b68"))
+        draw_line(p + Vector2(0, 2), p + Vector2(0, r4 + 9.0), Color("ffb27c"), 4.0)
 
     if obj.has("hp") and float(obj.hp) < float(obj.max_hp):
         var bw := maxf(18.0, float(obj.r) * 1.8)
