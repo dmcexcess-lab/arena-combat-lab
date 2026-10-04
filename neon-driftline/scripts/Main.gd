@@ -77,6 +77,10 @@ const REPAIR_INTERVAL_MIN := 24.0
 const REPAIR_INTERVAL_MAX := 34.0
 const REPAIR_RETRY_FULL := 12.0
 const FIELD_REPAIR_CHANCE := 0.28
+const ENERGY_ORB_BASE_SCORE := 25
+const ENERGY_ORB_DASH_MULT := 5.0
+const KILL_ORB_DROP_CHANCE := 0.08
+const KILL_REPAIR_DROP_CHANCE := 0.02
 const ENEMY_SHOT_SPEED := 255.0
 const ENEMY_SHOT_RADIUS := 5.0
 
@@ -153,6 +157,7 @@ var station_locked_side := ""
 var objects: Array[Dictionary] = []
 var shots: Array[Dictionary] = []
 var enemy_shots: Array[Dictionary] = []
+var pending_drops: Array[Dictionary] = []
 var particles: Array[Dictionary] = []
 var last_near_ids: Dictionary = {}
 var sfx_player: AudioStreamPlayer
@@ -284,7 +289,7 @@ func _process(delta: float) -> void:
 
     if pickup_clock <= 0.0:
         _spawn_pickup()
-        pickup_clock = rng.randf_range(1.8, 2.7)
+        pickup_clock = _energy_spawn_interval()
 
     _move_shots(game_delta)
     _move_objects(world_delta)
@@ -386,7 +391,7 @@ func _start_game() -> void:
     shake = 0.0
     easy_spawn_clock = 0.90
     hard_spawn_clock = 0.72
-    pickup_clock = 1.3
+    pickup_clock = _energy_spawn_interval()
     neutral_spawn_clock = 1.65
     fire_clock = 0.18
     repair_clock = 18.0
@@ -421,6 +426,7 @@ func _start_game() -> void:
     objects.clear()
     shots.clear()
     enemy_shots.clear()
+    pending_drops.clear()
     particles.clear()
     last_near_ids.clear()
     _clear_run_snapshot()
@@ -547,7 +553,7 @@ func _start_next_level() -> void:
     easy_spawn_clock = 0.72
     hard_spawn_clock = 0.54
     neutral_spawn_clock = 0.72
-    pickup_clock = 1.2
+    pickup_clock = _energy_spawn_interval()
     fire_clock = 0.15
     repair_clock = rng.randf_range(18.0, 24.0)
     dash_cooldown = 0.0
@@ -794,6 +800,7 @@ func _quit_run_with_score() -> void:
     objects.clear()
     shots.clear()
     enemy_shots.clear()
+    pending_drops.clear()
     particles.clear()
     queue_redraw()
 
@@ -1323,6 +1330,7 @@ func _apply_damage_to_hazard(obj: Dictionary, damage: float) -> bool:
     obj.hp = maxf(0.0, float(obj.hp) - damage)
     if float(obj.hp) <= 0.0:
         score += int(round(float(_kill_score(int(obj.kind))) * _lane_score_multiplier()))
+        _queue_kill_drop(obj)
         _burst(Vector2(obj.x, obj.y), 10, Color("ffd166"))
         return true
     if damage >= 1.0:
@@ -1361,6 +1369,7 @@ func _apply_laser_damage(delta: float) -> void:
     var target: Dictionary = objects[target_index]
     if _apply_damage_to_hazard(target, LASER_DPS * _damage_multiplier() * delta):
         objects.remove_at(target_index)
+        _flush_pending_drops(objects)
 
 func _spawn_weapon_pickup() -> void:
     var choices: Array[String] = ["single", "dual", "cone", "seeker", "laser"]
@@ -1424,41 +1433,75 @@ func _move_enemy_shots(delta: float) -> void:
             next.append(shot)
     enemy_shots = next
 
+func _energy_spawn_interval() -> float:
+    var interval := maxf(0.85, 2.8 - float(level - 1) * 0.18)
+    if lane_event_active:
+        interval *= 0.82
+    return interval * rng.randf_range(0.88, 1.14)
+
+func _make_energy_orb(x: float, y: float, hard: bool = false) -> Dictionary:
+    var bounds := _lane_bounds(hard) if lane_event_active else Vector2(LEFT, RIGHT)
+    return {
+        "id": rng.randi(),
+        "type": "energy",
+        "hard": hard and lane_event_active,
+        "x": clampf(x, bounds.x + 16.0, bounds.y - 16.0),
+        "y": y,
+        "r": 12.0,
+        "speed": rng.randf_range(215.0, 255.0),
+        "drift": rng.randf_range(-10.0, 10.0),
+        "lane_min": bounds.x,
+        "lane_max": bounds.y
+    }
+
+func _make_repair_pickup(x: float, y: float) -> Dictionary:
+    return {
+        "id": rng.randi(),
+        "type": "repair",
+        "hard": false,
+        "x": clampf(x, LEFT + 16.0, RIGHT - 16.0),
+        "y": y,
+        "r": 14.0,
+        "speed": rng.randf_range(205.0, 235.0),
+        "drift": rng.randf_range(-8.0, 8.0),
+        "lane_min": LEFT,
+        "lane_max": RIGHT
+    }
+
+func _kill_drop_kind(roll: float) -> String:
+    if roll < KILL_REPAIR_DROP_CHANCE:
+        return "repair"
+    if roll < KILL_REPAIR_DROP_CHANCE + KILL_ORB_DROP_CHANCE:
+        return "energy"
+    return ""
+
+func _queue_kill_drop(obj: Dictionary) -> void:
+    var drop_kind := _kill_drop_kind(rng.randf())
+    if drop_kind == "repair":
+        pending_drops.append(_make_repair_pickup(float(obj.x), float(obj.y)))
+    elif drop_kind == "energy":
+        pending_drops.append(_make_energy_orb(float(obj.x), float(obj.y), bool(obj.get("hard", false))))
+
+func _flush_pending_drops(target: Array[Dictionary]) -> void:
+    if pending_drops.is_empty():
+        return
+    for drop in pending_drops:
+        target.append(drop)
+    pending_drops.clear()
+
 func _spawn_repair() -> void:
     if hp >= max_hp:
         return
     var lane_hard := lane_event_active and rng.randf() < 0.5
     var bounds := _lane_bounds(lane_hard) if lane_event_active else Vector2(LEFT, RIGHT)
-    objects.append({
-        "id": rng.randi(),
-        "type": "repair",
-        "hard": false,
-        "x": rng.randf_range(bounds.x + 18.0, bounds.y - 18.0),
-        "y": -34.0,
-        "r": 14.0,
-        "speed": rng.randf_range(210.0, 245.0),
-        "drift": rng.randf_range(-12.0, 12.0),
-        "lane_min": bounds.x,
-        "lane_max": bounds.y
-    })
+    var x := rng.randf_range(bounds.x + 18.0, bounds.y - 18.0)
+    objects.append(_make_repair_pickup(x, -34.0))
 
 func _spawn_pickup() -> void:
-    var hard_lane := lane_event_active and rng.randf() < 0.66
+    var hard_lane := lane_event_active and rng.randf() < 0.82
     var bounds := _lane_bounds(hard_lane) if lane_event_active else Vector2(LEFT, RIGHT)
-    var lane_min := bounds.x
-    var lane_max := bounds.y
-    objects.append({
-        "id": rng.randi(),
-        "type": "energy",
-        "hard": hard_lane,
-        "x": rng.randf_range(lane_min + 16.0, lane_max - 16.0),
-        "y": -30.0,
-        "r": 12.0,
-        "speed": rng.randf_range(225.0, 280.0),
-        "drift": rng.randf_range(-16.0, 16.0),
-        "lane_min": lane_min,
-        "lane_max": lane_max
-    })
+    var x := rng.randf_range(bounds.x + 16.0, bounds.y - 16.0)
+    objects.append(_make_energy_orb(x, -30.0, hard_lane))
 
 func _begin_finale() -> void:
     finale_active = true
@@ -1580,8 +1623,11 @@ func _move_objects(delta: float) -> void:
         elif obj.type == "energy":
             if absf(dy) < obj.r + 18.0 and dx < obj.r + 20.0:
                 energy += 1
-                var pickup_base := 20 if obj.hard and lane_event_active else 10
-                score += int(round(float(pickup_base) * _lane_score_multiplier()))
+                var orb_score := float(ENERGY_ORB_BASE_SCORE)
+                if dash_score_timer > 0.0:
+                    orb_score *= ENERGY_ORB_DASH_MULT
+                orb_score *= _lane_score_multiplier()
+                score += int(round(orb_score))
                 combo = mini(combo + 1, 8)
                 best_combo = maxi(best_combo, combo)
                 _burst(Vector2(obj.x, obj.y), 9, Color("6bffb0"))
@@ -1615,6 +1661,7 @@ func _move_objects(delta: float) -> void:
 
         if obj.y < H + 80.0:
             next.append(obj)
+    _flush_pending_drops(next)
     objects = next
 
 func _register_near_miss() -> void:
@@ -1852,10 +1899,11 @@ func _draw_object(obj: Dictionary, offset: Vector2) -> void:
         return
 
     if obj.type == "energy":
-        var glow := Color(0.2, 1.0, 0.65, 0.17 if obj.hard else 0.12)
-        draw_circle(p, obj.r + 6.0, glow)
-        draw_circle(p, obj.r, Color("6bffb0"))
-        draw_circle(p, obj.r * 0.42, Color("e8fff3"))
+        var glow_alpha := 0.22 if obj.hard else 0.15
+        draw_circle(p, obj.r + 9.0, Color(0.18, 1.0, 0.52, glow_alpha * 0.45))
+        draw_circle(p, obj.r + 5.0, Color(0.20, 1.0, 0.60, glow_alpha))
+        draw_circle(p, obj.r, Color("55e98a"))
+        draw_circle(p - Vector2(3.0, 3.0), obj.r * 0.34, Color("dffff0"))
         return
 
     var kind := int(obj.kind)

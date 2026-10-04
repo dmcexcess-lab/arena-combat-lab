@@ -22,7 +22,9 @@ func _initialize() -> void:
         "_start_game", "_dash", "_fire_weapon", "_weapon_interval", "_weapon_damage",
         "_weapon_label", "_obstacle_max_hp", "_kill_score", "_enemy_kind_cap_for_level",
         "_spawn_circle_bunch", "_move_shots", "_consume_shot_hit",
-        "_apply_laser_damage", "_fire_enemy_shot", "_move_enemy_shots", "_spawn_repair", "_register_near_miss",
+        "_apply_laser_damage", "_fire_enemy_shot", "_move_enemy_shots", "_energy_spawn_interval",
+        "_make_energy_orb", "_make_repair_pickup", "_kill_drop_kind", "_queue_kill_drop",
+        "_flush_pending_drops", "_spawn_repair", "_spawn_pickup", "_register_near_miss",
         "_begin_lane_event", "_end_lane_event", "_neutralize_lane_objects", "_station_at_player",
         "_station_barrier_rects", "_check_station_collision", "_lane_score_multiplier",
         "_incoming_shot_dodge_direction",
@@ -464,12 +466,96 @@ func _initialize() -> void:
         return
     scene._spawn_shot(float(scene.objects[0].x), float(scene.objects[0].y), 0.0, 0.0, scene.SINGLE_DAMAGE)
     scene._move_objects(0.0)
-    if not scene.objects.is_empty():
-        _fail("third D1 shot did not destroy 3 HP circle")
-        return
+    for obj in scene.objects:
+        if obj.type == "hazard":
+            _fail("third D1 shot did not destroy 3 HP asteroid")
+            return
     if scene.score != 1:
-        _fail("circle kill should award exactly one point")
+        _fail("asteroid kill should award exactly one point")
         return
+
+    # Green energy balls score in the tens normally and hundreds during dash.
+    scene.objects.clear()
+    scene.lane_event_active = false
+    scene.score = 0
+    scene.energy = 0
+    scene.dash_score_timer = 0.0
+    var orb := scene._make_energy_orb(scene.player_x, scene.player_y, false)
+    orb.speed = 0.0
+    orb.drift = 0.0
+    scene.objects.append(orb)
+    scene._move_objects(0.0)
+    if scene.score != scene.ENERGY_ORB_BASE_SCORE or scene.score < 10 or scene.score >= 100 or scene.energy != 1:
+        _fail("normal energy orb should score in the tens")
+        return
+
+    scene.objects.clear()
+    scene.score = 0
+    scene.dash_score_timer = 0.5
+    var dash_orb := scene._make_energy_orb(scene.player_x, scene.player_y, false)
+    dash_orb.speed = 0.0
+    dash_orb.drift = 0.0
+    scene.objects.append(dash_orb)
+    scene._move_objects(0.0)
+    if scene.score != int(scene.ENERGY_ORB_BASE_SCORE * scene.ENERGY_ORB_DASH_MULT) or scene.score < 100:
+        _fail("dash energy orb should score in the hundreds")
+        return
+
+    # Random orb cadence increases by level and gets faster during an active split.
+    scene.rng.seed = 424242
+    scene.level = 1
+    scene.lane_event_active = false
+    var level_one_orb_interval: float = scene._energy_spawn_interval()
+    scene.rng.seed = 424242
+    scene.level = 8
+    scene.lane_event_active = false
+    var late_orb_interval: float = scene._energy_spawn_interval()
+    scene.rng.seed = 424242
+    scene.lane_event_active = true
+    var split_orb_interval: float = scene._energy_spawn_interval()
+    if late_orb_interval >= level_one_orb_interval:
+        _fail("energy orbs did not become more frequent in later levels")
+        return
+    if split_orb_interval >= late_orb_interval:
+        _fail("energy orbs did not become more frequent during splits")
+        return
+
+    # During splits, random energy balls strongly favor the hard lane.
+    scene.objects.clear()
+    scene.level = 8
+    scene.lane_event_active = true
+    scene.hard_lane_right = true
+    scene.rng.seed = 777
+    var hard_orbs := 0
+    var easy_orbs := 0
+    for i in 100:
+        scene._spawn_pickup()
+    for obj in scene.objects:
+        if bool(obj.hard):
+            hard_orbs += 1
+        else:
+            easy_orbs += 1
+    if hard_orbs <= easy_orbs * 2:
+        _fail("split energy orbs do not favor the hard lane strongly enough")
+        return
+
+    # Kill rewards have rare, explicit orb and +1-hit bands.
+    if scene._kill_drop_kind(0.0) != "repair":
+        _fail("kill drop repair band is missing")
+        return
+    if scene._kill_drop_kind(0.05) != "energy":
+        _fail("kill drop energy band is missing")
+        return
+    if scene._kill_drop_kind(0.50) != "":
+        _fail("kill drops are not rare enough")
+        return
+    if scene.KILL_REPAIR_DROP_CHANCE >= 0.05 or scene.KILL_ORB_DROP_CHANCE >= 0.15:
+        _fail("kill orb/repair drops should remain rare")
+        return
+
+    scene.objects.clear()
+    scene.lane_event_active = false
+    scene.dash_score_timer = 0.0
 
     # Score scale: ordinary near misses are tens; dash near misses are hundreds.
     scene.lane_event_active = false
