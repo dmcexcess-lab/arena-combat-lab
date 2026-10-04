@@ -34,16 +34,24 @@ const RESEARCH_DASH_RECT := Rect2(35.0, 270.0, 320.0, 64.0)
 const RESEARCH_DAMAGE_RECT := Rect2(35.0, 352.0, 320.0, 64.0)
 const RESEARCH_HITS_RECT := Rect2(35.0, 434.0, 320.0, 64.0)
 const RESEARCH_SHIELD_RECT := Rect2(35.0, 516.0, 320.0, 64.0)
-const RESEARCH_BACK_RECT := Rect2(54.0, 640.0, 282.0, 64.0)
+const RESEARCH_WEAPONS_RECT := Rect2(35.0, 598.0, 320.0, 58.0)
+const RESEARCH_BACK_RECT := Rect2(54.0, 684.0, 282.0, 58.0)
+const WEAPON_NONE_RECT := Rect2(35.0, 164.0, 320.0, 54.0)
+const WEAPON_SINGLE_RECT := Rect2(35.0, 232.0, 320.0, 54.0)
+const WEAPON_DUAL_RECT := Rect2(35.0, 300.0, 320.0, 54.0)
+const WEAPON_LASER_RECT := Rect2(35.0, 368.0, 320.0, 54.0)
+const WEAPON_CONE_RECT := Rect2(35.0, 436.0, 320.0, 54.0)
+const WEAPON_SEEKER_RECT := Rect2(35.0, 504.0, 320.0, 54.0)
+const WEAPON_RESEARCH_BACK_RECT := Rect2(54.0, 620.0, 282.0, 58.0)
 const PAUSE_RECT := Rect2(300.0, 16.0, 72.0, 38.0)
 const PAUSE_RESUME_RECT := Rect2(55.0, 360.0, 280.0, 74.0)
 const PAUSE_QUIT_RECT := Rect2(55.0, 458.0, 280.0, 74.0)
 const META_SAVE_PATH := "user://neon_meta.cfg"
 const RUN_SAVE_PATH := "user://neon_run.cfg"
 const DASH_COOLDOWN := 2.4
-const DASH_DURATION := 0.40
-const DASH_FORWARD_SPEED := 1500.0
-const DASH_FORWARD_DISTANCE := 540.0
+const DASH_DURATION := 0.30
+const DASH_FORWARD_SPEED := 700.0
+const DASH_FORWARD_DISTANCE := 160.0
 const DASH_RETURN_RATE := 0.55
 const DASH_SCORE_DURATION := 0.9
 const LANE_EVENT_FIRST := 7.0
@@ -87,17 +95,24 @@ var research_dash := 0
 var research_damage := 0
 var research_hits := 0
 var research_shield := 0
+var research_start_single := false
+var research_start_dual := false
+var research_start_laser := false
+var research_start_cone := false
+var research_start_seeker := false
+var starting_weapon := "none"
 var research_open := false
+var weapon_research_open := false
 var run_paused := false
 var banked_this_run := false
 var last_banked_score := 0
-var max_hp := 3
+var max_hp := 2
 var shield_charges := 0
 var world_scroll := 0.0
 var energy := 0
 var combo := 1
 var best_combo := 1
-var hp := 3
+var hp := 2
 var player_x := W * 0.5
 var player_y := PLAYER_Y
 var target_x := W * 0.5
@@ -305,6 +320,9 @@ func _handle_tap(pos: Vector2, touch_index: int = -1) -> void:
     if run_paused:
         _handle_pause_tap(pos)
         return
+    if weapon_research_open:
+        _handle_weapon_research_tap(pos)
+        return
     if research_open:
         _handle_research_tap(pos)
         return
@@ -356,9 +374,9 @@ func _start_game() -> void:
     energy = 0
     combo = 1
     best_combo = 1
-    max_hp = 3 + research_hits
+    max_hp = 2 + research_hits
     hp = max_hp
-    shield_charges = 1 if research_shield > 0 else 0
+    shield_charges = research_shield
     player_x = W * 0.5
     player_y = PLAYER_Y
     target_x = player_x
@@ -372,7 +390,7 @@ func _start_game() -> void:
     neutral_spawn_clock = 1.65
     fire_clock = 0.18
     repair_clock = 18.0
-    current_weapon = "none"
+    current_weapon = _valid_starting_weapon()
     weapon_banner_timer = 0.0
     weapon_banner_text = ""
     dash_cooldown = 0.0
@@ -386,6 +404,7 @@ func _start_game() -> void:
     extraction_lane = ""
     result_reason = ""
     research_open = false
+    weapon_research_open = false
     run_paused = false
     banked_this_run = false
     last_banked_score = 0
@@ -407,13 +426,13 @@ func _start_game() -> void:
     _clear_run_snapshot()
 
 func _ship_speed_multiplier() -> float:
-    return 1.0 + float(research_ship_speed) * 0.04
+    return 0.72 + float(research_ship_speed) * 0.04
 
 func _dash_distance() -> float:
-    return minf(PLAYER_Y - 45.0, DASH_FORWARD_DISTANCE + float(research_dash) * 25.0)
+    return minf(PLAYER_Y - 45.0, DASH_FORWARD_DISTANCE + float(research_dash) * 35.0)
 
 func _dash_speed() -> float:
-    return DASH_FORWARD_SPEED + float(research_dash) * 100.0
+    return DASH_FORWARD_SPEED + float(research_dash) * 40.0
 
 func _damage_multiplier() -> float:
     return 1.0 + float(research_damage) * 0.03
@@ -595,11 +614,11 @@ func _research_level(track: String) -> int:
 
 func _research_max(track: String) -> int:
     if track == "shield":
-        return 1
+        return 5
     if track == "hits":
         return 5
     if track == "dash":
-        return 5
+        return 10
     return 20
 
 func _research_cost(track: String) -> int:
@@ -612,9 +631,9 @@ func _research_cost(track: String) -> int:
         "damage":
             return int(round(1000.0 * pow(1.80, lvl)))
         "hits":
-            return int(round(2000.0 * pow(1.50, lvl)))
+            return int(round(5000.0 * pow(1.35, lvl)))
         "shield":
-            return 15000
+            return int(round(500.0 * pow(5.0, lvl)))
     return 99999999
 
 func _buy_research(track: String) -> bool:
@@ -635,9 +654,95 @@ func _buy_research(track: String) -> bool:
         "hits":
             research_hits += 1
         "shield":
-            research_shield = 1
+            research_shield += 1
     _save_meta()
     return true
+
+func _weapon_research_cost(weapon: String) -> int:
+    return _shop_weapon_cost(weapon) * 10
+
+func _weapon_start_unlocked(weapon: String) -> bool:
+    match weapon:
+        "none":
+            return true
+        "single":
+            return research_start_single
+        "dual":
+            return research_start_dual
+        "laser":
+            return research_start_laser
+        "cone":
+            return research_start_cone
+        "seeker":
+            return research_start_seeker
+    return false
+
+func _valid_starting_weapon() -> String:
+    return starting_weapon if _weapon_start_unlocked(starting_weapon) else "none"
+
+func _buy_start_weapon_research(weapon: String) -> bool:
+    if weapon == "none" or _weapon_start_unlocked(weapon):
+        return false
+    var cost := _weapon_research_cost(weapon)
+    if research_credits < cost:
+        return false
+    research_credits -= cost
+    match weapon:
+        "single":
+            research_start_single = true
+        "dual":
+            research_start_dual = true
+        "laser":
+            research_start_laser = true
+        "cone":
+            research_start_cone = true
+        "seeker":
+            research_start_seeker = true
+        _:
+            return false
+    starting_weapon = weapon
+    _save_meta()
+    return true
+
+func _select_start_weapon(weapon: String) -> bool:
+    if not _weapon_start_unlocked(weapon):
+        return false
+    starting_weapon = weapon
+    _save_meta()
+    return true
+
+func _handle_weapon_research_tap(pos: Vector2) -> void:
+    if WEAPON_NONE_RECT.has_point(pos):
+        _select_start_weapon("none")
+    elif WEAPON_SINGLE_RECT.has_point(pos):
+        if research_start_single:
+            _select_start_weapon("single")
+        else:
+            _buy_start_weapon_research("single")
+    elif WEAPON_DUAL_RECT.has_point(pos):
+        if research_start_dual:
+            _select_start_weapon("dual")
+        else:
+            _buy_start_weapon_research("dual")
+    elif WEAPON_LASER_RECT.has_point(pos):
+        if research_start_laser:
+            _select_start_weapon("laser")
+        else:
+            _buy_start_weapon_research("laser")
+    elif WEAPON_CONE_RECT.has_point(pos):
+        if research_start_cone:
+            _select_start_weapon("cone")
+        else:
+            _buy_start_weapon_research("cone")
+    elif WEAPON_SEEKER_RECT.has_point(pos):
+        if research_start_seeker:
+            _select_start_weapon("seeker")
+        else:
+            _buy_start_weapon_research("seeker")
+    elif WEAPON_RESEARCH_BACK_RECT.has_point(pos):
+        weapon_research_open = false
+        research_open = true
+    queue_redraw()
 
 func _handle_research_tap(pos: Vector2) -> void:
     if RESEARCH_SHIP_RECT.has_point(pos):
@@ -650,8 +755,12 @@ func _handle_research_tap(pos: Vector2) -> void:
         _buy_research("hits")
     elif RESEARCH_SHIELD_RECT.has_point(pos):
         _buy_research("shield")
+    elif RESEARCH_WEAPONS_RECT.has_point(pos):
+        research_open = false
+        weapon_research_open = true
     elif RESEARCH_BACK_RECT.has_point(pos):
         research_open = false
+    weapon_research_open = false
     queue_redraw()
 
 func _pause_run() -> void:
@@ -682,6 +791,7 @@ func _quit_run_with_score() -> void:
     game_over = false
     run_paused = false
     research_open = false
+    weapon_research_open = false
     objects.clear()
     shots.clear()
     enemy_shots.clear()
@@ -712,6 +822,12 @@ func _save_meta() -> void:
     cfg.set_value("meta", "damage", research_damage)
     cfg.set_value("meta", "hits", research_hits)
     cfg.set_value("meta", "shield", research_shield)
+    cfg.set_value("meta", "start_single", research_start_single)
+    cfg.set_value("meta", "start_dual", research_start_dual)
+    cfg.set_value("meta", "start_laser", research_start_laser)
+    cfg.set_value("meta", "start_cone", research_start_cone)
+    cfg.set_value("meta", "start_seeker", research_start_seeker)
+    cfg.set_value("meta", "starting_weapon", starting_weapon)
     cfg.save(META_SAVE_PATH)
 
 func _load_meta() -> void:
@@ -724,6 +840,14 @@ func _load_meta() -> void:
     research_damage = int(cfg.get_value("meta", "damage", 0))
     research_hits = int(cfg.get_value("meta", "hits", 0))
     research_shield = int(cfg.get_value("meta", "shield", 0))
+    research_start_single = bool(cfg.get_value("meta", "start_single", false))
+    research_start_dual = bool(cfg.get_value("meta", "start_dual", false))
+    research_start_laser = bool(cfg.get_value("meta", "start_laser", false))
+    research_start_cone = bool(cfg.get_value("meta", "start_cone", false))
+    research_start_seeker = bool(cfg.get_value("meta", "start_seeker", false))
+    starting_weapon = String(cfg.get_value("meta", "starting_weapon", "none"))
+    if not _weapon_start_unlocked(starting_weapon):
+        starting_weapon = "none"
 
 func _save_run_snapshot() -> void:
     if game_over or (not playing and not shop_open):
@@ -784,7 +908,7 @@ func _load_run_snapshot() -> bool:
     energy = int(cfg.get_value("run", "energy", 0))
     combo = int(cfg.get_value("run", "combo", 1))
     best_combo = int(cfg.get_value("run", "best_combo", 1))
-    max_hp = int(cfg.get_value("run", "max_hp", 3 + research_hits))
+    max_hp = int(cfg.get_value("run", "max_hp", 2 + research_hits))
     hp = int(cfg.get_value("run", "hp", max_hp))
     shield_charges = int(cfg.get_value("run", "shield_charges", 0))
     player_x = float(cfg.get_value("run", "player_x", W * 0.5))
@@ -1468,6 +1592,10 @@ func _draw() -> void:
     draw_rect(Rect2(Vector2.ZERO, Vector2(W, H)), Color("080b14"))
     _draw_background()
 
+    if weapon_research_open:
+        _draw_weapon_research()
+        return
+
     if research_open:
         _draw_research()
         return
@@ -1692,7 +1820,7 @@ func _draw_hud() -> void:
         var c := Color("ff4f78") if i < hp else Color(0.3,0.3,0.38,0.55)
         draw_circle(Vector2(28 + i * 21, 146), 7.0, c)
     if shield_charges > 0:
-        _text("SHIELD", Vector2(20, 199), 13, Color("77f7ff"))
+        _text("SHIELD x%d" % shield_charges, Vector2(20, 199), 13, Color("77f7ff"))
 
     var progress := clampf(elapsed / _level_duration(), 0.0, 1.0)
     draw_rect(Rect2(Vector2(20, 169), Vector2(350, 6)), Color(0.2,0.25,0.3,0.7))
@@ -1710,7 +1838,7 @@ func _draw_title() -> void:
     _text("NEON", Vector2(102, 180), 52, Color("77f7ff"))
     _text("DRIFTLINE", Vector2(54, 236), 47, Color("f0fbff"))
     _text("RESEARCH %07d" % research_credits, Vector2(82, 300), 21, Color("ffd166"))
-    _text("START UNARMED — SCORE BANKS ON END", Vector2(42, 348), 15, Color("bdeef4"))
+    _text("START: %s" % _weapon_label(_valid_starting_weapon()), Vector2(88, 348), 16, Color("bdeef4"))
     _text("SPEED + DASH ALSO BOOST NEAR-MISS SCORE", Vector2(31, 382), 14, Color("6bffb0"))
     _text("L1: LAZY CIRCLES / 1 SHORT SPLIT", Vector2(54, 420), 15, Color("8ea9b8"))
     draw_rect(MAIN_START_RECT, Color("123544"), true)
@@ -1739,13 +1867,47 @@ func _draw_research() -> void:
     _text("BANK %07d" % research_credits, Vector2(108, 112), 18, Color("ffd166"))
     _text("PERMANENT ACROSS RUNS", Vector2(87, 145), 15, Color("8ea9b8"))
     _draw_research_button(RESEARCH_SHIP_RECT, "ship", "SHIP SPEED", "+4% scroll, +8% near score")
-    _draw_research_button(RESEARCH_DASH_RECT, "dash", "DASH", "+25px / +100 speed / +12% dash-near")
+    _draw_research_button(RESEARCH_DASH_RECT, "dash", "DASH", "+35px / +40 speed / +12% dash-near")
     _draw_research_button(RESEARCH_DAMAGE_RECT, "damage", "DAMAGE", "+3% all weapon damage")
     _draw_research_button(RESEARCH_HITS_RECT, "hits", "HITS", "+1 starting hit")
-    _draw_research_button(RESEARCH_SHIELD_RECT, "shield", "SHIELD", "1 projectile block each run")
+    _draw_research_button(RESEARCH_SHIELD_RECT, "shield", "SHIELD", "+1 projectile block/run")
+    draw_rect(RESEARCH_WEAPONS_RECT, Color("231835"), true)
+    draw_rect(RESEARCH_WEAPONS_RECT, Color("b56cff"), false, 2.0)
+    _text("STARTING WEAPONS", RESEARCH_WEAPONS_RECT.position + Vector2(61, 37), 18, Color("f1dcff"))
     draw_rect(RESEARCH_BACK_RECT, Color("123544"), true)
     draw_rect(RESEARCH_BACK_RECT, Color("77f7ff"), false, 3.0)
     _text("BACK", RESEARCH_BACK_RECT.position + Vector2(106, 42), 22, Color("f0fbff"))
+
+func _draw_weapon_unlock_button(rect: Rect2, weapon: String, label: String) -> void:
+    var unlocked := _weapon_start_unlocked(weapon)
+    var selected := starting_weapon == weapon
+    var cost := 0 if weapon == "none" else _weapon_research_cost(weapon)
+    var can_buy := unlocked or research_credits >= cost
+    var fill := Color("14232f") if can_buy else Color("0d1118")
+    var border := Color("77f7ff") if can_buy else Color("46515c")
+    if selected:
+        fill = Color("183524")
+        border = Color("6bffb0")
+    draw_rect(rect, fill, true)
+    draw_rect(rect, border, false, 2.0)
+    _text(label, rect.position + Vector2(12, 23), 16, Color("f0fbff"))
+    var right := "SELECTED" if selected else ("SELECT" if unlocked else ("%d" % cost))
+    _text(right, rect.position + Vector2(215, 34), 13, Color("6bffb0") if unlocked or selected else Color("ffd166"))
+
+func _draw_weapon_research() -> void:
+    draw_rect(Rect2(Vector2.ZERO, Vector2(W, H)), Color("080b14"))
+    _text("STARTING WEAPONS", Vector2(55, 76), 30, Color("b56cff"))
+    _text("BANK %07d" % research_credits, Vector2(108, 112), 18, Color("ffd166"))
+    _text("PERMANENT UNLOCK — 10x RUN PRICE", Vector2(51, 140), 14, Color("8ea9b8"))
+    _draw_weapon_unlock_button(WEAPON_NONE_RECT, "none", "NONE")
+    _draw_weapon_unlock_button(WEAPON_SINGLE_RECT, "single", "SINGLE D1")
+    _draw_weapon_unlock_button(WEAPON_DUAL_RECT, "dual", "DUAL D1x2")
+    _draw_weapon_unlock_button(WEAPON_LASER_RECT, "laser", "THIN LASER")
+    _draw_weapon_unlock_button(WEAPON_CONE_RECT, "cone", "CONE D3x3")
+    _draw_weapon_unlock_button(WEAPON_SEEKER_RECT, "seeker", "SEEKER D7")
+    draw_rect(WEAPON_RESEARCH_BACK_RECT, Color("123544"), true)
+    draw_rect(WEAPON_RESEARCH_BACK_RECT, Color("77f7ff"), false, 3.0)
+    _text("BACK", WEAPON_RESEARCH_BACK_RECT.position + Vector2(106, 39), 22, Color("f0fbff"))
 
 func _draw_pause_button() -> void:
     draw_rect(PAUSE_RECT, Color(0.05, 0.08, 0.12, 0.82), true)
