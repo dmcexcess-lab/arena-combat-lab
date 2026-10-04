@@ -253,6 +253,35 @@ func _initialize() -> void:
     scene.lane_events_started = 0
     scene.next_lane_event_at = scene._first_split_time()
 
+    # Split difficulty must end with the physical station: survivors become neutral/full-width.
+    scene.objects.clear()
+    scene.level = 4
+    scene._begin_lane_event()
+    scene._spawn_hazard(0.6, true, true)
+    if scene.objects.is_empty() or not bool(scene.objects[0].hard):
+        _fail("hard-lane test enemy did not spawn as hard")
+        return
+    var hard_speed_before: float = float(scene.objects[0].speed)
+    var lane_mult_before: float = float(scene.objects[0].lane_speed_mult)
+    scene._end_lane_event()
+    if bool(scene.objects[0].hard) or float(scene.objects[0].lane_min) != scene.LEFT or float(scene.objects[0].lane_max) != scene.RIGHT:
+        _fail("lane-bound enemy stayed hard/constrained after split")
+        return
+    if float(scene.objects[0].lane_speed_mult) != 1.0 or float(scene.objects[0].speed) >= hard_speed_before or absf(float(scene.objects[0].speed) - hard_speed_before / lane_mult_before) > 0.05:
+        _fail("hard-lane speed modifier persisted after split")
+        return
+
+    # Anything spawned after a split must use neutral full-width rules even if passed the old side.
+    scene.objects.clear()
+    for i in 20:
+        scene._spawn_hazard(0.6, true, false)
+    for obj in scene.objects:
+        if bool(obj.hard) or float(obj.lane_min) != scene.LEFT or float(obj.lane_max) != scene.RIGHT or absf(float(obj.lane_speed_mult) - 1.0) > 0.001:
+            _fail("post-split spawn inherited hard-lane state")
+            return
+    scene.objects.clear()
+    scene._start_game()
+
     # Unarmed means genuinely no automatic fire.
     scene.shots.clear()
     scene.fire_clock = 0.0
