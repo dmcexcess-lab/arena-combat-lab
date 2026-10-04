@@ -760,7 +760,6 @@ func _handle_research_tap(pos: Vector2) -> void:
         weapon_research_open = true
     elif RESEARCH_BACK_RECT.has_point(pos):
         research_open = false
-    weapon_research_open = false
     queue_redraw()
 
 func _pause_run() -> void:
@@ -804,6 +803,7 @@ func _return_to_menu() -> void:
     shop_open = false
     run_paused = false
     research_open = false
+    weapon_research_open = false
     queue_redraw()
 
 func _bank_run_score() -> void:
