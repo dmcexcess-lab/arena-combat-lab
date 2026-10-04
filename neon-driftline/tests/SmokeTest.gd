@@ -23,8 +23,9 @@ func _initialize() -> void:
         "_weapon_label", "_obstacle_max_hp", "_kill_score", "_enemy_kind_cap_for_level",
         "_spawn_circle_bunch", "_move_shots", "_consume_shot_hit",
         "_apply_laser_damage", "_fire_enemy_shot", "_move_enemy_shots", "_spawn_repair", "_register_near_miss",
-        "_begin_lane_event", "_end_lane_event", "_station_at_player",
+        "_begin_lane_event", "_end_lane_event", "_neutralize_lane_objects", "_station_at_player",
         "_station_barrier_rects", "_check_station_collision", "_lane_score_multiplier",
+        "_incoming_shot_dodge_direction",
         "_dash_score_multiplier", "_level_duration", "_split_count_for_level",
         "_station_height_for_level", "_first_split_time", "_level_difficulty", "_spawn_interval",
         "_shop_weapon_cost", "_open_shop", "_buy_repair", "_buy_weapon",
@@ -322,8 +323,8 @@ func _initialize() -> void:
         if int(obj.kind) != 0:
             _fail("level 1 spawned anything other than a lazy circle")
             return
-        if absf(float(obj.drift)) > 0.01:
-            _fail("level 1 circle should not move laterally")
+        if absf(float(obj.drift)) > 5.1:
+            _fail("level 1 asteroid should only barely drift")
             return
     scene.objects.clear()
 
@@ -345,11 +346,11 @@ func _initialize() -> void:
         return
     scene.objects.clear()
 
-    # Obstacle durability: circle < square < rhomboid < yellow diamond.
-    if not (scene._obstacle_max_hp(0) < scene._obstacle_max_hp(1) and scene._obstacle_max_hp(1) < scene._obstacle_max_hp(3) and scene._obstacle_max_hp(3) < scene._obstacle_max_hp(2)):
-        _fail("enemy health ordering is incorrect")
+    # Drone durability: square and trapezoid stay weak; diamond remains strongest.
+    if scene._obstacle_max_hp(1) != 4.0 or scene._obstacle_max_hp(3) != 4.0:
+        _fail("square and trapezoid drones should stay weak")
         return
-    if scene._obstacle_max_hp(2) != 12.0:
+    if scene._obstacle_max_hp(2) != 12.0 or scene._obstacle_max_hp(2) <= scene._obstacle_max_hp(1):
         _fail("yellow diamond should remain the tankiest enemy")
         return
     if scene._kill_score(0) != 1 or scene._kill_score(1) != 2 or scene._kill_score(2) != 5 or scene._kill_score(3) != 4:
@@ -460,41 +461,85 @@ func _initialize() -> void:
         _fail("dash near miss should score in the hundreds")
         return
 
-    # Smart yellow diamonds steer toward the player.
+    # Square drone is dumb/slow: it only creeps laterally toward the player.
+    scene.objects.clear()
+    scene.player_x = 300.0
+    scene.player_y = scene.PLAYER_Y
+    scene.objects.append({
+        "id": 990000, "type": "hazard", "kind": 1,
+        "hp": 4.0, "max_hp": 4.0, "hard": false,
+        "x": 100.0, "y": 120.0, "r": 16.0,
+        "speed": 0.0, "drift": 0.0, "shoot_clock": 999.0,
+        "lane_speed_mult": 1.0, "lane_min": scene.LEFT, "lane_max": scene.RIGHT
+    })
+    scene._move_objects(0.1)
+    var square_drift: float = float(scene.objects[0].drift)
+    if square_drift <= 0.0 or square_drift > 4.0:
+        _fail("square drone should only creep slowly toward player")
+        return
+
+    # Diamond is smarter/faster laterally, but remains capped and dodgeable.
     scene.objects.clear()
     scene.level = 4
     scene.player_x = 300.0
-    scene.player_y = scene.PLAYER_Y
+    scene.target_x = 330.0
     scene.objects.append({
         "id": 990001, "type": "hazard", "kind": 2,
         "hp": 12.0, "max_hp": 12.0, "hard": false,
         "x": 100.0, "y": 120.0, "r": 15.0,
         "speed": 0.0, "drift": 0.0, "shoot_clock": 999.0,
-        "lane_min": scene.LEFT, "lane_max": scene.RIGHT
+        "lane_speed_mult": 1.0, "lane_min": scene.LEFT, "lane_max": scene.RIGHT
     })
     scene._move_objects(0.1)
-    if float(scene.objects[0].drift) <= 0.0:
-        _fail("smart diamond did not steer toward player")
+    var diamond_drift: float = float(scene.objects[0].drift)
+    if diamond_drift <= square_drift or diamond_drift > 82.0:
+        _fail("smart diamond should track faster than square but remain capped")
         return
 
-    # Rhomboids aim and fire at the player on later levels.
+    # Trapezoid is a weak ranged skirmisher: full vertical movement, aimed fire, and shot avoidance.
     scene.objects.clear()
     scene.enemy_shots.clear()
+    scene.shots.clear()
     scene.level = 6
     scene.player_x = 195.0
+    scene.target_x = 195.0
     scene.objects.append({
         "id": 990002, "type": "hazard", "kind": 3,
-        "hp": 8.0, "max_hp": 8.0, "hard": false,
-        "x": 195.0, "y": 120.0, "r": 16.0,
-        "speed": 0.0, "drift": 0.0, "shoot_clock": 0.0,
-        "lane_min": scene.LEFT, "lane_max": scene.RIGHT
+        "hp": 4.0, "max_hp": 4.0, "hard": false,
+        "x": 195.0, "y": scene.player_y - 110.0, "r": 16.0,
+        "speed": 90.0, "drift": 0.0, "shoot_clock": 0.0,
+        "lane_speed_mult": 1.0, "lane_min": scene.LEFT, "lane_max": scene.RIGHT
     })
-    scene._move_objects(0.1)
-    if scene.enemy_shots.size() != 1 or float(scene.enemy_shots[0].vy) <= 0.0:
-        _fail("shooting rhomboid did not fire toward the player")
+    var trap_start_y: float = float(scene.objects[0].y)
+    scene._move_objects(0.25)
+    if float(scene.objects[0].y) >= trap_start_y:
+        _fail("trapezoid did not move upward to regain ranged spacing")
         return
+    if float(scene.objects[0].y) >= scene.player_y:
+        _fail("trapezoid crossed below player baseline")
+        return
+    if scene.enemy_shots.size() != 1 or float(scene.enemy_shots[0].vy) <= 0.0:
+        _fail("trapezoid did not fire toward the player")
+        return
+
+    scene.enemy_shots.clear()
+    scene.shots.clear()
+    scene.objects[0].x = 195.0
+    scene.objects[0].y = 360.0
+    scene.objects[0].drift = 0.0
+    scene.objects[0].shoot_clock = 999.0
+    scene.shots.append({"x": 195.0, "y": 480.0, "vx": 0.0, "vy": -600.0, "r": 4.0, "damage": 1.0, "homing": false})
+    if scene._incoming_shot_dodge_direction(scene.objects[0]) == 0.0:
+        _fail("trapezoid did not detect incoming fire")
+        return
+    scene._move_objects(0.1)
+    if absf(float(scene.objects[0].drift)) < 5.0:
+        _fail("trapezoid did not dodge incoming fire")
+        return
+
     scene.objects.clear()
     scene.enemy_shots.clear()
+    scene.shots.clear()
     scene._start_game()
 
     # Thin weak laser.
