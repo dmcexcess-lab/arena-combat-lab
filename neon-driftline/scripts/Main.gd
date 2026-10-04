@@ -27,6 +27,19 @@ const SHOP_CONE_RECT := Rect2(35.0, 394.0, 150.0, 58.0)
 const SHOP_SEEKER_RECT := Rect2(205.0, 394.0, 150.0, 58.0)
 const SHOP_LASER_RECT := Rect2(35.0, 470.0, 320.0, 58.0)
 const SHOP_CONTINUE_RECT := Rect2(35.0, 562.0, 320.0, 72.0)
+const MAIN_START_RECT := Rect2(54.0, 560.0, 282.0, 64.0)
+const MAIN_RESEARCH_RECT := Rect2(54.0, 640.0, 282.0, 64.0)
+const RESEARCH_SHIP_RECT := Rect2(35.0, 188.0, 320.0, 64.0)
+const RESEARCH_DASH_RECT := Rect2(35.0, 270.0, 320.0, 64.0)
+const RESEARCH_DAMAGE_RECT := Rect2(35.0, 352.0, 320.0, 64.0)
+const RESEARCH_HITS_RECT := Rect2(35.0, 434.0, 320.0, 64.0)
+const RESEARCH_SHIELD_RECT := Rect2(35.0, 516.0, 320.0, 64.0)
+const RESEARCH_BACK_RECT := Rect2(54.0, 640.0, 282.0, 64.0)
+const PAUSE_RECT := Rect2(300.0, 16.0, 72.0, 38.0)
+const PAUSE_RESUME_RECT := Rect2(55.0, 360.0, 280.0, 74.0)
+const PAUSE_QUIT_RECT := Rect2(55.0, 458.0, 280.0, 74.0)
+const META_SAVE_PATH := "user://neon_meta.cfg"
+const RUN_SAVE_PATH := "user://neon_run.cfg"
 const DASH_COOLDOWN := 2.4
 const DASH_DURATION := 0.40
 const DASH_FORWARD_SPEED := 1500.0
@@ -68,6 +81,19 @@ var level := 1
 var shop_open := false
 var last_level_bonus := 0
 var score := 0
+var research_credits := 0
+var research_ship_speed := 0
+var research_dash := 0
+var research_damage := 0
+var research_hits := 0
+var research_shield := 0
+var research_open := false
+var run_paused := false
+var banked_this_run := false
+var last_banked_score := 0
+var max_hp := 3
+var shield_charges := 0
+var world_scroll := 0.0
 var energy := 0
 var combo := 1
 var best_combo := 1
@@ -121,9 +147,18 @@ var finale_sfx: AudioStreamWAV
 
 func _ready() -> void:
     rng.randomize()
+    _load_meta()
     _setup_audio()
     set_process(true)
+    if _load_run_snapshot():
+        run_paused = true
     queue_redraw()
+
+func _notification(what: int) -> void:
+    if what == NOTIFICATION_WM_WINDOW_FOCUS_OUT or what == NOTIFICATION_APPLICATION_FOCUS_OUT or what == NOTIFICATION_APPLICATION_PAUSED:
+        if (playing or shop_open) and not game_over:
+            _pause_run()
+        _save_meta()
 
 func _setup_audio() -> void:
     sfx_player = AudioStreamPlayer.new()
@@ -156,7 +191,7 @@ func _play_sfx(stream: AudioStreamWAV) -> void:
     sfx_player.play()
 
 func _process(delta: float) -> void:
-    if not playing:
+    if run_paused or not playing:
         queue_redraw()
         return
 
@@ -172,7 +207,9 @@ func _process(delta: float) -> void:
     slowmo_timer = maxf(0.0, slowmo_timer - delta)
 
     var game_delta := delta * (0.52 if slowmo_timer > 0.0 else 1.0)
-    elapsed += game_delta
+    var world_delta := game_delta * _ship_speed_multiplier()
+    elapsed += world_delta
+    world_scroll += world_delta * 170.0
     invuln = maxf(0.0, invuln - game_delta)
 
     player_x = lerpf(player_x, target_x, minf(1.0, game_delta * 13.0))
@@ -181,14 +218,14 @@ func _process(delta: float) -> void:
 
     if dash_timer > 0.0:
         dash_timer = maxf(0.0, dash_timer - game_delta)
-        player_y = maxf(PLAYER_Y - DASH_FORWARD_DISTANCE, player_y - DASH_FORWARD_SPEED * game_delta)
+        player_y = maxf(PLAYER_Y - _dash_distance(), player_y - _dash_speed() * game_delta)
     else:
         player_y = lerpf(player_y, PLAYER_Y, minf(1.0, game_delta * DASH_RETURN_RATE))
 
-    easy_spawn_clock -= game_delta
-    hard_spawn_clock -= game_delta
-    neutral_spawn_clock -= game_delta
-    pickup_clock -= game_delta
+    easy_spawn_clock -= world_delta
+    hard_spawn_clock -= world_delta
+    neutral_spawn_clock -= world_delta
+    pickup_clock -= world_delta
     fire_clock -= game_delta
     repair_clock -= game_delta
     var difficulty := _level_difficulty()
@@ -200,13 +237,13 @@ func _process(delta: float) -> void:
         fire_clock = _weapon_interval()
 
     if repair_clock <= 0.0:
-        if hp < 3 and rng.randf() < FIELD_REPAIR_CHANCE:
+        if hp < max_hp and rng.randf() < FIELD_REPAIR_CHANCE:
             _spawn_repair()
-        repair_clock = rng.randf_range(REPAIR_INTERVAL_MIN, REPAIR_INTERVAL_MAX) if hp < 3 else REPAIR_RETRY_FULL
+        repair_clock = rng.randf_range(REPAIR_INTERVAL_MIN, REPAIR_INTERVAL_MAX) if hp < max_hp else REPAIR_RETRY_FULL
 
     if lane_event_active:
-        station_top += STATION_SPEED * game_delta
-        lane_event_timer = maxf(0.0, lane_event_timer - game_delta)
+        station_top += STATION_SPEED * world_delta
+        lane_event_timer = maxf(0.0, lane_event_timer - world_delta)
         _check_station_collision()
         if not playing:
             queue_redraw()
@@ -235,7 +272,7 @@ func _process(delta: float) -> void:
         pickup_clock = rng.randf_range(1.8, 2.7)
 
     _move_shots(game_delta)
-    _move_objects(game_delta)
+    _move_objects(world_delta)
     _move_enemy_shots(game_delta)
     _move_particles(delta)
 
@@ -246,36 +283,52 @@ func _process(delta: float) -> void:
     queue_redraw()
 
 func _input(event: InputEvent) -> void:
-    if event is InputEventScreenTouch:
-        if event.pressed:
-            if shop_open:
-                _handle_shop_tap(event.position)
-                return
-            if not playing:
-                _start_game()
-                return
-            if DASH_RECT.has_point(event.position):
-                dash_touch_index = event.index
-                _dash()
-            else:
-                _set_target(event.position.x)
-        elif event.index == dash_touch_index:
+    if event is InputEventScreenTouch and event.pressed:
+        _handle_tap(event.position, event.index)
+        return
+    if event is InputEventScreenTouch and not event.pressed:
+        if event.index == dash_touch_index:
             dash_touch_index = -1
-    elif event is InputEventScreenDrag:
-        if playing and event.index != dash_touch_index:
+        return
+    if event is InputEventScreenDrag:
+        if playing and not run_paused and event.index != dash_touch_index:
             _set_target(event.position.x)
-    elif event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and event.pressed:
-        if shop_open:
-            _handle_shop_tap(event.position)
-        elif not playing:
+        return
+    if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and event.pressed:
+        _handle_tap(event.position, -1)
+        return
+    if event is InputEventMouseMotion and Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT):
+        if playing and not run_paused and not DASH_RECT.has_point(event.position) and not PAUSE_RECT.has_point(event.position):
+            _set_target(event.position.x)
+
+func _handle_tap(pos: Vector2, touch_index: int = -1) -> void:
+    if run_paused:
+        _handle_pause_tap(pos)
+        return
+    if research_open:
+        _handle_research_tap(pos)
+        return
+    if game_over:
+        _return_to_menu()
+        return
+    if shop_open:
+        _handle_shop_tap(pos)
+        return
+    if not playing:
+        if MAIN_START_RECT.has_point(pos):
             _start_game()
-        elif DASH_RECT.has_point(event.position):
-            _dash()
-        else:
-            _set_target(event.position.x)
-    elif event is InputEventMouseMotion and Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT):
-        if playing and not DASH_RECT.has_point(event.position):
-            _set_target(event.position.x)
+        elif MAIN_RESEARCH_RECT.has_point(pos):
+            research_open = true
+            queue_redraw()
+        return
+    if PAUSE_RECT.has_point(pos):
+        _pause_run()
+        return
+    if DASH_RECT.has_point(pos):
+        dash_touch_index = touch_index
+        _dash()
+    else:
+        _set_target(pos.x)
 
 func _set_target(x: float) -> void:
     target_x = clampf(x, LEFT, RIGHT)
@@ -303,7 +356,9 @@ func _start_game() -> void:
     energy = 0
     combo = 1
     best_combo = 1
-    hp = 3
+    max_hp = 3 + research_hits
+    hp = max_hp
+    shield_charges = 1 if research_shield > 0 else 0
     player_x = W * 0.5
     player_y = PLAYER_Y
     target_x = player_x
@@ -330,6 +385,11 @@ func _start_game() -> void:
     extraction_spawned = false
     extraction_lane = ""
     result_reason = ""
+    research_open = false
+    run_paused = false
+    banked_this_run = false
+    last_banked_score = 0
+    world_scroll = 0.0
     hard_lane_right = true
     lane_event_active = false
     lane_event_timer = 0.0
@@ -344,6 +404,25 @@ func _start_game() -> void:
     enemy_shots.clear()
     particles.clear()
     last_near_ids.clear()
+    _clear_run_snapshot()
+
+func _ship_speed_multiplier() -> float:
+    return 1.0 + float(research_ship_speed) * 0.04
+
+func _dash_distance() -> float:
+    return minf(PLAYER_Y - 45.0, DASH_FORWARD_DISTANCE + float(research_dash) * 25.0)
+
+func _dash_speed() -> float:
+    return DASH_FORWARD_SPEED + float(research_dash) * 100.0
+
+func _damage_multiplier() -> float:
+    return 1.0 + float(research_damage) * 0.03
+
+func _near_miss_research_multiplier(is_dash: bool) -> float:
+    var mult := 1.0 + float(research_ship_speed) * 0.08
+    if is_dash:
+        mult += float(research_dash) * 0.12
+    return mult
 
 func _level_duration() -> float:
     return minf(LEVEL_TIME_MAX, LEVEL_TIME_BASE + float(level - 1) * LEVEL_TIME_STEP)
@@ -409,13 +488,15 @@ func _open_shop() -> void:
     lane_event_timer = 0.0
     station_locked_side = ""
     station_top = -station_height - 40.0
+    _save_run_snapshot()
     queue_redraw()
 
 func _buy_repair() -> bool:
-    if not shop_open or hp >= 3 or score < SHOP_REPAIR_COST:
+    if not shop_open or hp >= max_hp or score < SHOP_REPAIR_COST:
         return false
     score -= SHOP_REPAIR_COST
     hp += 1
+    _save_run_snapshot()
     return true
 
 func _buy_weapon(weapon: String) -> bool:
@@ -426,6 +507,7 @@ func _buy_weapon(weapon: String) -> bool:
         return false
     score -= cost
     current_weapon = weapon
+    _save_run_snapshot()
     return true
 
 func _start_next_level() -> void:
@@ -491,12 +573,265 @@ func _finish(success: bool) -> void:
     playing = false
     game_over = true
     won = success
-    if success:
-        score += energy * 250 + hp * 1000
-        result_reason = "CLEAN EXTRACTION"
-    elif result_reason.is_empty():
-        result_reason = "SIGNAL LOST"
+    if result_reason.is_empty():
+        result_reason = "RUN ENDED"
+    _bank_run_score()
+    _clear_run_snapshot()
     queue_redraw()
+
+func _research_level(track: String) -> int:
+    match track:
+        "ship":
+            return research_ship_speed
+        "dash":
+            return research_dash
+        "damage":
+            return research_damage
+        "hits":
+            return research_hits
+        "shield":
+            return research_shield
+    return 0
+
+func _research_max(track: String) -> int:
+    if track == "shield":
+        return 1
+    if track == "hits":
+        return 5
+    if track == "dash":
+        return 5
+    return 20
+
+func _research_cost(track: String) -> int:
+    var lvl := _research_level(track)
+    match track:
+        "ship":
+            return int(round(500.0 * pow(1.75, lvl)))
+        "dash":
+            return int(round(750.0 * pow(1.75, lvl)))
+        "damage":
+            return int(round(1000.0 * pow(1.80, lvl)))
+        "hits":
+            return int(round(2000.0 * pow(1.50, lvl)))
+        "shield":
+            return 15000
+    return 99999999
+
+func _buy_research(track: String) -> bool:
+    var lvl := _research_level(track)
+    if lvl >= _research_max(track):
+        return false
+    var cost := _research_cost(track)
+    if research_credits < cost:
+        return false
+    research_credits -= cost
+    match track:
+        "ship":
+            research_ship_speed += 1
+        "dash":
+            research_dash += 1
+        "damage":
+            research_damage += 1
+        "hits":
+            research_hits += 1
+        "shield":
+            research_shield = 1
+    _save_meta()
+    return true
+
+func _handle_research_tap(pos: Vector2) -> void:
+    if RESEARCH_SHIP_RECT.has_point(pos):
+        _buy_research("ship")
+    elif RESEARCH_DASH_RECT.has_point(pos):
+        _buy_research("dash")
+    elif RESEARCH_DAMAGE_RECT.has_point(pos):
+        _buy_research("damage")
+    elif RESEARCH_HITS_RECT.has_point(pos):
+        _buy_research("hits")
+    elif RESEARCH_SHIELD_RECT.has_point(pos):
+        _buy_research("shield")
+    elif RESEARCH_BACK_RECT.has_point(pos):
+        research_open = false
+    queue_redraw()
+
+func _pause_run() -> void:
+    if run_paused or game_over or (not playing and not shop_open):
+        return
+    run_paused = true
+    _save_run_snapshot()
+    _save_meta()
+    queue_redraw()
+
+func _resume_run() -> void:
+    if not run_paused:
+        return
+    run_paused = false
+    queue_redraw()
+
+func _handle_pause_tap(pos: Vector2) -> void:
+    if PAUSE_RESUME_RECT.has_point(pos):
+        _resume_run()
+    elif PAUSE_QUIT_RECT.has_point(pos):
+        _quit_run_with_score()
+
+func _quit_run_with_score() -> void:
+    _bank_run_score()
+    _clear_run_snapshot()
+    playing = false
+    shop_open = false
+    game_over = false
+    run_paused = false
+    research_open = false
+    objects.clear()
+    shots.clear()
+    enemy_shots.clear()
+    particles.clear()
+    queue_redraw()
+
+func _return_to_menu() -> void:
+    playing = false
+    game_over = false
+    shop_open = false
+    run_paused = false
+    research_open = false
+    queue_redraw()
+
+func _bank_run_score() -> void:
+    if banked_this_run:
+        return
+    last_banked_score = maxi(0, score)
+    research_credits += last_banked_score
+    banked_this_run = true
+    _save_meta()
+
+func _save_meta() -> void:
+    var cfg := ConfigFile.new()
+    cfg.set_value("meta", "credits", research_credits)
+    cfg.set_value("meta", "ship_speed", research_ship_speed)
+    cfg.set_value("meta", "dash", research_dash)
+    cfg.set_value("meta", "damage", research_damage)
+    cfg.set_value("meta", "hits", research_hits)
+    cfg.set_value("meta", "shield", research_shield)
+    cfg.save(META_SAVE_PATH)
+
+func _load_meta() -> void:
+    var cfg := ConfigFile.new()
+    if cfg.load(META_SAVE_PATH) != OK:
+        return
+    research_credits = int(cfg.get_value("meta", "credits", 0))
+    research_ship_speed = int(cfg.get_value("meta", "ship_speed", 0))
+    research_dash = int(cfg.get_value("meta", "dash", 0))
+    research_damage = int(cfg.get_value("meta", "damage", 0))
+    research_hits = int(cfg.get_value("meta", "hits", 0))
+    research_shield = int(cfg.get_value("meta", "shield", 0))
+
+func _save_run_snapshot() -> void:
+    if game_over or (not playing and not shop_open):
+        return
+    var cfg := ConfigFile.new()
+    cfg.set_value("run", "exists", true)
+    cfg.set_value("run", "playing", playing)
+    cfg.set_value("run", "shop_open", shop_open)
+    cfg.set_value("run", "level", level)
+    cfg.set_value("run", "elapsed", elapsed)
+    cfg.set_value("run", "score", score)
+    cfg.set_value("run", "energy", energy)
+    cfg.set_value("run", "combo", combo)
+    cfg.set_value("run", "best_combo", best_combo)
+    cfg.set_value("run", "hp", hp)
+    cfg.set_value("run", "max_hp", max_hp)
+    cfg.set_value("run", "shield_charges", shield_charges)
+    cfg.set_value("run", "player_x", player_x)
+    cfg.set_value("run", "player_y", player_y)
+    cfg.set_value("run", "target_x", target_x)
+    cfg.set_value("run", "invuln", invuln)
+    cfg.set_value("run", "easy_spawn_clock", easy_spawn_clock)
+    cfg.set_value("run", "hard_spawn_clock", hard_spawn_clock)
+    cfg.set_value("run", "neutral_spawn_clock", neutral_spawn_clock)
+    cfg.set_value("run", "pickup_clock", pickup_clock)
+    cfg.set_value("run", "fire_clock", fire_clock)
+    cfg.set_value("run", "repair_clock", repair_clock)
+    cfg.set_value("run", "dash_cooldown", dash_cooldown)
+    cfg.set_value("run", "dash_timer", dash_timer)
+    cfg.set_value("run", "dash_score_timer", dash_score_timer)
+    cfg.set_value("run", "current_weapon", current_weapon)
+    cfg.set_value("run", "hard_lane_right", hard_lane_right)
+    cfg.set_value("run", "lane_event_active", lane_event_active)
+    cfg.set_value("run", "lane_event_timer", lane_event_timer)
+    cfg.set_value("run", "lane_events_started", lane_events_started)
+    cfg.set_value("run", "next_lane_event_at", next_lane_event_at)
+    cfg.set_value("run", "station_height", station_height)
+    cfg.set_value("run", "station_top", station_top)
+    cfg.set_value("run", "station_locked_side", station_locked_side)
+    cfg.set_value("run", "world_scroll", world_scroll)
+    cfg.set_value("run", "last_level_bonus", last_level_bonus)
+    cfg.set_value("run", "objects", objects)
+    cfg.set_value("run", "shots", shots)
+    cfg.set_value("run", "enemy_shots", enemy_shots)
+    cfg.set_value("run", "last_near_ids", last_near_ids)
+    cfg.set_value("run", "rng_state", rng.state)
+    cfg.save(RUN_SAVE_PATH)
+
+func _load_run_snapshot() -> bool:
+    var cfg := ConfigFile.new()
+    if cfg.load(RUN_SAVE_PATH) != OK or not bool(cfg.get_value("run", "exists", false)):
+        return false
+    playing = bool(cfg.get_value("run", "playing", true))
+    shop_open = bool(cfg.get_value("run", "shop_open", false))
+    level = int(cfg.get_value("run", "level", 1))
+    elapsed = float(cfg.get_value("run", "elapsed", 0.0))
+    score = int(cfg.get_value("run", "score", 0))
+    energy = int(cfg.get_value("run", "energy", 0))
+    combo = int(cfg.get_value("run", "combo", 1))
+    best_combo = int(cfg.get_value("run", "best_combo", 1))
+    max_hp = int(cfg.get_value("run", "max_hp", 3 + research_hits))
+    hp = int(cfg.get_value("run", "hp", max_hp))
+    shield_charges = int(cfg.get_value("run", "shield_charges", 0))
+    player_x = float(cfg.get_value("run", "player_x", W * 0.5))
+    player_y = float(cfg.get_value("run", "player_y", PLAYER_Y))
+    target_x = float(cfg.get_value("run", "target_x", player_x))
+    invuln = float(cfg.get_value("run", "invuln", 0.0))
+    easy_spawn_clock = float(cfg.get_value("run", "easy_spawn_clock", 0.9))
+    hard_spawn_clock = float(cfg.get_value("run", "hard_spawn_clock", 0.7))
+    neutral_spawn_clock = float(cfg.get_value("run", "neutral_spawn_clock", 1.6))
+    pickup_clock = float(cfg.get_value("run", "pickup_clock", 1.3))
+    fire_clock = float(cfg.get_value("run", "fire_clock", 0.2))
+    repair_clock = float(cfg.get_value("run", "repair_clock", 18.0))
+    dash_cooldown = float(cfg.get_value("run", "dash_cooldown", 0.0))
+    dash_timer = float(cfg.get_value("run", "dash_timer", 0.0))
+    dash_score_timer = float(cfg.get_value("run", "dash_score_timer", 0.0))
+    current_weapon = String(cfg.get_value("run", "current_weapon", "none"))
+    hard_lane_right = bool(cfg.get_value("run", "hard_lane_right", true))
+    lane_event_active = bool(cfg.get_value("run", "lane_event_active", false))
+    lane_event_timer = float(cfg.get_value("run", "lane_event_timer", 0.0))
+    lane_events_started = int(cfg.get_value("run", "lane_events_started", 0))
+    next_lane_event_at = float(cfg.get_value("run", "next_lane_event_at", _first_split_time()))
+    station_height = float(cfg.get_value("run", "station_height", _station_height_for_level()))
+    station_top = float(cfg.get_value("run", "station_top", -station_height - 40.0))
+    station_locked_side = String(cfg.get_value("run", "station_locked_side", ""))
+    world_scroll = float(cfg.get_value("run", "world_scroll", 0.0))
+    last_level_bonus = int(cfg.get_value("run", "last_level_bonus", 0))
+    objects.clear()
+    for item in cfg.get_value("run", "objects", []):
+        objects.append(item)
+    shots.clear()
+    for item in cfg.get_value("run", "shots", []):
+        shots.append(item)
+    enemy_shots.clear()
+    for item in cfg.get_value("run", "enemy_shots", []):
+        enemy_shots.append(item)
+    last_near_ids = cfg.get_value("run", "last_near_ids", {})
+    rng.state = int(cfg.get_value("run", "rng_state", rng.state))
+    game_over = false
+    banked_this_run = false
+    research_open = false
+    particles.clear()
+    return true
+
+func _clear_run_snapshot() -> void:
+    var cfg := ConfigFile.new()
+    cfg.set_value("run", "exists", false)
+    cfg.save(RUN_SAVE_PATH)
 
 func _lane_score_multiplier() -> float:
     return 1.35 if _station_at_player() and _is_hard_position(player_x) else 1.0
@@ -781,16 +1116,16 @@ func _fire_weapon() -> void:
         "none":
             pass
         "single":
-            _spawn_shot(player_x, player_y - 22.0, 0.0, -690.0, SINGLE_DAMAGE)
+            _spawn_shot(player_x, player_y - 22.0, 0.0, -690.0, SINGLE_DAMAGE * _damage_multiplier())
         "dual":
-            _spawn_shot(player_x - 10.0, player_y - 20.0, 0.0, -650.0, DUAL_DAMAGE)
-            _spawn_shot(player_x + 10.0, player_y - 20.0, 0.0, -650.0, DUAL_DAMAGE)
+            _spawn_shot(player_x - 10.0, player_y - 20.0, 0.0, -650.0, DUAL_DAMAGE * _damage_multiplier())
+            _spawn_shot(player_x + 10.0, player_y - 20.0, 0.0, -650.0, DUAL_DAMAGE * _damage_multiplier())
         "cone":
-            _spawn_shot(player_x, player_y - 22.0, -145.0, -520.0, CONE_DAMAGE)
-            _spawn_shot(player_x, player_y - 24.0, 0.0, -560.0, CONE_DAMAGE)
-            _spawn_shot(player_x, player_y - 22.0, 145.0, -520.0, CONE_DAMAGE)
+            _spawn_shot(player_x, player_y - 22.0, -145.0, -520.0, CONE_DAMAGE * _damage_multiplier())
+            _spawn_shot(player_x, player_y - 24.0, 0.0, -560.0, CONE_DAMAGE * _damage_multiplier())
+            _spawn_shot(player_x, player_y - 22.0, 145.0, -520.0, CONE_DAMAGE * _damage_multiplier())
         "seeker":
-            _spawn_shot(player_x, player_y - 24.0, 0.0, -370.0, SEEKER_DAMAGE, true)
+            _spawn_shot(player_x, player_y - 24.0, 0.0, -370.0, SEEKER_DAMAGE * _damage_multiplier(), true)
         "laser":
             pass
 
@@ -872,7 +1207,7 @@ func _apply_laser_damage(delta: float) -> void:
     if target_index < 0:
         return
     var target: Dictionary = objects[target_index]
-    if _apply_damage_to_hazard(target, LASER_DPS * delta):
+    if _apply_damage_to_hazard(target, LASER_DPS * _damage_multiplier() * delta):
         objects.remove_at(target_index)
 
 func _spawn_weapon_pickup() -> void:
@@ -926,7 +1261,10 @@ func _move_enemy_shots(delta: float) -> void:
         var dx := absf(float(shot.x) - player_x)
         var dy := absf(float(shot.y) - player_y)
         if dx < PLAYER_RADIUS + ENEMY_SHOT_RADIUS and dy < PLAYER_RADIUS + ENEMY_SHOT_RADIUS:
-            if invuln <= 0.0:
+            if shield_charges > 0:
+                shield_charges -= 1
+                _burst(Vector2(shot.x, shot.y), 12, Color("77f7ff"))
+            elif invuln <= 0.0:
                 _take_hit()
                 _burst(Vector2(shot.x, shot.y), 6, Color("d48cff"))
             continue
@@ -935,7 +1273,7 @@ func _move_enemy_shots(delta: float) -> void:
     enemy_shots = next
 
 func _spawn_repair() -> void:
-    if hp >= 3:
+    if hp >= max_hp:
         return
     var lane_hard := lane_event_active and rng.randf() < 0.5
     var bounds := _lane_bounds(lane_hard) if lane_event_active else Vector2(LEFT, RIGHT)
@@ -1045,7 +1383,7 @@ func _move_objects(delta: float) -> void:
                 continue
         elif obj.type == "repair":
             if absf(dy) < obj.r + 18.0 and dx < obj.r + 20.0:
-                if hp < 3:
+                if hp < max_hp:
                     hp += 1
                     score += 0
                     _burst(Vector2(obj.x, obj.y), 12, Color("e8fff3"))
@@ -1077,10 +1415,11 @@ func _move_objects(delta: float) -> void:
 func _register_near_miss() -> void:
     combo = mini(combo + 1, 8)
     best_combo = maxi(best_combo, combo)
-    var near_score := 100 + combo * 10 if dash_score_timer > 0.0 else 10 + combo * 5
-    near_score = int(round(float(near_score) * _lane_score_multiplier()))
+    var dash_near := dash_score_timer > 0.0
+    var near_score := 100 + combo * 10 if dash_near else 10 + combo * 5
+    near_score = int(round(float(near_score) * _near_miss_research_multiplier(dash_near) * _lane_score_multiplier()))
     score += near_score
-    near_miss_text = ("DASH NEAR +%d" if dash_score_timer > 0.0 else "NEAR +%d") % near_score
+    near_miss_text = ("DASH NEAR +%d" if dash_near else "NEAR +%d") % near_score
     near_miss_timer = 0.62
     slowmo_timer = 0.11
     cyan_flash = 0.13
@@ -1129,8 +1468,14 @@ func _draw() -> void:
     draw_rect(Rect2(Vector2.ZERO, Vector2(W, H)), Color("080b14"))
     _draw_background()
 
+    if research_open:
+        _draw_research()
+        return
+
     if shop_open:
         _draw_shop()
+        if run_paused:
+            _draw_pause_overlay()
         return
 
     if not playing and not game_over:
@@ -1165,6 +1510,7 @@ func _draw() -> void:
     _draw_player(offset)
     _draw_hud()
     _draw_dash_button()
+    _draw_pause_button()
 
     if lane_choice_banner_timer > 0.0 and lane_event_active:
         var choice := "STATION SPLIT — CHOOSE A LANE"
@@ -1191,12 +1537,14 @@ func _draw() -> void:
         draw_rect(Rect2(Vector2.ZERO, Vector2(W, H)), Color(0.25, 0.95, 1.0, cyan_flash * 1.5))
     if game_over:
         _draw_results()
+    elif run_paused:
+        _draw_pause_overlay()
 
 func _draw_background() -> void:
     var t := Time.get_ticks_msec() / 1000.0
 
     for i in 18:
-        var y := fmod(float(i) * 57.0 + t * (55.0 + (i % 3) * 12.0), H + 80.0) - 40.0
+        var y := fmod(float(i) * 57.0 + world_scroll * (0.32 + float(i % 3) * 0.07), H + 80.0) - 40.0
         var x := 18.0 + float((i * 73) % 354)
         draw_circle(Vector2(x, y), 1.5 + float(i % 2), Color(0.2, 0.45, 0.7, 0.24))
 
@@ -1204,7 +1552,7 @@ func _draw_background() -> void:
     draw_line(Vector2(364, 0), Vector2(364, H), Color(0.15, 0.55, 0.72, 0.28), 2.0)
 
     for i in 13:
-        var y := float(i) * 72.0 - fmod(t * (170.0 if not finale_active else 250.0), 72.0)
+        var y := float(i) * 72.0 - fmod(world_scroll, 72.0)
         draw_line(Vector2(190, y), Vector2(200, y), Color(0.2, 0.8, 0.95, 0.18), 2.0)
 
     if finale_active:
@@ -1256,6 +1604,8 @@ func _draw_player(offset: Vector2) -> void:
     draw_circle(pos, 20.0, Color(0.2, 0.9, 1.0, 0.12))
     draw_colored_polygon(PackedVector2Array([pos + Vector2(0,-18), pos + Vector2(13,15), pos, pos + Vector2(-13,15)]), c)
     draw_line(pos + Vector2(0, 18), pos + Vector2(0, 38), Color(0.3, 0.85, 1.0, 0.35), 5.0)
+    if shield_charges > 0:
+        draw_arc(pos, 27.0, -PI, PI, 40, Color("77f7ff"), 3.0)
 
 func _draw_object(obj: Dictionary, offset: Vector2) -> void:
     var p := Vector2(obj.x, obj.y) + offset
@@ -1334,13 +1684,15 @@ func _draw_hud() -> void:
         _text("OPEN FIELD", Vector2(145, 122), 15, Color("82d8e8"))
 
     if dash_score_timer > 0.0:
-        _text("DASH x2 SCORE", Vector2(134, 146), 16, Color("ffd166"))
+        _text("DASH NEAR BONUS", Vector2(126, 146), 16, Color("ffd166"))
     else:
         _text(_weapon_label(current_weapon), Vector2(118, 146), 14, Color("ffd166"))
 
-    for i in 3:
+    for i in max_hp:
         var c := Color("ff4f78") if i < hp else Color(0.3,0.3,0.38,0.55)
-        draw_circle(Vector2(28 + i * 26, 146), 8.0, c)
+        draw_circle(Vector2(28 + i * 21, 146), 7.0, c)
+    if shield_charges > 0:
+        _text("SHIELD", Vector2(20, 199), 13, Color("77f7ff"))
 
     var progress := clampf(elapsed / _level_duration(), 0.0, 1.0)
     draw_rect(Rect2(Vector2(20, 169), Vector2(350, 6)), Color(0.2,0.25,0.3,0.7))
@@ -1355,18 +1707,62 @@ func _draw_dash_button() -> void:
     _text("DASH" if ready else "%.1f" % dash_cooldown, Vector2(298, 788), 19, Color("f0fbff") if ready else Color("8ea9b8"))
 
 func _draw_title() -> void:
-    _text("NEON", Vector2(102, 220), 52, Color("77f7ff"))
-    _text("DRIFTLINE", Vector2(54, 276), 47, Color("f0fbff"))
-    _text("START UNARMED. SURVIVE. SHOP.", Vector2(44, 351), 18, Color("ffd166"))
-    _text("LEVEL 1: 18 SEC / 1 SHORT SPLIT", Vector2(48, 416), 16, Color("6bffb0"))
-    _text("NEW ENEMIES UNLOCK BY LEVEL", Vector2(61, 444), 16, Color("bdeef4"))
-    _text("STATION WALLS = INSTANT DEATH", Vector2(55, 476), 16, Color("ff8fa6"))
-    _text("SPEND SCORE ON GUNS + REPAIRS", Vector2(50, 506), 16, Color("ffd166"))
-    _text("FIELD REPAIRS ARE RARE", Vector2(84, 533), 16, Color("6bffb0"))
-    _text("DASH FORWARD = x2 SCORE", Vector2(82, 560), 16, Color("bdeef4"))
-    draw_rect(Rect2(Vector2(54, 606), Vector2(282, 76)), Color("123544"), true)
-    draw_rect(Rect2(Vector2(54, 606), Vector2(282, 76)), Color("77f7ff"), false, 3.0)
-    _text("TAP TO LAUNCH", Vector2(92, 656), 24, Color("f0fbff"))
+    _text("NEON", Vector2(102, 180), 52, Color("77f7ff"))
+    _text("DRIFTLINE", Vector2(54, 236), 47, Color("f0fbff"))
+    _text("RESEARCH %07d" % research_credits, Vector2(82, 300), 21, Color("ffd166"))
+    _text("START UNARMED — SCORE BANKS ON END", Vector2(42, 348), 15, Color("bdeef4"))
+    _text("SPEED + DASH ALSO BOOST NEAR-MISS SCORE", Vector2(31, 382), 14, Color("6bffb0"))
+    _text("L1: LAZY CIRCLES / 1 SHORT SPLIT", Vector2(54, 420), 15, Color("8ea9b8"))
+    draw_rect(MAIN_START_RECT, Color("123544"), true)
+    draw_rect(MAIN_START_RECT, Color("77f7ff"), false, 3.0)
+    _text("START RUN", MAIN_START_RECT.position + Vector2(73, 42), 24, Color("f0fbff"))
+    draw_rect(MAIN_RESEARCH_RECT, Color("231835"), true)
+    draw_rect(MAIN_RESEARCH_RECT, Color("b56cff"), false, 3.0)
+    _text("RESEARCH", MAIN_RESEARCH_RECT.position + Vector2(72, 42), 23, Color("f1dcff"))
+
+func _draw_research_button(rect: Rect2, track: String, label: String, effect: String) -> void:
+    var lvl := _research_level(track)
+    var max_lvl := _research_max(track)
+    var at_max := lvl >= max_lvl
+    var cost := _research_cost(track)
+    var can_buy := not at_max and research_credits >= cost
+    draw_rect(rect, Color("14232f") if can_buy else Color("0d1118"), true)
+    draw_rect(rect, Color("77f7ff") if can_buy else Color("46515c"), false, 2.0)
+    _text("%s  L%d" % [label, lvl], rect.position + Vector2(10, 23), 16, Color("f0fbff"))
+    _text(effect, rect.position + Vector2(10, 45), 13, Color("8ea9b8"))
+    var cost_text := "MAX" if at_max else ("%d" % cost)
+    _text(cost_text, rect.position + Vector2(244, 35), 15, Color("6bffb0") if at_max else Color("ffd166"))
+
+func _draw_research() -> void:
+    draw_rect(Rect2(Vector2.ZERO, Vector2(W, H)), Color("080b14"))
+    _text("RESEARCH", Vector2(92, 74), 34, Color("b56cff"))
+    _text("BANK %07d" % research_credits, Vector2(108, 112), 18, Color("ffd166"))
+    _text("PERMANENT ACROSS RUNS", Vector2(87, 145), 15, Color("8ea9b8"))
+    _draw_research_button(RESEARCH_SHIP_RECT, "ship", "SHIP SPEED", "+4% scroll, +8% near score")
+    _draw_research_button(RESEARCH_DASH_RECT, "dash", "DASH", "+25px / +100 speed / +12% dash-near")
+    _draw_research_button(RESEARCH_DAMAGE_RECT, "damage", "DAMAGE", "+3% all weapon damage")
+    _draw_research_button(RESEARCH_HITS_RECT, "hits", "HITS", "+1 starting hit")
+    _draw_research_button(RESEARCH_SHIELD_RECT, "shield", "SHIELD", "1 projectile block each run")
+    draw_rect(RESEARCH_BACK_RECT, Color("123544"), true)
+    draw_rect(RESEARCH_BACK_RECT, Color("77f7ff"), false, 3.0)
+    _text("BACK", RESEARCH_BACK_RECT.position + Vector2(106, 42), 22, Color("f0fbff"))
+
+func _draw_pause_button() -> void:
+    draw_rect(PAUSE_RECT, Color(0.05, 0.08, 0.12, 0.82), true)
+    draw_rect(PAUSE_RECT, Color("77f7ff"), false, 2.0)
+    _text("II", PAUSE_RECT.position + Vector2(27, 26), 18, Color("f0fbff"))
+
+func _draw_pause_overlay() -> void:
+    draw_rect(Rect2(Vector2.ZERO, Vector2(W, H)), Color(0.02, 0.03, 0.06, 0.88), true)
+    _text("RUN PAUSED", Vector2(91, 260), 34, Color("77f7ff"))
+    _text("SCORE %06d" % score, Vector2(122, 306), 20, Color("ffd166"))
+    draw_rect(PAUSE_RESUME_RECT, Color("123544"), true)
+    draw_rect(PAUSE_RESUME_RECT, Color("77f7ff"), false, 3.0)
+    _text("RESUME", PAUSE_RESUME_RECT.position + Vector2(91, 46), 24, Color("f0fbff"))
+    draw_rect(PAUSE_QUIT_RECT, Color("341521"), true)
+    draw_rect(PAUSE_QUIT_RECT, Color("ff6687"), false, 3.0)
+    _text("QUIT + BANK SCORE", PAUSE_QUIT_RECT.position + Vector2(39, 46), 20, Color("ffd166"))
+    _text("Focus loss / phone sleep pauses automatically.", Vector2(42, 580), 14, Color("8ea9b8"))
 
 func _draw_shop_button(rect: Rect2, label: String, cost: int, enabled: bool, owned: bool = false) -> void:
     var fill := Color("17303b") if enabled else Color(0.09, 0.10, 0.13, 0.92)
@@ -1385,10 +1781,10 @@ func _draw_shop() -> void:
     _text("LEVEL %d CLEAR" % level, Vector2(92, 82), 28, Color("77f7ff"))
     _text("+%d CLEAR BONUS" % last_level_bonus, Vector2(112, 112), 16, Color("6bffb0"))
     _text("SCORE / CREDITS  %06d" % score, Vector2(75, 154), 20, Color("ffd166"))
-    _text("HP %d/3   %s" % [hp, _weapon_label(current_weapon)], Vector2(74, 187), 16, Color("bdeef4"))
+    _text("HP %d/%d   %s" % [hp, max_hp, _weapon_label(current_weapon)], Vector2(62, 187), 16, Color("bdeef4"))
 
-    var can_repair := hp < 3 and score >= SHOP_REPAIR_COST
-    _draw_shop_button(SHOP_REPAIR_RECT, "REPAIR +1 HIT", SHOP_REPAIR_COST, can_repair, hp >= 3)
+    var can_repair := hp < max_hp and score >= SHOP_REPAIR_COST
+    _draw_shop_button(SHOP_REPAIR_RECT, "REPAIR +1 HIT", SHOP_REPAIR_COST, can_repair, hp >= max_hp)
 
     _draw_shop_button(SHOP_SINGLE_RECT, "SINGLE D1", SHOP_SINGLE_COST, score >= SHOP_SINGLE_COST and current_weapon != "single", current_weapon == "single")
     _draw_shop_button(SHOP_DUAL_RECT, "DUAL D1x2", SHOP_DUAL_COST, score >= SHOP_DUAL_COST and current_weapon != "dual", current_weapon == "dual")
@@ -1408,10 +1804,10 @@ func _draw_results() -> void:
     _text("EXTRACTION!" if won else "RUN ENDED", Vector2(70 if won else 91, 275), 34, Color("77f7ff") if won else Color("ff6687"))
     _text(result_reason, Vector2(94, 314), 17, Color("8ea9b8"))
     _text("LEVEL  %02d" % level, Vector2(118, 350), 22, Color("bdeef4"))
-    _text("SCORE  %07d" % score, Vector2(82, 392), 24, Color("f0fbff"))
-    _text("ENERGY %02d" % energy, Vector2(112, 435), 20, Color("6bffb0"))
+    _text("BANKED %07d" % last_banked_score, Vector2(74, 392), 24, Color("ffd166"))
+    _text("RESEARCH %07d" % research_credits, Vector2(76, 435), 20, Color("b56cff"))
     _text("BEST COMBO x%d" % best_combo, Vector2(97, 474), 20, Color("ffd166"))
-    _text("TAP TO RUN AGAIN", Vector2(80, 560), 22, Color("bdeef4"))
+    _text("TAP FOR MAIN MENU", Vector2(74, 560), 22, Color("bdeef4"))
 
 func _text(s: String, pos: Vector2, size: int, color: Color) -> void:
     draw_string(ThemeDB.fallback_font, pos, s, HORIZONTAL_ALIGNMENT_LEFT, -1.0, size, color)

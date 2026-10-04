@@ -1,79 +1,86 @@
 # Neon Driftline
 
-A phone-first Godot arcade roguelite built around one-thumb movement, auto-weapons, score-risk play, escalating enemy archetypes, and station splits.
+A phone-first Godot arcade roguelite with persistent research between runs.
 
-## Progression
+## Outer loop
 
-Runs begin with **3 HP and no weapon**.
+The game now has a real wrapper:
 
-- **Level 1:** 18 seconds, sparse slow circles only, one short station split. The hard corridor contains a few small circle clusters.
-- **Level 2:** moving squares enter the enemy pool.
-- **Level 4:** yellow diamonds enter. Diamonds are the toughest standard enemy and actively steer toward the player's horizontal position.
-- **Level 6:** purple shooting rhomboids enter. They periodically aim projectiles at the player's current position.
-- Level duration increases by about 3 seconds per stage to a 45-second cap.
-- Station splits gradually become longer and more numerous.
-- Enemy density and speed continue rising slowly with level.
+1. Start from the **main menu**.
+2. Run levels, shops, enemies, dash scoring, and weapon progression as before.
+3. When the run ends, **all score still held at death is banked into permanent Research**.
+4. Research currency accumulates across runs and persists in `user://`.
+5. Spend it from the main menu on permanent ship upgrades, then launch another run.
 
-## Tight score economy
+Quitting from the pause screen also banks the score currently held in that run.
 
-Score is intentionally compact so individual actions remain legible.
+## Permanent research
 
-- **Circle kill:** 1 point.
-- **Moving square kill:** 2 points.
-- **Shooting rhomboid kill:** 4 points.
-- **Smart yellow diamond kill:** 5 points.
-- **Ordinary near miss:** roughly 20–50 points as combo rises.
-- **Dash near miss:** roughly 120–180 points as combo rises.
-- **Energy pickup:** 10 points normally; hard-lane energy starts at 20 before the lane bonus.
-- Nonlethal weapon damage gives no score.
-- Repairs and weapon pickups themselves give no score.
-- Passive survival time no longer prints free score.
+Research is deliberately slow and permanent.
 
-The hard station lane still applies its score bonus where relevant.
+- **Ship Speed** — +4% level/world scroll speed per level. Faster travel means levels complete in less real time and hazards/station geometry scroll faster. It also adds **+8% near-miss score per level**.
+- **Dash** — +25 px maximum dash distance and +100 px/s dash speed per level, up to five levels. It also adds **+12% dash-near-miss score per level**.
+- **Damage** — +3% damage to every player weapon per research level.
+- **Hits** — +1 starting hit per level, up to five additional hits. Expensive, but cheaper than the shield unlock.
+- **Shield** — 15,000 research. Gives one shield charge at the start of every run. It absorbs exactly **one enemy projectile**; it does not protect against body collisions or lethal station walls.
 
-## Shop
+Ship Speed and Dash therefore increase both risk and score potential: higher scroll speed raises ordinary and dash near-miss payouts, while Dash research adds an additional premium specifically to dash near-misses.
 
-Repairs stay cheap enough to function as recovery, but **weapons are intentionally expensive long-term run goals** rather than routine swaps.
+## Pause and mobile/browser safety
 
-- **Repair +1 hit:** 75
-- **Single Auto D1:** 300
-- **Dual Auto D1x2:** 1,000
-- **Thin Laser 3 DPS:** 2,500
-- **Cone Cannon D3x3:** 5,000
-- **Heat Seeker D7:** 10,000
+An active run automatically pauses when its game window loses focus and when the OS reports the application being paused. The paused screen offers:
 
-Clearing a level also grants a small level-scaled bonus.
+- **Resume**
+- **Quit + Bank Score**
 
-## Weapons
+The active run is snapshotted to `user://neon_run.cfg` when paused. If the app/browser process is suspended or killed after that snapshot, the next launch restores the run into the pause screen rather than advancing it in the background.
 
-- **Single Auto:** D1 accurate pulse.
-- **Dual Auto:** D1 × 2.
-- **Cone Cannon:** D3 × 3 spread.
-- **Heat Seeker:** D7 homing projectile.
-- **Thin Laser:** narrow 3 DPS beam.
+Godot's web window-focus notification is handled alongside the mobile application-pause notification so browser tab/app switching and phone sleep use the same run-pause path.
 
-Weapons cannot damage station structure.
+## Run economy
 
-## Enemy archetypes
+In-run score remains separate from accumulated Research currency.
 
-- **Lazy circle — 3 HP:** slow and nontracking. The only Level 1 enemy.
-- **Moving square — 6 HP:** lateral movement makes lanes less predictable.
-- **Smart yellow diamond — 12 HP:** strongest enemy; continuously corrects its lateral motion toward the player.
-- **Shooting rhomboid — 8 HP:** slower body movement but fires aimed purple shots.
+- Circle kill: 1
+- Moving square kill: 2
+- Shooting rhomboid kill: 4
+- Smart yellow diamond kill: 5
+- Ordinary near miss: tens
+- Dash near miss: hundreds
+- Energy: 10 normally / 20 base in hard lane
 
-Ordinary body collisions cost one hit. Enemy projectiles also cost one hit. Station walls remain indestructible and instantly lethal.
+Weapon prices remain intentionally expensive:
+
+- Single Auto D1: **300**
+- Dual Auto D1x2: **1,000**
+- Thin Laser: **2,500**
+- Cone Cannon: **5,000**
+- Heat Seeker: **10,000**
+- Repair +1 hit: **75**
+
+Spending run score in shops reduces what remains available to bank if that run later ends.
+
+## Enemy progression
+
+- **Level 1:** sparse lazy circles, with small circle bunches in its single short hard lane.
+- **Level 2:** moving squares begin.
+- **Level 4:** strong tracking yellow diamonds begin.
+- **Level 6:** shooting purple rhomboids begin.
+
+Levels lengthen gradually, station splits become longer and more numerous, and enemy density/speed increase slowly.
 
 ## Dash
 
-Dash surges the ship almost to the top of the screen, then leaves it hanging forward while the world scrolls and the ship slowly settles toward its normal flight line. Dash near-misses are intentionally the highest-value repeatable scoring action.
+The base dash still surges almost to the top of the screen and then coasts while the world scrolls back under the ship. Permanent Dash research extends and accelerates that burst without changing the touch-control scheme.
 
 ## Technical target
 
 - Godot 4.7.2 stable
-- Web export using Compatibility renderer
+- Compatibility renderer
 - 390×844 portrait reference viewport
-- Touch-first controls with mouse fallback
-- Procedural vector visuals and runtime-generated SFX
+- Touch-first, mouse fallback
+- Browser/mobile focus-loss pause handling
+- Persistent research and paused-run snapshot through Godot `ConfigFile`
 
 ## Automated smoke test
 
