@@ -53,7 +53,7 @@ Weapons cannot damage station structure.
 
 Periodic station segments create two physical corridors. One side is randomly harder and carries denser/faster hazard pressure plus a **+35% score bonus** while you are inside it. The center bulkhead makes changing sides lethal once committed.
 
-Forward dash surges the ship up-screen, then returns gradually to its normal flight line. Dash activates a short **x2 score window** for passive scoring, kills, pickups, and near misses.
+Forward dash now surges the ship almost to the top of the screen. After the burst, the ship largely holds that advanced position while the level continues scrolling, then only slowly settles back toward its normal flight line. There is no fast visual reverse-thrust snap. Dash still activates a short **x2 score window** for passive scoring, kills, pickups, and near misses.
 
 ## Technical target
 

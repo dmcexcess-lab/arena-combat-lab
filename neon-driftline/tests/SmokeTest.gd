@@ -274,17 +274,24 @@ func _initialize() -> void:
         _fail("level timer did not transition into shop")
         return
 
-    # Dash remains long and forward.
+    # Dash surges almost to the top, then coasts back very slowly while the world scrolls.
     scene._start_next_level()
     scene.player_x = 195.0
     scene.target_x = 195.0
     scene.player_y = scene.PLAYER_Y
     scene.dash_cooldown = 0.0
     scene._dash()
-    var dash_start_y: float = scene.player_y
-    scene._process(0.20)
-    if scene.player_y >= dash_start_y - 145.0:
-        _fail("forward dash distance regressed")
+    scene._process(0.40)
+    if scene.player_y > 155.0:
+        _fail("dash did not reach near the top of the screen")
+        return
+    var coast_y: float = scene.player_y
+    scene._process(0.80)
+    if scene.player_y >= scene.PLAYER_Y - 180.0:
+        _fail("dash coast returned toward baseline too quickly")
+        return
+    if scene.player_y <= coast_y:
+        _fail("dash coast did not begin a gradual return")
         return
 
     # Station structure remains instant-lethal through invulnerability.
