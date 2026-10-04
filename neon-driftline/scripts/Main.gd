@@ -549,6 +549,8 @@ func _nearest_hazard_position(from_pos: Vector2) -> Vector2:
         if obj.type != "hazard":
             continue
         var p := Vector2(float(obj.x), float(obj.y))
+        if p.y >= from_pos.y:
+            continue
         var d := from_pos.distance_squared_to(p)
         if d < best_d:
             best_d = d
@@ -585,7 +587,8 @@ func _apply_damage_to_hazard(obj: Dictionary, damage: float) -> bool:
         score += int((90.0 + float(obj.max_hp) * 28.0) * combo * _dash_score_multiplier())
         _burst(Vector2(obj.x, obj.y), 10, Color("ffd166"))
         return true
-    _burst(Vector2(obj.x, obj.y), 3, Color("fff4c2"))
+    if damage >= 1.0:
+        _burst(Vector2(obj.x, obj.y), 3, Color("fff4c2"))
     return false
 
 func _consume_shot_hit(obj: Dictionary) -> bool:
@@ -602,14 +605,24 @@ func _consume_shot_hit(obj: Dictionary) -> bool:
 func _apply_laser_damage(delta: float) -> void:
     if current_weapon != "laser" or not playing:
         return
-    var survivors: Array[Dictionary] = []
-    for obj in objects:
-        var destroyed := false
-        if obj.type == "hazard" and float(obj.y) < player_y and absf(float(obj.x) - player_x) <= float(obj.r) + 4.0:
-            destroyed = _apply_damage_to_hazard(obj, LASER_DPS * delta)
-        if not destroyed:
-            survivors.append(obj)
-    objects = survivors
+    var target_index := -1
+    var target_y := -INF
+    for i in objects.size():
+        var obj: Dictionary = objects[i]
+        if obj.type != "hazard":
+            continue
+        if float(obj.y) >= player_y:
+            continue
+        if absf(float(obj.x) - player_x) > float(obj.r) + 4.0:
+            continue
+        if float(obj.y) > target_y:
+            target_y = float(obj.y)
+            target_index = i
+    if target_index < 0:
+        return
+    var target: Dictionary = objects[target_index]
+    if _apply_damage_to_hazard(target, LASER_DPS * delta):
+        objects.remove_at(target_index)
 
 func _spawn_weapon_pickup() -> void:
     var choices := ["single", "dual", "cone", "seeker", "laser"]
