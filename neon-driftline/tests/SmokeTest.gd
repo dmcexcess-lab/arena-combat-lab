@@ -20,8 +20,9 @@ func _initialize() -> void:
 
     for method_name in [
         "_start_game", "_dash", "_fire_weapon", "_weapon_interval", "_weapon_damage",
-        "_weapon_label", "_obstacle_max_hp", "_move_shots", "_consume_shot_hit",
-        "_apply_laser_damage", "_spawn_repair", "_register_near_miss",
+        "_weapon_label", "_obstacle_max_hp", "_kill_score", "_enemy_kind_cap_for_level",
+        "_spawn_circle_bunch", "_move_shots", "_consume_shot_hit",
+        "_apply_laser_damage", "_fire_enemy_shot", "_move_enemy_shots", "_spawn_repair", "_register_near_miss",
         "_begin_lane_event", "_end_lane_event", "_station_at_player",
         "_station_barrier_rects", "_check_station_collision", "_lane_score_multiplier",
         "_dash_score_multiplier", "_level_duration", "_split_count_for_level",
@@ -108,23 +109,63 @@ func _initialize() -> void:
     # Restore clean level-1 state for combat tests.
     scene._start_game()
 
-    # Level 1 must stay circles + squares only, even if fed an artificially high difficulty.
+    # Enemy ladder: L1 circles only, then squares, diamonds, and shooting rhomboids unlock later.
+    if scene._enemy_kind_cap_for_level() != 0:
+        _fail("level 1 should unlock circles only")
+        return
+    scene.level = 2
+    if scene._enemy_kind_cap_for_level() != 1:
+        _fail("moving squares should unlock at level 2")
+        return
+    scene.level = 4
+    if scene._enemy_kind_cap_for_level() != 2:
+        _fail("smart diamonds should unlock at level 4")
+        return
+    scene.level = 6
+    if scene._enemy_kind_cap_for_level() != 3:
+        _fail("shooting rhomboids should unlock at level 6")
+        return
+
+    scene._start_game()
     scene.objects.clear()
-    scene.level = 1
     for i in 40:
         scene._spawn_hazard(1.65, false, false)
     for obj in scene.objects:
-        if int(obj.kind) == 2:
-            _fail("level 1 spawned a yellow diamond")
+        if int(obj.kind) != 0:
+            _fail("level 1 spawned anything other than a lazy circle")
+            return
+        if absf(float(obj.drift)) > 0.01:
+            _fail("level 1 circle should not move laterally")
             return
     scene.objects.clear()
 
-    # Obstacle durability: circle < square < yellow diamond.
-    if not (scene._obstacle_max_hp(0) < scene._obstacle_max_hp(1) and scene._obstacle_max_hp(1) < scene._obstacle_max_hp(2)):
-        _fail("obstacle health ordering is incorrect")
+    # Level 1 hard lane creates a small bunched circle cluster.
+    scene._spawn_circle_bunch(true, 3)
+    if scene.objects.size() != 3:
+        _fail("level 1 hard-lane bunch did not spawn three circles")
+        return
+    var bunch_min_x := 9999.0
+    var bunch_max_x := -9999.0
+    for obj in scene.objects:
+        if int(obj.kind) != 0 or not bool(obj.hard):
+            _fail("hard-lane bunch contained a non-circle or non-hard enemy")
+            return
+        bunch_min_x = minf(bunch_min_x, float(obj.x))
+        bunch_max_x = maxf(bunch_max_x, float(obj.x))
+    if bunch_max_x - bunch_min_x > 55.0:
+        _fail("level 1 hard-lane circles were not bunched")
+        return
+    scene.objects.clear()
+
+    # Obstacle durability: circle < square < rhomboid < yellow diamond.
+    if not (scene._obstacle_max_hp(0) < scene._obstacle_max_hp(1) and scene._obstacle_max_hp(1) < scene._obstacle_max_hp(3) and scene._obstacle_max_hp(3) < scene._obstacle_max_hp(2)):
+        _fail("enemy health ordering is incorrect")
         return
     if scene._obstacle_max_hp(2) != 12.0:
-        _fail("yellow diamond should be the tankiest obstacle")
+        _fail("yellow diamond should remain the tankiest enemy")
+        return
+    if scene._kill_score(0) != 1 or scene._kill_score(1) != 2 or scene._kill_score(2) != 5 or scene._kill_score(3) != 4:
+        _fail("kill scores should stay in single digits")
         return
 
     # First purchasable gun is intentionally weak: one D1 projectile.
@@ -189,10 +230,14 @@ func _initialize() -> void:
         "lane_min": scene.LEFT,
         "lane_max": scene.RIGHT
     })
+    scene.score = 0
     scene._spawn_shot(float(scene.objects[0].x), float(scene.objects[0].y), 0.0, 0.0, scene.SINGLE_DAMAGE)
     scene._move_objects(0.0)
     if scene.objects.is_empty() or absf(float(scene.objects[0].hp) - 2.0) > 0.01:
         _fail("D1 single shot did not leave correct persistent circle HP")
+        return
+    if scene.score != 0:
+        _fail("nonlethal damage should not award score")
         return
     scene._spawn_shot(float(scene.objects[0].x), float(scene.objects[0].y), 0.0, 0.0, scene.SINGLE_DAMAGE)
     scene._move_objects(0.0)
@@ -204,6 +249,64 @@ func _initialize() -> void:
     if not scene.objects.is_empty():
         _fail("third D1 shot did not destroy 3 HP circle")
         return
+    if scene.score != 1:
+        _fail("circle kill should award exactly one point")
+        return
+
+    # Score scale: ordinary near misses are tens; dash near misses are hundreds.
+    scene.lane_event_active = false
+    scene.score = 0
+    scene.combo = 1
+    scene.dash_score_timer = 0.0
+    scene._register_near_miss()
+    var ordinary_near_score: int = scene.score
+    if ordinary_near_score < 10 or ordinary_near_score >= 100:
+        _fail("ordinary near miss should score in the tens")
+        return
+    scene.score = 0
+    scene.combo = 1
+    scene.dash_score_timer = 0.5
+    scene._register_near_miss()
+    var dash_near_score: int = scene.score
+    if dash_near_score < 100 or dash_near_score >= 1000:
+        _fail("dash near miss should score in the hundreds")
+        return
+
+    # Smart yellow diamonds steer toward the player.
+    scene.objects.clear()
+    scene.level = 4
+    scene.player_x = 300.0
+    scene.player_y = scene.PLAYER_Y
+    scene.objects.append({
+        "id": 990001, "type": "hazard", "kind": 2,
+        "hp": 12.0, "max_hp": 12.0, "hard": false,
+        "x": 100.0, "y": 120.0, "r": 15.0,
+        "speed": 0.0, "drift": 0.0, "shoot_clock": 999.0,
+        "lane_min": scene.LEFT, "lane_max": scene.RIGHT
+    })
+    scene._move_objects(0.1)
+    if float(scene.objects[0].drift) <= 0.0:
+        _fail("smart diamond did not steer toward player")
+        return
+
+    # Rhomboids aim and fire at the player on later levels.
+    scene.objects.clear()
+    scene.enemy_shots.clear()
+    scene.level = 6
+    scene.player_x = 195.0
+    scene.objects.append({
+        "id": 990002, "type": "hazard", "kind": 3,
+        "hp": 8.0, "max_hp": 8.0, "hard": false,
+        "x": 195.0, "y": 120.0, "r": 16.0,
+        "speed": 0.0, "drift": 0.0, "shoot_clock": 0.0,
+        "lane_min": scene.LEFT, "lane_max": scene.RIGHT
+    })
+    scene._move_objects(0.1)
+    if scene.enemy_shots.size() != 1 or float(scene.enemy_shots[0].vy) <= 0.0:
+        _fail("shooting rhomboid did not fire toward the player")
+        return
+    scene.objects.clear()
+    scene.enemy_shots.clear()
 
     # Thin weak laser.
     scene.objects.clear()
@@ -252,6 +355,11 @@ func _initialize() -> void:
         _fail("field repair did not restore exactly one hit")
         return
 
+    # Economy should be on the compact score scale.
+    if scene.SHOP_SINGLE_COST != 45 or scene.SHOP_REPAIR_COST != 75 or scene.SHOP_SEEKER_COST != 160:
+        _fail("shop prices were not tightened with score scale")
+        return
+
     # Level clear opens a frozen shop and awards a clear bonus.
     scene.score = 3000
     scene.hp = 1
@@ -276,7 +384,7 @@ func _initialize() -> void:
     if scene.score != score_before_shop + scene.last_level_bonus or scene.last_level_bonus <= 0:
         _fail("level clear bonus was not awarded")
         return
-    if not scene.objects.is_empty() or not scene.shots.is_empty():
+    if not scene.objects.is_empty() or not scene.shots.is_empty() or not scene.enemy_shots.is_empty():
         _fail("shop did not freeze and clear active gameplay objects")
         return
 
