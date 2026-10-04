@@ -391,7 +391,7 @@ func _start_game() -> void:
     shake = 0.0
     easy_spawn_clock = 0.90
     hard_spawn_clock = 0.72
-    pickup_clock = 1.3
+    pickup_clock = _energy_spawn_interval()
     neutral_spawn_clock = 1.65
     fire_clock = 0.18
     repair_clock = 18.0
@@ -553,7 +553,7 @@ func _start_next_level() -> void:
     easy_spawn_clock = 0.72
     hard_spawn_clock = 0.54
     neutral_spawn_clock = 0.72
-    pickup_clock = 1.2
+    pickup_clock = _energy_spawn_interval()
     fire_clock = 0.15
     repair_clock = rng.randf_range(18.0, 24.0)
     dash_cooldown = 0.0
