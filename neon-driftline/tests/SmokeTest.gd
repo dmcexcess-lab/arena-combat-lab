@@ -480,7 +480,7 @@ func _initialize() -> void:
     scene.score = 0
     scene.energy = 0
     scene.dash_score_timer = 0.0
-    var orb := scene._make_energy_orb(scene.player_x, scene.player_y, false)
+    var orb: Dictionary = scene._make_energy_orb(scene.player_x, scene.player_y, false)
     orb.speed = 0.0
     orb.drift = 0.0
     scene.objects.append(orb)
@@ -492,7 +492,7 @@ func _initialize() -> void:
     scene.objects.clear()
     scene.score = 0
     scene.dash_score_timer = 0.5
-    var dash_orb := scene._make_energy_orb(scene.player_x, scene.player_y, false)
+    var dash_orb: Dictionary = scene._make_energy_orb(scene.player_x, scene.player_y, false)
     dash_orb.speed = 0.0
     dash_orb.drift = 0.0
     scene.objects.append(dash_orb)
