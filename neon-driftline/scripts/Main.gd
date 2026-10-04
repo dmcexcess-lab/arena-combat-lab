@@ -5,7 +5,9 @@ const H := 844.0
 const PLAYER_Y := 680.0
 const LEFT := 32.0
 const RIGHT := 358.0
-const LEVEL_TIME := 30.0
+const LEVEL_TIME_BASE := 18.0
+const LEVEL_TIME_STEP := 3.0
+const LEVEL_TIME_MAX := 45.0
 const SHOP_REPAIR_COST := 500
 const SHOP_SINGLE_COST := 350
 const SHOP_DUAL_COST := 650
@@ -31,12 +33,12 @@ const DASH_FORWARD_SPEED := 1500.0
 const DASH_FORWARD_DISTANCE := 540.0
 const DASH_RETURN_RATE := 0.55
 const DASH_SCORE_DURATION := 0.9
-const LANE_EVENT_FIRST := 10.0
-const LANE_EVENT_INTERVAL := 12.0
+const LANE_EVENT_FIRST := 7.0
 const PLAYER_RADIUS := 14.0
-const STATION_HEIGHT := 560.0
+const STATION_HEIGHT_BASE := 300.0
+const STATION_HEIGHT_STEP := 45.0
+const STATION_HEIGHT_MAX := 660.0
 const STATION_SPEED := 210.0
-const STATION_START_TOP := -550.0
 const STATION_CENTER_WALL := 24.0
 const STATION_EDGE_WALL := 42.0
 const SHOT_RADIUS := 4.0
@@ -45,7 +47,7 @@ const DUAL_INTERVAL := 0.32
 const CONE_INTERVAL := 0.72
 const SEEKER_INTERVAL := 1.05
 const LASER_INTERVAL := 0.06
-const SINGLE_DAMAGE := 2.0
+const SINGLE_DAMAGE := 1.0
 const DUAL_DAMAGE := 1.0
 const CONE_DAMAGE := 3.0
 const SEEKER_DAMAGE := 7.0
@@ -94,14 +96,16 @@ var hard_lane_right := true
 var lane_event_active := false
 var lane_event_timer := 0.0
 var next_lane_event_at := LANE_EVENT_FIRST
+var lane_events_started := 0
 var lane_choice_banner_timer := 0.0
 var neutral_spawn_clock := 0.0
 var fire_clock := 0.0
 var repair_clock := 0.0
-var current_weapon := "single"
+var current_weapon := "none"
 var weapon_banner_timer := 0.0
 var weapon_banner_text := ""
-var station_top := STATION_START_TOP
+var station_height := STATION_HEIGHT_BASE
+var station_top := -STATION_HEIGHT_BASE - 40.0
 var station_locked_side := ""
 var objects: Array[Dictionary] = []
 var shots: Array[Dictionary] = []
@@ -188,7 +192,7 @@ func _process(delta: float) -> void:
 
     if current_weapon == "laser":
         _apply_laser_damage(game_delta)
-    elif fire_clock <= 0.0:
+    elif current_weapon != "none" and fire_clock <= 0.0:
         _fire_weapon()
         fire_clock = _weapon_interval()
 
@@ -216,7 +220,7 @@ func _process(delta: float) -> void:
         if neutral_spawn_clock <= 0.0:
             _spawn_hazard(difficulty, false, false)
             neutral_spawn_clock = _spawn_interval(1.10, 0.43, difficulty) * rng.randf_range(0.86, 1.18)
-        if elapsed >= next_lane_event_at and elapsed < LEVEL_TIME - 8.0:
+        if lane_events_started < _split_count_for_level() and elapsed >= next_lane_event_at and elapsed < _level_duration() - 3.0:
             _begin_lane_event()
 
     if pickup_clock <= 0.0:
@@ -228,7 +232,7 @@ func _process(delta: float) -> void:
     _move_particles(delta)
     score += int(game_delta * (22.0 + minf(difficulty, 1.5) * 22.0) * combo * _lane_score_multiplier() * _dash_score_multiplier())
 
-    if elapsed >= LEVEL_TIME and playing:
+    if elapsed >= _level_duration() and playing:
         _open_shop()
         queue_redraw()
         return
@@ -306,7 +310,7 @@ func _start_game() -> void:
     neutral_spawn_clock = 1.65
     fire_clock = 0.18
     repair_clock = 18.0
-    current_weapon = "single"
+    current_weapon = "none"
     weapon_banner_timer = 0.0
     weapon_banner_text = ""
     dash_cooldown = 0.0
@@ -322,18 +326,41 @@ func _start_game() -> void:
     hard_lane_right = true
     lane_event_active = false
     lane_event_timer = 0.0
-    next_lane_event_at = LANE_EVENT_FIRST
+    lane_events_started = 0
+    next_lane_event_at = _first_split_time()
     lane_choice_banner_timer = 0.0
-    station_top = STATION_START_TOP
+    station_height = _station_height_for_level()
+    station_top = -station_height - 40.0
     station_locked_side = ""
     objects.clear()
     shots.clear()
     particles.clear()
     last_near_ids.clear()
 
+func _level_duration() -> float:
+    return minf(LEVEL_TIME_MAX, LEVEL_TIME_BASE + float(level - 1) * LEVEL_TIME_STEP)
+
+func _split_count_for_level() -> int:
+    return mini(4, 1 + int((level - 1) / 2))
+
+func _station_height_for_level() -> float:
+    return minf(STATION_HEIGHT_MAX, STATION_HEIGHT_BASE + float(level - 1) * STATION_HEIGHT_STEP)
+
+func _first_split_time() -> float:
+    var count := _split_count_for_level()
+    return maxf(6.0, _level_duration() / float(count + 1))
+
+func _schedule_next_split() -> void:
+    var count := _split_count_for_level()
+    if lane_events_started >= count:
+        next_lane_event_at = _level_duration() + 1.0
+        return
+    var target := _level_duration() * float(lane_events_started + 1) / float(count + 1)
+    next_lane_event_at = maxf(target, elapsed + 1.25)
+
 func _level_difficulty() -> float:
-    var level_pressure := float(level - 1) * 0.18
-    var stage_pressure := clampf(elapsed / LEVEL_TIME, 0.0, 1.0) * 0.24
+    var level_pressure := float(level - 1) * 0.12
+    var stage_pressure := clampf(elapsed / _level_duration(), 0.0, 1.0) * 0.18
     return minf(1.65, level_pressure + stage_pressure)
 
 func _spawn_interval(easy_value: float, hard_value: float, difficulty: float) -> float:
@@ -372,7 +399,7 @@ func _open_shop() -> void:
     lane_event_active = false
     lane_event_timer = 0.0
     station_locked_side = ""
-    station_top = STATION_START_TOP
+    station_top = -station_height - 40.0
     queue_redraw()
 
 func _buy_repair() -> bool:
@@ -423,9 +450,11 @@ func _start_next_level() -> void:
     extraction_lane = ""
     lane_event_active = false
     lane_event_timer = 0.0
-    next_lane_event_at = LANE_EVENT_FIRST
+    lane_events_started = 0
+    next_lane_event_at = _first_split_time()
     lane_choice_banner_timer = 0.0
-    station_top = STATION_START_TOP
+    station_height = _station_height_for_level()
+    station_top = -station_height - 40.0
     station_locked_side = ""
     objects.clear()
     shots.clear()
@@ -467,14 +496,16 @@ func _dash_score_multiplier() -> float:
 
 func _begin_lane_event() -> void:
     lane_event_active = true
-    station_top = STATION_START_TOP
+    station_height = _station_height_for_level()
+    station_top = -station_height - 40.0
     station_locked_side = ""
-    lane_event_timer = (H + 40.0 - STATION_START_TOP) / STATION_SPEED
-    next_lane_event_at += LANE_EVENT_INTERVAL
+    lane_event_timer = (H + 80.0 + station_height) / STATION_SPEED
+    lane_events_started += 1
+    _schedule_next_split()
     hard_lane_right = rng.randf() < 0.5
     lane_choice_banner_timer = 2.4
-    easy_spawn_clock = 0.12
-    hard_spawn_clock = 0.08
+    easy_spawn_clock = 0.18 if level == 1 else 0.12
+    hard_spawn_clock = 0.14 if level == 1 else 0.08
     shake = maxf(shake, 1.8)
 
 func _end_lane_event() -> void:
@@ -482,18 +513,18 @@ func _end_lane_event() -> void:
     lane_event_timer = 0.0
     lane_choice_banner_timer = 0.0
     station_locked_side = ""
-    station_top = STATION_START_TOP
+    station_top = -station_height - 40.0
 
 func _station_at_player() -> bool:
     if not lane_event_active:
         return false
-    return player_y + PLAYER_RADIUS >= station_top and player_y - PLAYER_RADIUS <= station_top + STATION_HEIGHT
+    return player_y + PLAYER_RADIUS >= station_top and player_y - PLAYER_RADIUS <= station_top + station_height
 
 func _station_barrier_rects() -> Array[Rect2]:
     return [
-        Rect2(0.0, station_top, STATION_EDGE_WALL, STATION_HEIGHT),
-        Rect2(LANE_SPLIT - STATION_CENTER_WALL * 0.5, station_top, STATION_CENTER_WALL, STATION_HEIGHT),
-        Rect2(W - STATION_EDGE_WALL, station_top, STATION_EDGE_WALL, STATION_HEIGHT)
+        Rect2(0.0, station_top, STATION_EDGE_WALL, station_height),
+        Rect2(LANE_SPLIT - STATION_CENTER_WALL * 0.5, station_top, STATION_CENTER_WALL, station_height),
+        Rect2(W - STATION_EDGE_WALL, station_top, STATION_EDGE_WALL, station_height)
     ]
 
 func _check_station_collision() -> void:
@@ -538,7 +569,7 @@ func _lane_center(hard_lane: bool) -> float:
 
 func _spawn_hazard(difficulty: float, hard_lane: bool, lane_mode: bool = true) -> void:
     var kind_threshold := 0.28 if hard_lane and lane_mode else 0.5
-    var kind_max := 2 if difficulty > kind_threshold else 1
+    var kind_max := 1 if level == 1 else (2 if difficulty > kind_threshold else 1)
     var kind := rng.randi_range(0, kind_max)
     var radius := rng.randf_range(17.0, 26.0)
     var base_speed := rng.randf_range(205.0, 275.0) + difficulty * 125.0
@@ -574,6 +605,8 @@ func _spawn_hazard(difficulty: float, hard_lane: bool, lane_mode: bool = true) -
 
 func _weapon_interval() -> float:
     match current_weapon:
+        "none":
+            return 0.5
         "single":
             return SINGLE_INTERVAL
         "dual":
@@ -588,6 +621,8 @@ func _weapon_interval() -> float:
 
 func _weapon_damage(weapon: String) -> float:
     match weapon:
+        "none":
+            return 0.0
         "single":
             return SINGLE_DAMAGE
         "dual":
@@ -602,8 +637,10 @@ func _weapon_damage(weapon: String) -> float:
 
 func _weapon_label(weapon: String) -> String:
     match weapon:
+        "none":
+            return "NO WEAPON"
         "single":
-            return "SINGLE D2"
+            return "SINGLE D1"
         "dual":
             return "DUAL D1x2"
         "cone":
@@ -612,10 +649,12 @@ func _weapon_label(weapon: String) -> String:
             return "SEEKER D7"
         "laser":
             return "LASER 3 DPS"
-    return "SINGLE D2"
+    return "SINGLE D1"
 
 func _weapon_icon(weapon: String) -> String:
     match weapon:
+        "none":
+            return "-"
         "single":
             return "1"
         "dual":
@@ -653,6 +692,8 @@ func _fire_weapon() -> void:
     if not playing:
         return
     match current_weapon:
+        "none":
+            pass
         "single":
             _spawn_shot(player_x, player_y - 22.0, 0.0, -690.0, SINGLE_DAMAGE)
         "dual":
@@ -1039,10 +1080,10 @@ func _draw_station(offset: Vector2) -> void:
     var left_tint := easy_tint if hard_lane_right else hard_tint
     var right_tint := hard_tint if hard_lane_right else easy_tint
     var y0 := station_top
-    var y1 := station_top + STATION_HEIGHT
+    var y1 := station_top + station_height
 
-    draw_rect(Rect2(Vector2(STATION_EDGE_WALL, y0), Vector2(LANE_SPLIT - STATION_CENTER_WALL * 0.5 - STATION_EDGE_WALL, STATION_HEIGHT)), left_tint, true)
-    draw_rect(Rect2(Vector2(LANE_SPLIT + STATION_CENTER_WALL * 0.5, y0), Vector2(W - STATION_EDGE_WALL - (LANE_SPLIT + STATION_CENTER_WALL * 0.5), STATION_HEIGHT)), right_tint, true)
+    draw_rect(Rect2(Vector2(STATION_EDGE_WALL, y0), Vector2(LANE_SPLIT - STATION_CENTER_WALL * 0.5 - STATION_EDGE_WALL, station_height)), left_tint, true)
+    draw_rect(Rect2(Vector2(LANE_SPLIT + STATION_CENTER_WALL * 0.5, y0), Vector2(W - STATION_EDGE_WALL - (LANE_SPLIT + STATION_CENTER_WALL * 0.5), station_height)), right_tint, true)
 
     var metal := Color("596777")
     var metal_dark := Color("1e2833")
@@ -1127,7 +1168,7 @@ func _draw_object(obj: Dictionary, offset: Vector2) -> void:
         draw_rect(Rect2(Vector2(p.x - bw * 0.5, p.y + obj.r + 7.0), Vector2(bw * ratio, 3.0)), Color("ffd166"), true)
 
 func _draw_hud() -> void:
-    _text("%02d" % int(maxf(0.0, LEVEL_TIME - elapsed)), Vector2(20, 50), 30, Color("f0fbff"))
+    _text("%02d" % int(maxf(0.0, _level_duration() - elapsed)), Vector2(20, 50), 30, Color("f0fbff"))
     _text("L%d  SCORE %06d" % [level, score], Vector2(120, 46), 19, Color("bdeef4"))
     _text("ENERGY %02d" % energy, Vector2(20, 88), 18, Color("6bffb0"))
     _text("x%d" % combo, Vector2(310, 88), 24, Color("ffd166"))
@@ -1148,7 +1189,7 @@ func _draw_hud() -> void:
         var c := Color("ff4f78") if i < hp else Color(0.3,0.3,0.38,0.55)
         draw_circle(Vector2(28 + i * 26, 146), 8.0, c)
 
-    var progress := clampf(elapsed / LEVEL_TIME, 0.0, 1.0)
+    var progress := clampf(elapsed / _level_duration(), 0.0, 1.0)
     draw_rect(Rect2(Vector2(20, 169), Vector2(350, 6)), Color(0.2,0.25,0.3,0.7))
     draw_rect(Rect2(Vector2(20, 169), Vector2(350 * progress, 6)), Color("77f7ff"))
 
@@ -1163,8 +1204,8 @@ func _draw_dash_button() -> void:
 func _draw_title() -> void:
     _text("NEON", Vector2(102, 220), 52, Color("77f7ff"))
     _text("DRIFTLINE", Vector2(54, 276), 47, Color("f0fbff"))
-    _text("SURVIVE 30 SEC. SHOP. REPEAT.", Vector2(43, 351), 19, Color("ffd166"))
-    _text("LEVEL 1 STARTS LIGHT", Vector2(91, 416), 18, Color("6bffb0"))
+    _text("START UNARMED. SURVIVE. SHOP.", Vector2(44, 351), 18, Color("ffd166"))
+    _text("LEVEL 1: 18 SEC / 1 SHORT SPLIT", Vector2(48, 416), 16, Color("6bffb0"))
     _text("EVERY LEVEL GETS HARDER", Vector2(70, 444), 18, Color("bdeef4"))
     _text("STATION WALLS = INSTANT DEATH", Vector2(55, 476), 16, Color("ff8fa6"))
     _text("SPEND SCORE ON GUNS + REPAIRS", Vector2(50, 506), 16, Color("ffd166"))
@@ -1196,7 +1237,7 @@ func _draw_shop() -> void:
     var can_repair := hp < 3 and score >= SHOP_REPAIR_COST
     _draw_shop_button(SHOP_REPAIR_RECT, "REPAIR +1 HIT", SHOP_REPAIR_COST, can_repair, hp >= 3)
 
-    _draw_shop_button(SHOP_SINGLE_RECT, "SINGLE D2", SHOP_SINGLE_COST, score >= SHOP_SINGLE_COST and current_weapon != "single", current_weapon == "single")
+    _draw_shop_button(SHOP_SINGLE_RECT, "SINGLE D1", SHOP_SINGLE_COST, score >= SHOP_SINGLE_COST and current_weapon != "single", current_weapon == "single")
     _draw_shop_button(SHOP_DUAL_RECT, "DUAL D1x2", SHOP_DUAL_COST, score >= SHOP_DUAL_COST and current_weapon != "dual", current_weapon == "dual")
     _draw_shop_button(SHOP_CONE_RECT, "CONE D3x3", SHOP_CONE_COST, score >= SHOP_CONE_COST and current_weapon != "cone", current_weapon == "cone")
     _draw_shop_button(SHOP_SEEKER_RECT, "SEEKER D7", SHOP_SEEKER_COST, score >= SHOP_SEEKER_COST and current_weapon != "seeker", current_weapon == "seeker")
