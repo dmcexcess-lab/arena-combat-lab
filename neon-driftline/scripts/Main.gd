@@ -983,6 +983,21 @@ func _end_lane_event() -> void:
     lane_choice_banner_timer = 0.0
     station_locked_side = ""
     station_top = -station_height - 40.0
+    hard_lane_right = false
+    neutral_spawn_clock = maxf(neutral_spawn_clock, 0.45)
+    _neutralize_lane_objects()
+
+func _neutralize_lane_objects() -> void:
+    for obj in objects:
+        if not obj.has("lane_min") or not obj.has("lane_max"):
+            continue
+        obj.lane_min = LEFT
+        obj.lane_max = RIGHT
+        obj.hard = false
+        if obj.type == "hazard" and obj.has("lane_speed_mult"):
+            var lane_mult := maxf(0.01, float(obj.lane_speed_mult))
+            obj.speed = float(obj.speed) / lane_mult
+            obj.lane_speed_mult = 1.0
 
 func _station_at_player() -> bool:
     if not lane_event_active:
@@ -1203,11 +1218,11 @@ func _obstacle_max_hp(kind: int) -> float:
         0:
             return 3.0
         1:
-            return 6.0
+            return 4.0
         2:
             return 12.0
         3:
-            return 8.0
+            return 4.0
     return 3.0
 
 func _kill_score(kind: int) -> int:
