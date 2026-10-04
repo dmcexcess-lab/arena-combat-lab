@@ -17,6 +17,10 @@ const DASH_RECT := Rect2(278.0, 748.0, 92.0, 64.0)
 const DASH_COOLDOWN := 2.4
 const DASH_DURATION := 0.14
 const DASH_SPEED := 760.0
+const DASH_SCORE_DURATION := 0.9
+const LANE_EVENT_FIRST := 7.0
+const LANE_EVENT_INTERVAL := 10.0
+const LANE_EVENT_DURATION := 4.0
 
 var rng := RandomNumberGenerator.new()
 var playing := false
@@ -42,6 +46,7 @@ var dash_timer := 0.0
 var dash_dir := 1.0
 var last_move_dir := 1.0
 var dash_touch_index := -1
+var dash_score_timer := 0.0
 var near_miss_timer := 0.0
 var near_miss_text := ""
 var slowmo_timer := 0.0
@@ -51,7 +56,11 @@ var extraction_spawned := false
 var extraction_lane := ""
 var result_reason := ""
 var hard_lane_right := true
+var lane_event_active := false
+var lane_event_timer := 0.0
+var next_lane_event_at := LANE_EVENT_FIRST
 var lane_choice_banner_timer := 0.0
+var neutral_spawn_clock := 0.0
 var objects: Array[Dictionary] = []
 var particles: Array[Dictionary] = []
 var last_near_ids: Dictionary = {}
@@ -108,6 +117,7 @@ func _process(delta: float) -> void:
     cyan_flash = maxf(0.0, cyan_flash - delta)
     shake = maxf(0.0, shake - delta * 28.0)
     dash_cooldown = maxf(0.0, dash_cooldown - delta)
+    dash_score_timer = maxf(0.0, dash_score_timer - delta)
     slowmo_timer = maxf(0.0, slowmo_timer - delta)
 
     var game_delta := delta * (0.52 if slowmo_timer > 0.0 else 1.0)
@@ -125,15 +135,27 @@ func _process(delta: float) -> void:
 
     easy_spawn_clock -= game_delta
     hard_spawn_clock -= game_delta
+    neutral_spawn_clock -= game_delta
     pickup_clock -= game_delta
     var difficulty := clampf(elapsed / RUN_TIME, 0.0, 1.0)
 
-    if easy_spawn_clock <= 0.0:
-        _spawn_hazard(difficulty, false)
-        easy_spawn_clock = lerpf(0.92, 0.54, difficulty) * rng.randf_range(0.86, 1.17)
-    if hard_spawn_clock <= 0.0:
-        _spawn_hazard(difficulty, true)
-        hard_spawn_clock = lerpf(0.61, 0.31, difficulty) * rng.randf_range(0.82, 1.12)
+    if lane_event_active:
+        lane_event_timer = maxf(0.0, lane_event_timer - game_delta)
+        if easy_spawn_clock <= 0.0:
+            _spawn_hazard(difficulty, false, true)
+            easy_spawn_clock = lerpf(0.92, 0.54, difficulty) * rng.randf_range(0.86, 1.17)
+        if hard_spawn_clock <= 0.0:
+            _spawn_hazard(difficulty, true, true)
+            hard_spawn_clock = lerpf(0.61, 0.31, difficulty) * rng.randf_range(0.82, 1.12)
+        if lane_event_timer <= 0.0:
+            _end_lane_event()
+    else:
+        if neutral_spawn_clock <= 0.0:
+            _spawn_hazard(difficulty, false, false)
+            neutral_spawn_clock = lerpf(0.70, 0.38, difficulty) * rng.randf_range(0.84, 1.16)
+        if elapsed >= next_lane_event_at and elapsed < FINALE_TIME - 5.0:
+            _begin_lane_event()
+
     if pickup_clock <= 0.0:
         _spawn_pickup()
         pickup_clock = rng.randf_range(1.45, 2.25)
@@ -145,7 +167,7 @@ func _process(delta: float) -> void:
 
     _move_objects(game_delta)
     _move_particles(delta)
-    score += int(game_delta * (24.0 + difficulty * 24.0) * combo * _lane_score_multiplier())
+    score += int(game_delta * (24.0 + difficulty * 24.0) * combo * _lane_score_multiplier() * _dash_score_multiplier())
 
     if elapsed >= RUN_TIME + 2.5 and playing:
         result_reason = "EXTRACTION MISSED"
@@ -197,6 +219,7 @@ func _dash() -> void:
         dash_dir = 1.0
     dash_timer = DASH_DURATION
     dash_cooldown = DASH_COOLDOWN
+    dash_score_timer = DASH_SCORE_DURATION
     invuln = maxf(invuln, 0.24)
     shake = maxf(shake, 3.5)
     _burst(Vector2(player_x, PLAYER_Y), 10, Color("77f7ff"))
@@ -221,8 +244,10 @@ func _start_game() -> void:
     easy_spawn_clock = 0.55
     hard_spawn_clock = 0.38
     pickup_clock = 0.9
+    neutral_spawn_clock = 0.45
     dash_cooldown = 0.0
     dash_timer = 0.0
+    dash_score_timer = 0.0
     dash_dir = 1.0
     last_move_dir = 1.0
     near_miss_timer = 0.0
@@ -232,8 +257,11 @@ func _start_game() -> void:
     extraction_spawned = false
     extraction_lane = ""
     result_reason = ""
-    hard_lane_right = rng.randf() < 0.5
-    lane_choice_banner_timer = 2.2
+    hard_lane_right = true
+    lane_event_active = false
+    lane_event_timer = 0.0
+    next_lane_event_at = LANE_EVENT_FIRST
+    lane_choice_banner_timer = 0.0
     objects.clear()
     particles.clear()
     last_near_ids.clear()
@@ -250,7 +278,25 @@ func _finish(success: bool) -> void:
     queue_redraw()
 
 func _lane_score_multiplier() -> float:
-    return 1.35 if _is_hard_position(player_x) else 1.0
+    return 1.35 if lane_event_active and _is_hard_position(player_x) else 1.0
+
+func _dash_score_multiplier() -> float:
+    return 2.0 if dash_score_timer > 0.0 else 1.0
+
+func _begin_lane_event() -> void:
+    lane_event_active = true
+    lane_event_timer = LANE_EVENT_DURATION
+    hard_lane_right = rng.randf() < 0.5
+    lane_choice_banner_timer = 1.7
+    easy_spawn_clock = 0.12
+    hard_spawn_clock = 0.08
+    shake = maxf(shake, 1.8)
+
+func _end_lane_event() -> void:
+    lane_event_active = false
+    lane_event_timer = 0.0
+    next_lane_event_at = elapsed + LANE_EVENT_INTERVAL
+    lane_choice_banner_timer = 0.0
 
 func _is_hard_position(x: float) -> bool:
     if x >= RIGHT_LANE_MIN:
@@ -269,13 +315,16 @@ func _lane_center(hard_lane: bool) -> float:
     var bounds := _lane_bounds(hard_lane)
     return (bounds.x + bounds.y) * 0.5
 
-func _spawn_hazard(difficulty: float, hard_lane: bool) -> void:
-    var kind_max := 2 if difficulty > (0.28 if hard_lane else 0.5) else 1
+func _spawn_hazard(difficulty: float, hard_lane: bool, lane_mode: bool = true) -> void:
+    var kind_threshold := 0.28 if hard_lane and lane_mode else 0.5
+    var kind_max := 2 if difficulty > kind_threshold else 1
     var kind := rng.randi_range(0, kind_max)
     var radius := rng.randf_range(17.0, 26.0)
     var base_speed := rng.randf_range(245.0, 320.0) + difficulty * 115.0
-    var speed := base_speed * (1.16 if hard_lane else 0.9)
-    var bounds := _lane_bounds(hard_lane)
+    var speed := base_speed
+    if lane_mode:
+        speed *= 1.16 if hard_lane else 0.9
+    var bounds := _lane_bounds(hard_lane) if lane_mode else Vector2(LEFT, RIGHT)
     var lane_min := bounds.x
     var lane_max := bounds.y
     var x := rng.randf_range(lane_min + radius, lane_max - radius)
@@ -289,7 +338,7 @@ func _spawn_hazard(difficulty: float, hard_lane: bool) -> void:
         "id": rng.randi(),
         "type": "hazard",
         "kind": kind,
-        "hard": hard_lane,
+        "hard": hard_lane and lane_mode,
         "x": x,
         "y": -40.0,
         "r": radius,
@@ -300,8 +349,8 @@ func _spawn_hazard(difficulty: float, hard_lane: bool) -> void:
     })
 
 func _spawn_pickup() -> void:
-    var hard_lane := rng.randf() < 0.66
-    var bounds := _lane_bounds(hard_lane)
+    var hard_lane := lane_event_active and rng.randf() < 0.66
+    var bounds := _lane_bounds(hard_lane) if lane_event_active else Vector2(LEFT, RIGHT)
     var lane_min := bounds.x
     var lane_max := bounds.y
     objects.append({
@@ -373,7 +422,8 @@ func _move_objects(delta: float) -> void:
         elif obj.type == "energy":
             if absf(dy) < obj.r + 18.0 and dx < obj.r + 20.0:
                 energy += 1
-                score += (450 if obj.hard else 300) * combo
+                var pickup_base := 450 if obj.hard and lane_event_active else 300
+                score += int(pickup_base * combo * _dash_score_multiplier())
                 combo = mini(combo + 1, 8)
                 best_combo = maxi(best_combo, combo)
                 _burst(Vector2(obj.x, obj.y), 9, Color("6bffb0"))
@@ -396,7 +446,7 @@ func _move_objects(delta: float) -> void:
 func _register_near_miss() -> void:
     combo = mini(combo + 1, 8)
     best_combo = maxi(best_combo, combo)
-    score += 180 * combo
+    score += int(180 * combo * _dash_score_multiplier())
     near_miss_text = "NEAR MISS  x%d" % combo
     near_miss_timer = 0.62
     slowmo_timer = 0.11
@@ -462,10 +512,10 @@ func _draw() -> void:
     _draw_hud()
     _draw_dash_button()
 
-    if lane_choice_banner_timer > 0.0:
-        var choice := "LEFT EASY  |  RIGHT HARD +35%" if hard_lane_right else "LEFT HARD +35%  |  RIGHT EASY"
-        draw_rect(Rect2(Vector2(42, 192), Vector2(306, 42)), Color(0.02, 0.04, 0.07, 0.9), true)
-        _text(choice, Vector2(57, 220), 16, Color("ffd166"))
+    if lane_choice_banner_timer > 0.0 and lane_event_active:
+        var choice := "LANES!  LEFT EASY | RIGHT HARD" if hard_lane_right else "LANES!  LEFT HARD | RIGHT EASY"
+        draw_rect(Rect2(Vector2(38, 192), Vector2(314, 42)), Color(0.02, 0.04, 0.07, 0.92), true)
+        _text(choice, Vector2(48, 220), 16, Color("ffd166"))
 
     if near_miss_timer > 0.0:
         var pulse := 0.78 + sin(Time.get_ticks_msec() * 0.035) * 0.12
@@ -487,13 +537,14 @@ func _draw() -> void:
 func _draw_background() -> void:
     var t := Time.get_ticks_msec() / 1000.0
 
-    var easy_col := Color(0.08, 0.18, 0.22, 0.25)
-    var hard_col := Color(0.24, 0.07, 0.12, 0.28 if not finale_active else 0.42)
-    var left_col := easy_col if hard_lane_right else hard_col
-    var right_col := hard_col if hard_lane_right else easy_col
-    draw_rect(Rect2(Vector2(LEFT_LANE_MIN, 0), Vector2(LEFT_LANE_MAX - LEFT_LANE_MIN, H)), left_col)
-    draw_rect(Rect2(Vector2(RIGHT_LANE_MIN, 0), Vector2(RIGHT_LANE_MAX - RIGHT_LANE_MIN, H)), right_col)
-    draw_line(Vector2(LANE_SPLIT, 0), Vector2(LANE_SPLIT, H), Color(0.45, 0.75, 0.85, 0.2), 2.0)
+    if lane_event_active:
+        var easy_col := Color(0.08, 0.18, 0.22, 0.28)
+        var hard_col := Color(0.24, 0.07, 0.12, 0.34 if not finale_active else 0.45)
+        var left_col := easy_col if hard_lane_right else hard_col
+        var right_col := hard_col if hard_lane_right else easy_col
+        draw_rect(Rect2(Vector2(LEFT_LANE_MIN, 0), Vector2(LEFT_LANE_MAX - LEFT_LANE_MIN, H)), left_col)
+        draw_rect(Rect2(Vector2(RIGHT_LANE_MIN, 0), Vector2(RIGHT_LANE_MAX - RIGHT_LANE_MIN, H)), right_col)
+        draw_line(Vector2(LANE_SPLIT, 0), Vector2(LANE_SPLIT, H), Color(0.45, 0.75, 0.85, 0.35), 3.0)
 
     for i in 18:
         var y := fmod(float(i) * 57.0 + t * (55.0 + (i % 3) * 12.0), H + 80.0) - 40.0
@@ -557,9 +608,15 @@ func _draw_hud() -> void:
     _text("ENERGY %02d" % energy, Vector2(20, 88), 18, Color("6bffb0"))
     _text("x%d" % combo, Vector2(310, 88), 24, Color("ffd166"))
 
-    var left_hard := not hard_lane_right
-    _text("HARD +35%" if left_hard else "EASY", Vector2(55 if left_hard else 72, 122), 15, Color("ff8fa6") if left_hard else Color("82d8e8"))
-    _text("HARD +35%" if hard_lane_right else "EASY", Vector2(238 if hard_lane_right else 267, 122), 15, Color("ff8fa6") if hard_lane_right else Color("82d8e8"))
+    if lane_event_active:
+        var left_hard := not hard_lane_right
+        _text("HARD +35%" if left_hard else "EASY", Vector2(55 if left_hard else 72, 122), 15, Color("ff8fa6") if left_hard else Color("82d8e8"))
+        _text("HARD +35%" if hard_lane_right else "EASY", Vector2(238 if hard_lane_right else 267, 122), 15, Color("ff8fa6") if hard_lane_right else Color("82d8e8"))
+    else:
+        _text("OPEN FIELD", Vector2(145, 122), 15, Color("82d8e8"))
+
+    if dash_score_timer > 0.0:
+        _text("DASH x2 SCORE", Vector2(134, 146), 16, Color("ffd166"))
 
     for i in 3:
         var c := Color("ff4f78") if i < hp else Color(0.3,0.3,0.38,0.55)
@@ -581,11 +638,12 @@ func _draw_title() -> void:
     _text("NEON", Vector2(102, 220), 52, Color("77f7ff"))
     _text("DRIFTLINE", Vector2(54, 276), 47, Color("f0fbff"))
     _text("SURVIVE. THEN EXTRACT.", Vector2(57, 351), 21, Color("ffd166"))
-    _text("EASY / HARD SIDES RANDOMIZE", Vector2(58, 416), 18, Color("ffd166"))
-    _text("READ THE LANES. CHOOSE FAST.", Vector2(61, 444), 18, Color("bdeef4"))
-    _text("Drag to steer. Tap DASH to burst.", Vector2(54, 493), 16, Color("bdeef4"))
-    _text("Near misses slow time + build combo.", Vector2(48, 520), 16, Color("8ea9b8"))
-    _text("At 50 sec: reach the extraction gate.", Vector2(43, 547), 16, Color("8ea9b8"))
+    _text("LANES APPEAR PERIODICALLY", Vector2(62, 416), 18, Color("ffd166"))
+    _text("READ THEM. CHOOSE FAST.", Vector2(82, 444), 18, Color("bdeef4"))
+    _text("DASH = x2 SCORE BURST", Vector2(87, 476), 17, Color("ffd166"))
+    _text("Drag to steer. Tap DASH to burst.", Vector2(54, 506), 16, Color("bdeef4"))
+    _text("Near misses slow time + build combo.", Vector2(48, 533), 16, Color("8ea9b8"))
+    _text("At 50 sec: reach the extraction gate.", Vector2(43, 560), 16, Color("8ea9b8"))
     draw_rect(Rect2(Vector2(54, 606), Vector2(282, 76)), Color("123544"), true)
     draw_rect(Rect2(Vector2(54, 606), Vector2(282, 76)), Color("77f7ff"), false, 3.0)
     _text("TAP TO LAUNCH", Vector2(92, 656), 24, Color("f0fbff"))
