@@ -1307,11 +1307,10 @@ func _draw_object(obj: Dictionary, offset: Vector2) -> void:
         draw_circle(p, 4.0, Color("fff2b8"))
     else:
         draw_colored_polygon(PackedVector2Array([
-            p + Vector2(0, -obj.r),
-            p + Vector2(obj.r * 1.25, -obj.r * 0.25),
-            p + Vector2(obj.r * 0.55, obj.r),
-            p + Vector2(-obj.r * 0.55, obj.r),
-            p + Vector2(-obj.r * 1.25, -obj.r * 0.25)
+            p + Vector2(-obj.r * 0.95, -obj.r * 0.70),
+            p + Vector2(obj.r * 1.20, -obj.r * 0.70),
+            p + Vector2(obj.r * 0.95, obj.r * 0.70),
+            p + Vector2(-obj.r * 1.20, obj.r * 0.70)
         ]), col)
         draw_circle(p, 4.0, Color("f1dcff"))
 
