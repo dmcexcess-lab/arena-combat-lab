@@ -2,85 +2,131 @@
 
 A phone-first Godot arcade roguelite with persistent research between runs.
 
-## Outer loop
+## True starting baseline
 
-The game now has a real wrapper:
+A fresh run now begins deliberately weak:
 
-1. Start from the **main menu**.
-2. Run levels, shops, enemies, dash scoring, and weapon progression as before.
-3. When the run ends, **all score still held at death is banked into permanent Research**.
-4. Research currency accumulates across runs and persists in `user://`.
-5. Spend it from the main menu on permanent ship upgrades, then launch another run.
+- **2 hits**
+- **No weapon**
+- **No shield**
+- **Slow ship:** base level/world scroll multiplier is 0.72×
+- **Short dash:** 160 px base distance at 700 px/s
 
-Quitting from the pause screen also banks the score currently held in that run.
+The first level remains the easiest: sparse lazy circles, one short station split, and no advanced enemies.
 
 ## Permanent research
 
-Research is deliberately slow and permanent.
+All score still held when a run ends is banked into persistent Research currency. Quitting through the pause screen also banks the current score.
 
-- **Ship Speed** — +4% level/world scroll speed per level. Faster travel means levels complete in less real time and hazards/station geometry scroll faster. It also adds **+8% near-miss score per level**.
-- **Dash** — +25 px maximum dash distance and +100 px/s dash speed per level, up to five levels. It also adds **+12% dash-near-miss score per level**.
-- **Damage** — +3% damage to every player weapon per research level.
-- **Hits** — +1 starting hit per level, up to five additional hits. Expensive, but cheaper than the shield unlock.
-- **Shield** — 15,000 research. Gives one shield charge at the start of every run. It absorbs exactly **one enemy projectile**; it does not protect against body collisions or lethal station walls.
+### Ship Speed
 
-Ship Speed and Dash therefore increase both risk and score potential: higher scroll speed raises ordinary and dash near-miss payouts, while Dash research adds an additional premium specifically to dash near-misses.
+Each level adds:
 
-## Pause and mobile/browser safety
+- +4% world/level scroll speed
+- +8% near-miss score
 
-An active run automatically pauses when its game window loses focus and when the OS reports the application being paused. The paused screen offers:
+Because level progress uses world scroll speed, a faster researched ship reaches the end of levels sooner in real time and faces faster incoming geometry.
 
-- **Resume**
-- **Quit + Bank Score**
+### Dash
 
-The active run is snapshotted to `user://neon_run.cfg` when paused. If the app/browser process is suspended or killed after that snapshot, the next launch restores the run into the pause screen rather than advancing it in the background.
+Each level adds:
 
-Godot's web window-focus notification is handled alongside the mobile application-pause notification so browser tab/app switching and phone sleep use the same run-pause path.
+- +35 px dash distance
+- only +40 px/s dash speed
+- +12% dash-near-miss score
 
-## Run economy
+Dash has 10 research levels. The baseline dash is intentionally short and slow; research extends its reach much more aggressively than its raw speed.
 
-In-run score remains separate from accumulated Research currency.
+### Damage
+
+Each level permanently adds **+3% player weapon damage**.
+
+### Hits
+
+Fresh ships begin with **2 hits**.
+
+Hit research adds +1 starting hit per level, up to +5 extra hits. It deliberately starts expensive, but its price curve rises relatively gently:
+
+- first extra hit: **5,000 Research**
+- later hit costs grow by about **35% per level**
+
+### Shields
+
+Fresh ships begin with **0 shield charges**.
+
+Each shield research level adds **one projectile block at the start of every run**, up to 5 charges. A charge absorbs one enemy projectile; it does not protect against enemy-body collisions or station walls.
+
+Shield pricing starts cheap but escalates sharply:
+
+- Shield 1: **500**
+- Shield 2: **2,500**
+- Shield 3: **12,500**
+- Shield 4: **62,500**
+- Shield 5: **312,500**
+
+## Starting-weapon research
+
+The in-run weapon shop remains unchanged, but Research can permanently unlock weapons as **starting loadouts**.
+
+Each starting-weapon unlock costs exactly **10× its normal run-shop price**:
+
+- Single Auto D1: **3,000 Research**
+- Dual Auto D1x2: **10,000**
+- Thin Laser: **25,000**
+- Cone Cannon D3x3: **50,000**
+- Heat Seeker D7: **100,000**
+
+Unlocked starting weapons can be selected from the Research menu before a run. **NONE** is always selectable, so an unlocked weapon never forces a loadout.
+
+Normal in-run weapon prices remain:
+
+- Single Auto: 300
+- Dual Auto: 1,000
+- Thin Laser: 2,500
+- Cone Cannon: 5,000
+- Heat Seeker: 10,000
+- Repair +1 hit: 75
+
+## Score economy
 
 - Circle kill: 1
 - Moving square kill: 2
 - Shooting rhomboid kill: 4
 - Smart yellow diamond kill: 5
-- Ordinary near miss: tens
-- Dash near miss: hundreds
-- Energy: 10 normally / 20 base in hard lane
+- Ordinary near misses: tens
+- Dash near misses: hundreds
+- Energy: 10 normally / 20 base in the hard lane
+- Nonlethal damage gives no score
 
-Weapon prices remain intentionally expensive:
-
-- Single Auto D1: **300**
-- Dual Auto D1x2: **1,000**
-- Thin Laser: **2,500**
-- Cone Cannon: **5,000**
-- Heat Seeker: **10,000**
-- Repair +1 hit: **75**
-
-Spending run score in shops reduces what remains available to bank if that run later ends.
+Ship Speed research raises all near-miss rewards. Dash research adds an additional multiplier specifically to dash near-misses.
 
 ## Enemy progression
 
-- **Level 1:** sparse lazy circles, with small circle bunches in its single short hard lane.
+- **Level 1:** sparse lazy circles only; short hard lane gets small circle clusters.
 - **Level 2:** moving squares begin.
 - **Level 4:** strong tracking yellow diamonds begin.
 - **Level 6:** shooting purple rhomboids begin.
 
-Levels lengthen gradually, station splits become longer and more numerous, and enemy density/speed increase slowly.
+Levels gradually lengthen, station splits become longer and more numerous, and enemy pressure rises slowly.
 
-## Dash
+## Pause and persistence
 
-The base dash still surges almost to the top of the screen and then coasts while the world scrolls back under the ship. Permanent Dash research extends and accelerates that burst without changing the touch-control scheme.
+Active runs pause automatically on browser-window focus loss, application focus loss, or mobile application suspension.
+
+The pause screen offers:
+
+- **Resume**
+- **Quit + Bank Score**
+
+Paused runs are snapshotted to `user://neon_run.cfg`. Persistent Research is stored separately in `user://neon_meta.cfg`.
 
 ## Technical target
 
 - Godot 4.7.2 stable
 - Compatibility renderer
 - 390×844 portrait reference viewport
-- Touch-first, mouse fallback
-- Browser/mobile focus-loss pause handling
-- Persistent research and paused-run snapshot through Godot `ConfigFile`
+- Touch-first controls with mouse fallback
+- Persistent meta progression and paused-run recovery
 
 ## Automated smoke test
 
