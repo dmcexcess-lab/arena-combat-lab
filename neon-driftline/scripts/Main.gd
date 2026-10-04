@@ -1752,35 +1752,30 @@ func _draw() -> void:
 func _draw_background() -> void:
     var t := Time.get_ticks_msec() / 1000.0
 
-    for i in 18:
-        var y := fmod(float(i) * 57.0 + world_scroll * (0.32 + float(i % 3) * 0.07), H + 80.0) - 40.0
-        var x := 18.0 + float((i * 73) % 354)
-        draw_circle(Vector2(x, y), 1.5 + float(i % 2), Color(0.2, 0.45, 0.7, 0.24))
+    draw_circle(Vector2(74, 170), 118.0, Color(0.10, 0.16, 0.34, 0.055))
+    draw_circle(Vector2(320, 520), 150.0, Color(0.24, 0.08, 0.30, 0.035))
 
-    draw_line(Vector2(26, 0), Vector2(26, H), Color(0.15, 0.55, 0.72, 0.28), 2.0)
-    draw_line(Vector2(364, 0), Vector2(364, H), Color(0.15, 0.55, 0.72, 0.28), 2.0)
+    for i in 44:
+        var layer := float(i % 4)
+        var speed_factor := 0.18 + layer * 0.08
+        var y := fmod(float(i) * 43.0 + world_scroll * speed_factor, H + 90.0) - 45.0
+        var x := 10.0 + float((i * 83 + 37) % 370)
+        var twinkle := 0.58 + sin(t * (0.7 + layer * 0.18) + float(i) * 0.9) * 0.18
+        var radius := 0.8 + layer * 0.38
+        var star_col := Color(0.68 + layer * 0.06, 0.78 + layer * 0.04, 1.0, 0.22 + twinkle * 0.22)
+        draw_circle(Vector2(x, y), radius, star_col)
 
-    for i in 13:
-        var y := float(i) * 72.0 - fmod(world_scroll, 72.0)
-        draw_line(Vector2(190, y), Vector2(200, y), Color(0.2, 0.8, 0.95, 0.18), 2.0)
-
-    if finale_active:
-        var pulse := 0.12 + (sin(t * 8.0) + 1.0) * 0.04
-        draw_rect(Rect2(Vector2.ZERO, Vector2(W, H)), Color(1.0, 0.08, 0.15, pulse), true)
+    for i in 7:
+        var y2 := fmod(float(i) * 139.0 + world_scroll * 0.42, H + 120.0) - 60.0
+        var x2 := 28.0 + float((i * 127 + 91) % 330)
+        draw_circle(Vector2(x2, y2), 2.1, Color(0.88, 0.93, 1.0, 0.48))
 
 func _draw_station(offset: Vector2) -> void:
     if not lane_event_active:
         return
 
-    var easy_tint := Color(0.12, 0.34, 0.38, 0.13)
-    var hard_tint := Color(0.48, 0.08, 0.14, 0.16)
-    var left_tint := easy_tint if hard_lane_right else hard_tint
-    var right_tint := hard_tint if hard_lane_right else easy_tint
     var y0 := station_top
     var y1 := station_top + station_height
-
-    draw_rect(Rect2(Vector2(STATION_EDGE_WALL, y0), Vector2(LANE_SPLIT - STATION_CENTER_WALL * 0.5 - STATION_EDGE_WALL, station_height)), left_tint, true)
-    draw_rect(Rect2(Vector2(LANE_SPLIT + STATION_CENTER_WALL * 0.5, y0), Vector2(W - STATION_EDGE_WALL - (LANE_SPLIT + STATION_CENTER_WALL * 0.5), station_height)), right_tint, true)
 
     var metal := Color("596777")
     var metal_dark := Color("1e2833")
