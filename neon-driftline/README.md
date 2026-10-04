@@ -167,3 +167,14 @@ Paused runs are snapshotted to `user://neon_run.cfg`. Persistent Research is sto
 Player impacts now use a short **0.5 second hit-invulnerability window** so overlapping impacts cannot drain several hits almost simultaneously.
 
 Physical contact between the player and an enemy damages **only the player**. The enemy is not damaged or removed by collision; only player weapons can damage enemies. Station-wall contact remains instant-lethal and ignores ordinary hit invulnerability.
+
+
+## Controls
+
+Phone steering now uses three fixed bottom buttons:
+
+- **LEFT** — hold to steer left.
+- **DASH** — centered; tap to trigger the forward dash when ready.
+- **RIGHT** — hold to steer right.
+
+Swipe/drag steering has been removed. Multi-touch allows steering with one thumb while triggering DASH with another. Desktop mouse input uses the same buttons for testing.

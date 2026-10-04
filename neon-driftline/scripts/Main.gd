@@ -19,7 +19,10 @@ const LEFT_LANE_MIN := LEFT
 const LEFT_LANE_MAX := LANE_SPLIT - 7.0
 const RIGHT_LANE_MIN := LANE_SPLIT + 7.0
 const RIGHT_LANE_MAX := RIGHT
-const DASH_RECT := Rect2(278.0, 748.0, 92.0, 64.0)
+const LEFT_CONTROL_RECT := Rect2(20.0, 748.0, 105.0, 64.0)
+const DASH_RECT := Rect2(142.5, 748.0, 105.0, 64.0)
+const RIGHT_CONTROL_RECT := Rect2(265.0, 748.0, 105.0, 64.0)
+const CONTROL_TARGET_SPEED := 285.0
 const SHOP_REPAIR_RECT := Rect2(35.0, 236.0, 320.0, 56.0)
 const SHOP_SINGLE_RECT := Rect2(35.0, 318.0, 150.0, 58.0)
 const SHOP_DUAL_RECT := Rect2(205.0, 318.0, 150.0, 58.0)
@@ -135,6 +138,10 @@ var pickup_clock := 0.0
 var dash_cooldown := 0.0
 var dash_timer := 0.0
 var dash_touch_index := -1
+var left_touch_index := -1
+var right_touch_index := -1
+var left_control_held := false
+var right_control_held := false
 var dash_score_timer := 0.0
 var near_miss_timer := 0.0
 var near_miss_text := ""
@@ -237,6 +244,11 @@ func _process(delta: float) -> void:
     world_scroll += world_delta * 170.0
     invuln = maxf(0.0, invuln - game_delta)
 
+    if left_control_held and not right_control_held:
+        target_x -= CONTROL_TARGET_SPEED * game_delta
+    elif right_control_held and not left_control_held:
+        target_x += CONTROL_TARGET_SPEED * game_delta
+
     player_x = lerpf(player_x, target_x, minf(1.0, game_delta * 13.0))
     player_x = clampf(player_x, LEFT, RIGHT)
     target_x = clampf(target_x, LEFT, RIGHT)
@@ -308,23 +320,23 @@ func _process(delta: float) -> void:
     queue_redraw()
 
 func _input(event: InputEvent) -> void:
-    if event is InputEventScreenTouch and event.pressed:
-        _handle_tap(event.position, event.index)
+    if event is InputEventScreenTouch:
+        if event.pressed:
+            _handle_tap(event.position, event.index)
+        else:
+            _release_control_touch(event.index)
         return
-    if event is InputEventScreenTouch and not event.pressed:
-        if event.index == dash_touch_index:
-            dash_touch_index = -1
-        return
+
     if event is InputEventScreenDrag:
-        if playing and not run_paused and event.index != dash_touch_index:
-            _set_target(event.position.x)
+        # Steering is button-based now; dragging never changes the ship target.
         return
-    if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and event.pressed:
-        _handle_tap(event.position, -1)
+
+    if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT:
+        if event.pressed:
+            _handle_tap(event.position, -1)
+        else:
+            _release_control_touch(-1)
         return
-    if event is InputEventMouseMotion and Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT):
-        if playing and not run_paused and not DASH_RECT.has_point(event.position) and not PAUSE_RECT.has_point(event.position):
-            _set_target(event.position.x)
 
 func _handle_tap(pos: Vector2, touch_index: int = -1) -> void:
     if run_paused:
@@ -350,13 +362,38 @@ func _handle_tap(pos: Vector2, touch_index: int = -1) -> void:
             queue_redraw()
         return
     if PAUSE_RECT.has_point(pos):
+        _clear_control_holds()
         _pause_run()
+        return
+    if LEFT_CONTROL_RECT.has_point(pos):
+        left_control_held = true
+        left_touch_index = touch_index
+        return
+    if RIGHT_CONTROL_RECT.has_point(pos):
+        right_control_held = true
+        right_touch_index = touch_index
         return
     if DASH_RECT.has_point(pos):
         dash_touch_index = touch_index
         _dash()
-    else:
-        _set_target(pos.x)
+        return
+
+func _release_control_touch(touch_index: int) -> void:
+    if touch_index == left_touch_index:
+        left_control_held = false
+        left_touch_index = -1
+    if touch_index == right_touch_index:
+        right_control_held = false
+        right_touch_index = -1
+    if touch_index == dash_touch_index:
+        dash_touch_index = -1
+
+func _clear_control_holds() -> void:
+    left_control_held = false
+    right_control_held = false
+    left_touch_index = -1
+    right_touch_index = -1
+    dash_touch_index = -1
 
 func _set_target(x: float) -> void:
     target_x = clampf(x, LEFT, RIGHT)
@@ -373,6 +410,7 @@ func _dash() -> void:
     _play_sfx(dash_sfx)
 
 func _start_game() -> void:
+    _clear_control_holds()
     playing = true
     game_over = false
     won = false
@@ -543,6 +581,7 @@ func _buy_weapon(weapon: String) -> bool:
 func _start_next_level() -> void:
     if not shop_open:
         return
+    _clear_control_holds()
     level += 1
     elapsed = 0.0
     shop_open = false
@@ -776,6 +815,7 @@ func _handle_research_tap(pos: Vector2) -> void:
 func _pause_run() -> void:
     if run_paused or game_over or (not playing and not shop_open):
         return
+    _clear_control_holds()
     run_paused = true
     _save_run_snapshot()
     _save_meta()
@@ -794,6 +834,7 @@ func _handle_pause_tap(pos: Vector2) -> void:
         _quit_run_with_score()
 
 func _quit_run_with_score() -> void:
+    _clear_control_holds()
     _bank_run_score()
     _clear_run_snapshot()
     playing = false
@@ -810,6 +851,7 @@ func _quit_run_with_score() -> void:
     queue_redraw()
 
 func _return_to_menu() -> void:
+    _clear_control_holds()
     playing = false
     game_over = false
     shop_open = false
@@ -1838,7 +1880,7 @@ func _draw() -> void:
 
     _draw_player(offset)
     _draw_hud()
-    _draw_dash_button()
+    _draw_controls()
     _draw_pause_button()
 
     if lane_choice_banner_timer > 0.0 and lane_event_active:
@@ -2084,13 +2126,27 @@ func _draw_hud() -> void:
     draw_rect(Rect2(Vector2(20, 169), Vector2(350, 6)), Color(0.2,0.25,0.3,0.7))
     draw_rect(Rect2(Vector2(20, 169), Vector2(350 * progress, 6)), Color("77f7ff"))
 
-func _draw_dash_button() -> void:
+func _draw_controls() -> void:
+    var move_fill := Color("102633")
+    var move_border := Color("5eb7d4")
+    var held_fill := Color("174759")
+    var held_border := Color("77f7ff")
+
+    draw_rect(LEFT_CONTROL_RECT, held_fill if left_control_held else move_fill, true)
+    draw_rect(LEFT_CONTROL_RECT, held_border if left_control_held else move_border, false, 3.0)
+    _text("LEFT", LEFT_CONTROL_RECT.position + Vector2(26, 40), 19, Color("f0fbff"))
+
     var ready := dash_cooldown <= 0.0
-    var fill := Color("123544") if ready else Color(0.12, 0.14, 0.18, 0.86)
-    var border := Color("77f7ff") if ready else Color(0.35, 0.42, 0.46, 0.7)
-    draw_rect(DASH_RECT, fill, true)
-    draw_rect(DASH_RECT, border, false, 3.0)
-    _text("DASH" if ready else "%.1f" % dash_cooldown, Vector2(298, 788), 19, Color("f0fbff") if ready else Color("8ea9b8"))
+    var dash_fill := Color("123544") if ready else Color(0.12, 0.14, 0.18, 0.86)
+    var dash_border := Color("77f7ff") if ready else Color(0.35, 0.42, 0.46, 0.7)
+    draw_rect(DASH_RECT, dash_fill, true)
+    draw_rect(DASH_RECT, dash_border, false, 3.0)
+    var dash_label := "DASH" if ready else "%.1f" % dash_cooldown
+    _text(dash_label, DASH_RECT.position + Vector2(26 if ready else 34, 40), 19, Color("f0fbff") if ready else Color("8ea9b8"))
+
+    draw_rect(RIGHT_CONTROL_RECT, held_fill if right_control_held else move_fill, true)
+    draw_rect(RIGHT_CONTROL_RECT, held_border if right_control_held else move_border, false, 3.0)
+    _text("RIGHT", RIGHT_CONTROL_RECT.position + Vector2(20, 40), 19, Color("f0fbff"))
 
 func _draw_title() -> void:
     _text("NEON", Vector2(102, 180), 52, Color("77f7ff"))
