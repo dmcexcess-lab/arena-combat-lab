@@ -307,6 +307,7 @@ func _initialize() -> void:
         return
     scene.objects.clear()
     scene.enemy_shots.clear()
+    scene._start_game()
 
     # Thin weak laser.
     scene.objects.clear()
