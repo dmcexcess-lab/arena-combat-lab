@@ -1486,20 +1486,73 @@ func _spawn_extraction_gate() -> void:
     finale_banner_timer = 2.8
     _play_sfx(finale_sfx)
 
+func _incoming_shot_dodge_direction(obj: Dictionary) -> float:
+    var obj_y := float(obj.y)
+    var obj_x := float(obj.x)
+    var radius := float(obj.r)
+    for shot in shots:
+        var vy := float(shot.vy)
+        if vy >= -1.0:
+            continue
+        var shot_y := float(shot.y)
+        if shot_y <= obj_y or shot_y - obj_y > 190.0:
+            continue
+        var time_to_y := (shot_y - obj_y) / -vy
+        if time_to_y < 0.0 or time_to_y > 0.55:
+            continue
+        var projected_x := float(shot.x) + float(shot.vx) * time_to_y
+        if absf(projected_x - obj_x) <= radius + 14.0:
+            return 1.0 if projected_x <= obj_x else -1.0
+    return 0.0
+
 func _move_objects(delta: float) -> void:
     var next: Array[Dictionary] = []
     for obj in objects:
+        var motion_y := float(obj.speed)
+
         if obj.type == "hazard":
-            if int(obj.kind) == 2:
-                var desired_drift := clampf((player_x - float(obj.x)) * 0.95, -92.0, 92.0)
-                obj.drift = lerpf(float(obj.drift), desired_drift, minf(1.0, delta * 1.7))
-            elif int(obj.kind) == 3:
+            var kind := int(obj.kind)
+            if obj.has("angle"):
+                obj.angle = float(obj.angle) + float(obj.get("spin", 0.0)) * delta
+
+            if kind == 0:
+                obj.drift = lerpf(float(obj.drift), 0.0, minf(1.0, delta * 0.20))
+
+            elif kind == 1:
+                var square_target := clampf((player_x - float(obj.x)) * 0.16, -22.0, 22.0)
+                obj.drift = lerpf(float(obj.drift), square_target, minf(1.0, delta * 0.85))
+
+            elif kind == 2:
+                var predicted_x := lerpf(player_x, target_x, 0.55)
+                var diamond_target := clampf((predicted_x - float(obj.x)) * 0.72, -82.0, 82.0)
+                obj.drift = lerpf(float(obj.drift), diamond_target, minf(1.0, delta * 2.2))
+
+            elif kind == 3:
+                var dodge_dir := _incoming_shot_dodge_direction(obj)
+                var trapezoid_target := clampf((player_x - float(obj.x)) * 0.14, -28.0, 28.0)
+                if dodge_dir != 0.0:
+                    trapezoid_target = dodge_dir * 72.0
+                obj.drift = lerpf(float(obj.drift), trapezoid_target, minf(1.0, delta * 2.4))
+
+                var preferred_y := player_y - 245.0
+                var y_error := preferred_y - float(obj.y)
+                if y_error > 55.0:
+                    motion_y = minf(72.0, float(obj.speed))
+                elif y_error < -45.0:
+                    motion_y = -58.0
+                else:
+                    motion_y = clampf(y_error * 0.30, -28.0, 28.0)
+
                 obj.shoot_clock = float(obj.shoot_clock) - delta
-                if float(obj.shoot_clock) <= 0.0 and float(obj.y) > 35.0 and float(obj.y) < player_y - 90.0:
+                if float(obj.shoot_clock) <= 0.0 and float(obj.y) > 45.0 and float(obj.y) < player_y - 75.0:
                     _fire_enemy_shot(obj)
-                    obj.shoot_clock = rng.randf_range(1.35, 2.05)
-        obj.y += obj.speed * delta
-        obj.x += obj.drift * delta
+                    obj.shoot_clock = rng.randf_range(1.45, 2.10)
+
+        obj.y += motion_y * delta
+        obj.x += float(obj.drift) * delta
+
+        if obj.type == "hazard" and int(obj.kind) == 3:
+            obj.y = minf(float(obj.y), player_y - float(obj.r) - 12.0)
 
         if obj.type != "extraction":
             if obj.x < obj.lane_min + obj.r or obj.x > obj.lane_max - obj.r:
