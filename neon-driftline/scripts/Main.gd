@@ -1805,9 +1805,25 @@ func _draw_player(offset: Vector2) -> void:
     var c := Color("77f7ff") if invuln <= 0.0 or int(Time.get_ticks_msec() / 90) % 2 == 0 else Color(0.4, 0.4, 0.5, 0.5)
     if dash_timer > 0.0:
         draw_line(pos + Vector2(0, 58.0), pos, Color(0.35, 0.95, 1.0, 0.42), 10.0)
-    draw_circle(pos, 20.0, Color(0.2, 0.9, 1.0, 0.12))
-    draw_colored_polygon(PackedVector2Array([pos + Vector2(0,-18), pos + Vector2(13,15), pos, pos + Vector2(-13,15)]), c)
-    draw_line(pos + Vector2(0, 18), pos + Vector2(0, 38), Color(0.3, 0.85, 1.0, 0.35), 5.0)
+    draw_circle(pos, 22.0, Color(0.2, 0.9, 1.0, 0.10))
+    draw_colored_polygon(PackedVector2Array([
+        pos + Vector2(0, -22),
+        pos + Vector2(8, -5),
+        pos + Vector2(18, 11),
+        pos + Vector2(7, 8),
+        pos + Vector2(0, 17),
+        pos + Vector2(-7, 8),
+        pos + Vector2(-18, 11),
+        pos + Vector2(-8, -5)
+    ]), c)
+    draw_colored_polygon(PackedVector2Array([
+        pos + Vector2(0, -13),
+        pos + Vector2(5, 2),
+        pos + Vector2(0, 8),
+        pos + Vector2(-5, 2)
+    ]), Color("173545"))
+    draw_line(pos + Vector2(-6, 14), pos + Vector2(-6, 33), Color(0.3, 0.85, 1.0, 0.34), 3.0)
+    draw_line(pos + Vector2(6, 14), pos + Vector2(6, 33), Color(0.3, 0.85, 1.0, 0.34), 3.0)
     if shield_charges > 0:
         draw_arc(pos, 27.0, -PI, PI, 40, Color("77f7ff"), 3.0)
 
@@ -1842,31 +1858,58 @@ func _draw_object(obj: Dictionary, offset: Vector2) -> void:
         draw_circle(p, obj.r * 0.42, Color("e8fff3"))
         return
 
-    var col := Color("ff426f")
-    if int(obj.kind) == 2:
-        col = Color("ffb347")
-    elif int(obj.kind) == 3:
-        col = Color("b56cff")
-    if obj.hard:
-        col = col.lightened(0.1)
-    draw_circle(p, obj.r + 4.0, Color(col.r, col.g, col.b, 0.11))
-    if obj.kind == 0:
-        draw_circle(p, obj.r, col)
-        draw_circle(p, obj.r * 0.48, Color("310a18"))
-    elif obj.kind == 1:
-        draw_rect(Rect2(p - Vector2(obj.r, obj.r), Vector2(obj.r * 2.0, obj.r * 2.0)), col)
-        draw_line(p + Vector2(-obj.r, -obj.r), p + Vector2(obj.r, obj.r), Color("410b1c"), 4.0)
-    elif obj.kind == 2:
-        draw_colored_polygon(PackedVector2Array([p + Vector2(0,-obj.r), p + Vector2(obj.r,0), p + Vector2(0,obj.r), p + Vector2(-obj.r,0)]), col)
-        draw_circle(p, 4.0, Color("fff2b8"))
-    else:
+    var kind := int(obj.kind)
+
+    if kind == 0:
+        var rock := PackedVector2Array()
+        var angle := float(obj.get("angle", 0.0))
+        for i in 10:
+            var a := TAU * float(i) / 10.0 + angle
+            var wobble := 0.78 + 0.18 * sin(float(obj.id % 997) * 0.013 + float(i) * 2.17)
+            rock.append(p + Vector2(cos(a), sin(a)) * float(obj.r) * wobble)
+        draw_colored_polygon(rock, Color("6d7278"))
+        draw_polyline(rock + PackedVector2Array([rock[0]]), Color("9ca2a8"), 2.0)
+        var crater_a := Vector2(cos(angle + 0.8), sin(angle + 0.8)) * float(obj.r) * 0.30
+        var crater_b := Vector2(cos(angle + 3.1), sin(angle + 3.1)) * float(obj.r) * 0.42
+        draw_circle(p + crater_a, float(obj.r) * 0.18, Color("44484d"))
+        draw_circle(p + crater_b, float(obj.r) * 0.12, Color("50545a"))
+
+    elif kind == 1:
+        var r := float(obj.r)
+        draw_circle(p, r + 5.0, Color(0.25, 0.55, 0.75, 0.10))
+        draw_rect(Rect2(p - Vector2(r, r), Vector2(r * 2.0, r * 2.0)), Color("526b7a"), true)
+        draw_rect(Rect2(p - Vector2(r - 4.0, r - 4.0), Vector2((r - 4.0) * 2.0, (r - 4.0) * 2.0)), Color("182630"), true)
+        draw_line(p + Vector2(-r, 0), p + Vector2(r, 0), Color("7894a3"), 2.0)
+        draw_circle(p, 4.0, Color("7bd7ff"))
+
+    elif kind == 2:
+        var r2 := float(obj.r)
+        draw_circle(p, r2 + 7.0, Color(1.0, 0.66, 0.20, 0.12))
         draw_colored_polygon(PackedVector2Array([
-            p + Vector2(-obj.r * 0.95, -obj.r * 0.70),
-            p + Vector2(obj.r * 1.20, -obj.r * 0.70),
-            p + Vector2(obj.r * 0.95, obj.r * 0.70),
-            p + Vector2(-obj.r * 1.20, obj.r * 0.70)
-        ]), col)
-        draw_circle(p, 4.0, Color("f1dcff"))
+            p + Vector2(0, -r2 * 1.25),
+            p + Vector2(r2 * 1.15, 0),
+            p + Vector2(0, r2 * 1.25),
+            p + Vector2(-r2 * 1.15, 0)
+        ]), Color("c27a24"))
+        draw_colored_polygon(PackedVector2Array([
+            p + Vector2(0, -r2 * 0.65),
+            p + Vector2(r2 * 0.58, 0),
+            p + Vector2(0, r2 * 0.65),
+            p + Vector2(-r2 * 0.58, 0)
+        ]), Color("332414"))
+        draw_circle(p, 4.0, Color("fff0a8"))
+
+    else:
+        var r3 := float(obj.r)
+        draw_circle(p, r3 + 6.0, Color(0.70, 0.38, 1.0, 0.10))
+        draw_colored_polygon(PackedVector2Array([
+            p + Vector2(-r3 * 0.72, -r3 * 0.72),
+            p + Vector2(r3 * 0.72, -r3 * 0.72),
+            p + Vector2(r3 * 1.18, r3 * 0.70),
+            p + Vector2(-r3 * 1.18, r3 * 0.70)
+        ]), Color("66527d"))
+        draw_line(p + Vector2(0, 3), p + Vector2(0, r3 + 8.0), Color("c9a5ff"), 3.0)
+        draw_circle(p, 4.0, Color("e7d2ff"))
 
     if obj.has("hp") and float(obj.hp) < float(obj.max_hp):
         var bw := maxf(18.0, float(obj.r) * 1.8)
