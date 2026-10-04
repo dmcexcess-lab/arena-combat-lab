@@ -89,16 +89,30 @@ Normal in-run weapon prices remain:
 
 ## Score economy
 
-- Circle kill: 1
-- Moving square kill: 2
-- Shooting rhomboid kill: 4
-- Smart yellow diamond kill: 5
+- Asteroid kill: 1
+- Square drone kill: 2
+- Ranged trapezoid kill: 4
+- Smart diamond kill: 5
 - Ordinary near misses: tens
 - Dash near misses: hundreds
-- Energy: 10 normally / 20 base in the hard lane
+- Green energy orb: **25** base score
+- Green energy orb collected during dash: **125** base score before any active lane bonus
 - Nonlethal damage gives no score
 
-Ship Speed research raises all near-miss rewards. Dash research adds an additional multiplier specifically to dash near-misses.
+Ship Speed research raises near-miss rewards. Dash research adds an additional multiplier specifically to dash near-misses.
+
+### Green energy balls
+
+Green energy balls are the game's renewable score pickups.
+
+- They spawn randomly during normal play.
+- Their random spawn interval gets gradually shorter as levels increase.
+- During a station split, they spawn more frequently and are strongly biased toward the hard side.
+- Destroyed enemies have an **8% chance** to release a green energy ball.
+- Destroyed enemies separately have a **2% chance** to release a free **+1 hit** pickup.
+- Kill drops remain intentionally rare; most kills still award only their normal single-digit score.
+
+The +1 hit pickup restores one hit up to the ship's current maximum.
 
 ## Space presentation and enemy archetypes
 
