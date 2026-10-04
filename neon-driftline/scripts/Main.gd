@@ -28,6 +28,12 @@ const STATION_SPEED := 210.0
 const STATION_START_TOP := -550.0
 const STATION_CENTER_WALL := 24.0
 const STATION_EDGE_WALL := 42.0
+const AUTO_FIRE_INTERVAL := 0.34
+const SHOT_SPEED := 650.0
+const SHOT_RADIUS := 4.0
+const REPAIR_INTERVAL_MIN := 8.0
+const REPAIR_INTERVAL_MAX := 12.0
+const REPAIR_RETRY_FULL := 2.0
 
 var rng := RandomNumberGenerator.new()
 var playing := false
@@ -67,9 +73,12 @@ var lane_event_timer := 0.0
 var next_lane_event_at := LANE_EVENT_FIRST
 var lane_choice_banner_timer := 0.0
 var neutral_spawn_clock := 0.0
+var fire_clock := 0.0
+var repair_clock := 0.0
 var station_top := STATION_START_TOP
 var station_locked_side := ""
 var objects: Array[Dictionary] = []
+var shots: Array[Dictionary] = []
 var particles: Array[Dictionary] = []
 var last_near_ids: Dictionary = {}
 var sfx_player: AudioStreamPlayer
@@ -146,7 +155,20 @@ func _process(delta: float) -> void:
     hard_spawn_clock -= game_delta
     neutral_spawn_clock -= game_delta
     pickup_clock -= game_delta
+    fire_clock -= game_delta
+    repair_clock -= game_delta
     var difficulty := clampf(elapsed / RUN_TIME, 0.0, 1.0)
+
+    if fire_clock <= 0.0:
+        _fire_weapon()
+        fire_clock = AUTO_FIRE_INTERVAL
+
+    if repair_clock <= 0.0:
+        if hp < 3:
+            _spawn_repair()
+            repair_clock = rng.randf_range(REPAIR_INTERVAL_MIN, REPAIR_INTERVAL_MAX)
+        else:
+            repair_clock = REPAIR_RETRY_FULL
 
     if lane_event_active:
         station_top += STATION_SPEED * game_delta
@@ -179,6 +201,7 @@ func _process(delta: float) -> void:
     if elapsed >= EXTRACTION_SPAWN_TIME and not extraction_spawned:
         _spawn_extraction_gate()
 
+    _move_shots(game_delta)
     _move_objects(game_delta)
     _move_particles(delta)
     score += int(game_delta * (24.0 + difficulty * 24.0) * combo * _lane_score_multiplier() * _dash_score_multiplier())
@@ -250,6 +273,8 @@ func _start_game() -> void:
     hard_spawn_clock = 0.38
     pickup_clock = 0.9
     neutral_spawn_clock = 0.45
+    fire_clock = 0.12
+    repair_clock = 2.0
     dash_cooldown = 0.0
     dash_timer = 0.0
     dash_score_timer = 0.0
@@ -268,6 +293,7 @@ func _start_game() -> void:
     station_top = STATION_START_TOP
     station_locked_side = ""
     objects.clear()
+    shots.clear()
     particles.clear()
     last_near_ids.clear()
 
@@ -392,6 +418,61 @@ func _spawn_hazard(difficulty: float, hard_lane: bool, lane_mode: bool = true) -
         "lane_max": lane_max
     })
 
+func _fire_weapon() -> void:
+    if not playing:
+        return
+    for offset_x in [-9.0, 9.0]:
+        shots.append({
+            "x": player_x + offset_x,
+            "y": player_y - 20.0,
+            "r": SHOT_RADIUS
+        })
+
+func _move_shots(delta: float) -> void:
+    var next: Array[Dictionary] = []
+    for shot in shots:
+        shot.y -= SHOT_SPEED * delta
+        var blocked := false
+        if lane_event_active:
+            var point := Vector2(shot.x, shot.y)
+            for barrier in _station_barrier_rects():
+                if barrier.has_point(point):
+                    blocked = true
+                    break
+        if not blocked and shot.y > -30.0:
+            next.append(shot)
+    shots = next
+
+func _consume_shot_hit(obj: Dictionary) -> bool:
+    for i in range(shots.size() - 1, -1, -1):
+        var shot: Dictionary = shots[i]
+        var dx := absf(float(shot.x) - float(obj.x))
+        var dy := absf(float(shot.y) - float(obj.y))
+        if dx < float(obj.r) + SHOT_RADIUS and dy < float(obj.r) + SHOT_RADIUS:
+            shots.remove_at(i)
+            score += int(120 * combo * _dash_score_multiplier())
+            _burst(Vector2(obj.x, obj.y), 8, Color("ffd166"))
+            return true
+    return false
+
+func _spawn_repair() -> void:
+    if hp >= 3:
+        return
+    var lane_hard := lane_event_active and rng.randf() < 0.5
+    var bounds := _lane_bounds(lane_hard) if lane_event_active else Vector2(LEFT, RIGHT)
+    objects.append({
+        "id": rng.randi(),
+        "type": "repair",
+        "hard": false,
+        "x": rng.randf_range(bounds.x + 18.0, bounds.y - 18.0),
+        "y": -34.0,
+        "r": 14.0,
+        "speed": rng.randf_range(210.0, 245.0),
+        "drift": rng.randf_range(-12.0, 12.0),
+        "lane_min": bounds.x,
+        "lane_max": bounds.y
+    })
+
 func _spawn_pickup() -> void:
     var hard_lane := lane_event_active and rng.randf() < 0.66
     var bounds := _lane_bounds(hard_lane) if lane_event_active else Vector2(LEFT, RIGHT)
@@ -451,6 +532,8 @@ func _move_objects(delta: float) -> void:
         var dx: float = absf(obj.x - player_x)
 
         if obj.type == "hazard":
+            if _consume_shot_hit(obj):
+                continue
             var hit_dist: float = obj.r + 14.0
             if absf(dy) < hit_dist and dx < hit_dist:
                 if invuln <= 0.0:
@@ -471,6 +554,13 @@ func _move_objects(delta: float) -> void:
                 combo = mini(combo + 1, 8)
                 best_combo = maxi(best_combo, combo)
                 _burst(Vector2(obj.x, obj.y), 9, Color("6bffb0"))
+                continue
+        elif obj.type == "repair":
+            if absf(dy) < obj.r + 18.0 and dx < obj.r + 20.0:
+                if hp < 3:
+                    hp += 1
+                    score += int(250 * _dash_score_multiplier())
+                    _burst(Vector2(obj.x, obj.y), 12, Color("e8fff3"))
                 continue
         elif obj.type == "extraction":
             if absf(dy) < 19.0:
@@ -546,6 +636,11 @@ func _draw() -> void:
 
     for obj in objects:
         _draw_object(obj, offset)
+
+    for shot in shots:
+        var sp := Vector2(shot.x, shot.y) + offset
+        draw_line(sp + Vector2(0, 10), sp - Vector2(0, 8), Color("ffd166"), 4.0)
+        draw_circle(sp - Vector2(0, 8), 3.0, Color("fff4c2"))
 
     _draw_station(offset)
 
@@ -656,6 +751,13 @@ func _draw_object(obj: Dictionary, offset: Vector2) -> void:
         draw_rect(Rect2(Vector2(p.x - half_width, p.y - 18.0), Vector2(half_width * 2.0, 36.0)), Color(0.3, 0.95, 1.0, 0.08), true)
         return
 
+    if obj.type == "repair":
+        draw_circle(p, obj.r + 7.0, Color(0.85, 1.0, 0.95, 0.14))
+        draw_circle(p, obj.r, Color("d9fff2"))
+        draw_rect(Rect2(p - Vector2(3.0, 9.0), Vector2(6.0, 18.0)), Color("187f68"), true)
+        draw_rect(Rect2(p - Vector2(9.0, 3.0), Vector2(18.0, 6.0)), Color("187f68"), true)
+        return
+
     if obj.type == "energy":
         var glow := Color(0.2, 1.0, 0.65, 0.17 if obj.hard else 0.12)
         draw_circle(p, obj.r + 6.0, glow)
@@ -691,6 +793,8 @@ func _draw_hud() -> void:
 
     if dash_score_timer > 0.0:
         _text("DASH x2 SCORE", Vector2(134, 146), 16, Color("ffd166"))
+    else:
+        _text("AUTO PULSE", Vector2(145, 146), 14, Color("ffd166"))
 
     for i in 3:
         var c := Color("ff4f78") if i < hp else Color(0.3,0.3,0.38,0.55)
@@ -715,9 +819,9 @@ func _draw_title() -> void:
     _text("STATION SPLITS APPROACH", Vector2(73, 416), 18, Color("ffd166"))
     _text("CHOOSE A LANE BEFORE IMPACT", Vector2(56, 444), 18, Color("bdeef4"))
     _text("WALL CONTACT = INSTANT DEATH", Vector2(56, 476), 16, Color("ff8fa6"))
-    _text("FORWARD DASH = x2 SCORE", Vector2(72, 506), 17, Color("ffd166"))
-    _text("Drag to steer. Tap DASH to burst.", Vector2(54, 533), 16, Color("bdeef4"))
-    _text("Near misses slow time + build combo.", Vector2(48, 560), 16, Color("8ea9b8"))
+    _text("AUTO CANNONS FIRE FORWARD", Vector2(63, 506), 16, Color("ffd166"))
+    _text("REPAIR CORES RESTORE 1 HIT", Vector2(65, 533), 16, Color("6bffb0"))
+    _text("Drag to steer. DASH = x2 score.", Vector2(62, 560), 16, Color("bdeef4"))
     draw_rect(Rect2(Vector2(54, 606), Vector2(282, 76)), Color("123544"), true)
     draw_rect(Rect2(Vector2(54, 606), Vector2(282, 76)), Color("77f7ff"), false, 3.0)
     _text("TAP TO LAUNCH", Vector2(92, 656), 24, Color("f0fbff"))
