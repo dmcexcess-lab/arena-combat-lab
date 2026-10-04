@@ -107,6 +107,10 @@ func _initialize() -> void:
         return
     scene.research_hits = 1
     scene.research_shield = 1
+    var credits_before_second_shield: int = scene.research_credits
+    if not scene._buy_research("shield") or scene.research_shield != 2 or scene.research_credits != credits_before_second_shield - 2500:
+        _fail("second shield charge research purchase failed")
+        return
 
     # Starting-weapon research costs at least 10x the normal run-shop price.
     if scene._weapon_research_cost("single") != scene.SHOP_SINGLE_COST * 10     or scene._weapon_research_cost("dual") != scene.SHOP_DUAL_COST * 10     or scene._weapon_research_cost("laser") != scene.SHOP_LASER_COST * 10     or scene._weapon_research_cost("cone") != scene.SHOP_CONE_COST * 10     or scene._weapon_research_cost("seeker") != scene.SHOP_SEEKER_COST * 10:
@@ -173,10 +177,10 @@ func _initialize() -> void:
 
     # Starting a researched run applies permanent hits and shield charges.
     scene.research_hits = 1
-    scene.research_shield = 1
+    scene.research_shield = 2
     scene._start_game()
-    if scene.max_hp != 3 or scene.hp != 3 or scene.shield_charges != 1:
-        _fail("researched hits/shield did not apply to new run")
+    if scene.max_hp != 3 or scene.hp != 3 or scene.shield_charges != 2:
+        _fail("researched hits/shield charges did not apply to new run")
         return
     scene.current_weapon = "single"
     scene.shots.clear()
@@ -191,8 +195,8 @@ func _initialize() -> void:
     var hp_before_shield: int = scene.hp
     scene.enemy_shots.append({"x": scene.player_x, "y": scene.player_y, "vx": 0.0, "vy": 0.0, "r": scene.ENEMY_SHOT_RADIUS})
     scene._move_enemy_shots(0.0)
-    if scene.hp != hp_before_shield or scene.shield_charges != 0:
-        _fail("shield did not absorb exactly one projectile")
+    if scene.hp != hp_before_shield or scene.shield_charges != 1:
+        _fail("shield did not consume exactly one charge for one projectile")
         return
 
     # Pause freezes the run; resume continues; quitting banks the remaining score.
