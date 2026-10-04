@@ -47,7 +47,7 @@ func _initialize() -> void:
         quit(1)
         return
 
-    scene.station_top = scene.PLAYER_Y - 120.0
+    scene.station_top = scene.player_y - 120.0
     if not scene._station_at_player():
         print("SMOKE FAIL: station should overlap the player at test position")
         quit(1)
@@ -75,11 +75,24 @@ func _initialize() -> void:
         quit(1)
         return
 
-    scene.target_x = 340.0
+    # Dash must move forward (up-screen), not act as a lateral burst.
+    scene.player_x = 195.0
+    scene.target_x = 195.0
+    scene.player_y = scene.PLAYER_Y
     scene.dash_cooldown = 0.0
     scene._dash()
+    var dash_start_y: float = scene.player_y
+    scene._process(0.05)
     if scene.dash_cooldown <= 0.0 or scene.dash_timer <= 0.0:
         print("SMOKE FAIL: dash did not activate")
+        quit(1)
+        return
+    if scene.player_y >= dash_start_y:
+        print("SMOKE FAIL: dash did not move the ship forward")
+        quit(1)
+        return
+    if absf(scene.player_x - 195.0) > 0.5:
+        print("SMOKE FAIL: centered forward dash introduced lateral movement")
         quit(1)
         return
     if scene._dash_score_multiplier() <= 1.0 or scene.dash_score_timer <= 0.0:
@@ -101,9 +114,9 @@ func _initialize() -> void:
         quit(1)
         return
 
-    # Station structure is lethal regardless of ordinary dash/hit invulnerability.
+    # Station structure remains lethal during ordinary dash invulnerability.
     scene._begin_lane_event()
-    scene.station_top = scene.PLAYER_Y - 120.0
+    scene.station_top = scene.player_y - 120.0
     scene.player_x = scene.LANE_SPLIT
     scene.invuln = 999.0
     scene._check_station_collision()
