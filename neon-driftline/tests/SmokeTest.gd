@@ -297,5 +297,5 @@ func _initialize() -> void:
         _fail("station barrier contact was not an instant kill")
         return
 
-    print("NEON DRIFTLINE ROGUELITE SMOKE OK")
+    print("NEON DRIFTLINE SMOKE OK")
     quit(0)
