@@ -19,7 +19,8 @@ func _initialize() -> void:
     await process_frame
 
     for method_name in [
-        "_start_game", "_dash", "_fire_weapon", "_weapon_interval", "_weapon_damage",
+        "_start_game", "_dash", "_handle_tap", "_release_control_touch", "_clear_control_holds",
+        "_fire_weapon", "_weapon_interval", "_weapon_damage",
         "_weapon_label", "_obstacle_max_hp", "_kill_score", "_enemy_kind_cap_for_level",
         "_spawn_circle_bunch", "_move_shots", "_consume_shot_hit",
         "_apply_laser_damage", "_fire_enemy_shot", "_fire_enemy_missile", "_move_enemy_shots", "_energy_spawn_interval",
@@ -70,6 +71,78 @@ func _initialize() -> void:
     if scene.research_shield != 0 or scene.shield_charges != 0:
         _fail("baseline run should start with no shield")
         return
+
+    # Phone steering is three bottom buttons: held LEFT / center DASH / held RIGHT.
+    if scene.LEFT_CONTROL_RECT.end.x >= scene.DASH_RECT.position.x or scene.DASH_RECT.end.x >= scene.RIGHT_CONTROL_RECT.position.x:
+        _fail("left/dash/right controls overlap or are out of order")
+        return
+    if absf(scene.DASH_RECT.get_center().x - scene.W * 0.5) > 1.0:
+        _fail("dash button is not centered")
+        return
+
+    scene.neutral_spawn_clock = 999.0
+    scene.easy_spawn_clock = 999.0
+    scene.hard_spawn_clock = 999.0
+    scene.pickup_clock = 999.0
+    scene.repair_clock = 999.0
+    scene.fire_clock = 999.0
+    scene.target_x = scene.W * 0.5
+    scene.player_x = scene.W * 0.5
+
+    scene._handle_tap(scene.LEFT_CONTROL_RECT.get_center(), 11)
+    if not scene.left_control_held or scene.left_touch_index != 11:
+        _fail("LEFT button did not enter held state")
+        return
+    var left_start_x: float = scene.player_x
+    scene._process(0.20)
+    if scene.player_x >= left_start_x:
+        _fail("held LEFT button did not steer ship left")
+        return
+    scene._release_control_touch(11)
+    if scene.left_control_held:
+        _fail("LEFT button remained held after touch release")
+        return
+
+    scene.target_x = scene.player_x
+    scene._handle_tap(scene.RIGHT_CONTROL_RECT.get_center(), 12)
+    if not scene.right_control_held or scene.right_touch_index != 12:
+        _fail("RIGHT button did not enter held state")
+        return
+    var right_start_x: float = scene.player_x
+    scene._process(0.20)
+    if scene.player_x <= right_start_x:
+        _fail("held RIGHT button did not steer ship right")
+        return
+    scene._release_control_touch(12)
+    if scene.right_control_held:
+        _fail("RIGHT button remained held after touch release")
+        return
+
+    # Drag gestures no longer steer.
+    scene.target_x = scene.player_x
+    var target_before_drag: float = scene.target_x
+    var drag: InputEventScreenDrag = InputEventScreenDrag.new()
+    drag.index = 44
+    drag.position = Vector2(scene.RIGHT - 5.0, 500.0)
+    scene._input(drag)
+    if absf(scene.target_x - target_before_drag) > 0.01:
+        _fail("screen drag still changes steering target")
+        return
+
+    # Center DASH button triggers dash without changing lateral target.
+    scene.dash_cooldown = 0.0
+    scene.dash_timer = 0.0
+    var lateral_before_dash: float = scene.target_x
+    scene._handle_tap(scene.DASH_RECT.get_center(), 13)
+    if scene.dash_timer <= 0.0 or scene.dash_cooldown <= 0.0:
+        _fail("center DASH button did not trigger dash")
+        return
+    if absf(scene.target_x - lateral_before_dash) > 0.01:
+        _fail("DASH button changed lateral steering")
+        return
+    scene._release_control_touch(13)
+    scene.dash_timer = 0.0
+    scene.dash_cooldown = 0.0
 
     # Permanent research modifies the intended systems and uses accumulated banked score.
     var base_ship_speed: float = scene._ship_speed_multiplier()
