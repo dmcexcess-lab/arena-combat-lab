@@ -83,6 +83,11 @@ const KILL_ORB_DROP_CHANCE := 0.08
 const KILL_REPAIR_DROP_CHANCE := 0.02
 const ENEMY_SHOT_SPEED := 255.0
 const ENEMY_SHOT_RADIUS := 5.0
+const ENEMY_MISSILE_SPEED := 190.0
+const ENEMY_MISSILE_RADIUS := 7.0
+const ENEMY_MISSILE_DAMAGE := 2
+const ENEMY_MISSILE_TURN_RATE := 3.2
+const HIT_INVULN_TIME := 0.5
 
 var rng := RandomNumberGenerator.new()
 var playing := false
@@ -1065,7 +1070,9 @@ func _enemy_kind_cap_for_level() -> int:
         return 1
     if level <= 5:
         return 2
-    return 3
+    if level <= 7:
+        return 3
+    return 4
 
 func _choose_enemy_kind(hard_lane: bool) -> int:
     var cap := _enemy_kind_cap_for_level()
@@ -1080,11 +1087,21 @@ func _choose_enemy_kind(hard_lane: bool) -> int:
         if roll < (0.62 if hard_lane else 0.52):
             return 1
         return 0
-    if roll < (0.16 if hard_lane else 0.10):
+    if cap == 3:
+        if roll < (0.16 if hard_lane else 0.10):
+            return 3
+        if roll < (0.39 if hard_lane else 0.30):
+            return 2
+        if roll < (0.70 if hard_lane else 0.62):
+            return 1
+        return 0
+    if roll < (0.11 if hard_lane else 0.07):
+        return 4
+    if roll < (0.25 if hard_lane else 0.18):
         return 3
-    if roll < (0.39 if hard_lane else 0.30):
+    if roll < (0.48 if hard_lane else 0.37):
         return 2
-    if roll < (0.70 if hard_lane else 0.62):
+    if roll < (0.74 if hard_lane else 0.66):
         return 1
     return 0
 
@@ -1147,6 +1164,11 @@ func _spawn_hazard(difficulty: float, hard_lane: bool, lane_mode: bool = true) -
         speed *= 0.58
         drift = rng.randf_range(-12.0, 12.0)
         shoot_clock = rng.randf_range(1.1, 1.7)
+    elif kind == 4:
+        radius = rng.randf_range(20.0, 24.0)
+        speed = 170.0
+        drift = 0.0
+        shoot_clock = rng.randf_range(0.9, 1.4)
 
     var obstacle_hp := _obstacle_max_hp(kind)
     objects.append({
@@ -1243,6 +1265,8 @@ func _obstacle_max_hp(kind: int) -> float:
             return 12.0
         3:
             return 4.0
+        4:
+            return 20.0
     return 3.0
 
 func _kill_score(kind: int) -> int:
@@ -1255,6 +1279,8 @@ func _kill_score(kind: int) -> int:
             return 5
         3:
             return 4
+        4:
+            return 7
     return 1
 
 func _spawn_shot(x: float, y: float, vx: float, vy: float, damage: float, homing: bool = false) -> void:
