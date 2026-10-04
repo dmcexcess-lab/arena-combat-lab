@@ -16,7 +16,7 @@ func _initialize() -> void:
     root.add_child(scene)
     await process_frame
 
-    for method_name in ["_start_game", "_dash", "_register_near_miss", "_begin_lane_event", "_end_lane_event", "_begin_finale", "_spawn_extraction_gate", "_lane_score_multiplier", "_dash_score_multiplier", "_is_hard_position", "_lane_bounds"]:
+    for method_name in ["_start_game", "_dash", "_register_near_miss", "_begin_lane_event", "_end_lane_event", "_station_at_player", "_station_barrier_rects", "_check_station_collision", "_begin_finale", "_spawn_extraction_gate", "_lane_score_multiplier", "_dash_score_multiplier"]:
         if not scene.has_method(method_name):
             print("SMOKE FAIL: missing gameplay method ", method_name)
             quit(1)
@@ -29,42 +29,49 @@ func _initialize() -> void:
         quit(1)
         return
 
-    scene.player_x = 290.0
     if scene.lane_event_active or scene._lane_score_multiplier() != 1.0:
-        print("SMOKE FAIL: lanes should be absent during normal open-field play")
+        print("SMOKE FAIL: station lanes should be absent during open-field play")
         quit(1)
         return
 
     scene._begin_lane_event()
-    if not scene.lane_event_active or scene.lane_event_timer <= 0.0:
-        print("SMOKE FAIL: periodic lane event did not activate")
+    if not scene.lane_event_active or scene.station_top >= 0.0:
+        print("SMOKE FAIL: station lane segment did not approach from above")
         quit(1)
         return
 
     scene.hard_lane_right = true
-    scene.player_x = 100.0
-    var left_easy: float = scene._lane_score_multiplier()
     scene.player_x = 290.0
-    var right_hard: float = scene._lane_score_multiplier()
-    if right_hard <= left_easy:
-        print("SMOKE FAIL: right-hard lane event does not reward risk")
+    if scene._station_at_player() or scene._lane_score_multiplier() != 1.0:
+        print("SMOKE FAIL: hard-lane reward should not begin before the station reaches the player")
         quit(1)
         return
 
-    scene.hard_lane_right = false
+    scene.station_top = scene.PLAYER_Y - 120.0
+    if not scene._station_at_player():
+        print("SMOKE FAIL: station should overlap the player at test position")
+        quit(1)
+        return
+
     scene.player_x = 100.0
-    var left_hard: float = scene._lane_score_multiplier()
+    scene._check_station_collision()
+    if not scene.playing or scene.station_locked_side != "LEFT":
+        print("SMOKE FAIL: safe left corridor did not lock correctly")
+        quit(1)
+        return
+
     scene.player_x = 290.0
-    var right_easy: float = scene._lane_score_multiplier()
-    if left_hard <= right_easy:
-        print("SMOKE FAIL: left-hard lane event does not reward risk")
+    var right_hard: float = scene._lane_score_multiplier()
+    scene.player_x = 100.0
+    var left_easy: float = scene._lane_score_multiplier()
+    if right_hard <= left_easy:
+        print("SMOKE FAIL: hard corridor does not reward risk while inside station")
         quit(1)
         return
 
     scene._end_lane_event()
-    scene.player_x = 100.0
-    if scene.lane_event_active or scene._lane_score_multiplier() != 1.0:
-        print("SMOKE FAIL: lane event did not collapse back to open field")
+    if scene.lane_event_active or scene._station_at_player():
+        print("SMOKE FAIL: station segment did not clear back to open field")
         quit(1)
         return
 
@@ -93,8 +100,15 @@ func _initialize() -> void:
         print("SMOKE FAIL: extraction finale did not initialize")
         quit(1)
         return
-    if scene.extraction_lane != "LEFT" and scene.extraction_lane != "RIGHT":
-        print("SMOKE FAIL: extraction gate should use physical side, not lane difficulty")
+
+    # Station structure is lethal regardless of ordinary dash/hit invulnerability.
+    scene._begin_lane_event()
+    scene.station_top = scene.PLAYER_Y - 120.0
+    scene.player_x = scene.LANE_SPLIT
+    scene.invuln = 999.0
+    scene._check_station_collision()
+    if scene.playing or scene.hp != 0 or scene.result_reason != "STATION COLLISION":
+        print("SMOKE FAIL: station barrier contact was not an instant kill")
         quit(1)
         return
 

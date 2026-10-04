@@ -19,8 +19,13 @@ const DASH_DURATION := 0.14
 const DASH_SPEED := 760.0
 const DASH_SCORE_DURATION := 0.9
 const LANE_EVENT_FIRST := 7.0
-const LANE_EVENT_INTERVAL := 10.0
-const LANE_EVENT_DURATION := 4.0
+const LANE_EVENT_INTERVAL := 12.0
+const PLAYER_RADIUS := 14.0
+const STATION_HEIGHT := 560.0
+const STATION_SPEED := 210.0
+const STATION_START_TOP := -550.0
+const STATION_CENTER_WALL := 24.0
+const STATION_EDGE_WALL := 42.0
 
 var rng := RandomNumberGenerator.new()
 var playing := false
@@ -61,6 +66,8 @@ var lane_event_timer := 0.0
 var next_lane_event_at := LANE_EVENT_FIRST
 var lane_choice_banner_timer := 0.0
 var neutral_spawn_clock := 0.0
+var station_top := STATION_START_TOP
+var station_locked_side := ""
 var objects: Array[Dictionary] = []
 var particles: Array[Dictionary] = []
 var last_near_ids: Dictionary = {}
@@ -140,14 +147,19 @@ func _process(delta: float) -> void:
     var difficulty := clampf(elapsed / RUN_TIME, 0.0, 1.0)
 
     if lane_event_active:
+        station_top += STATION_SPEED * game_delta
         lane_event_timer = maxf(0.0, lane_event_timer - game_delta)
+        _check_station_collision()
+        if not playing:
+            queue_redraw()
+            return
         if easy_spawn_clock <= 0.0:
             _spawn_hazard(difficulty, false, true)
             easy_spawn_clock = lerpf(0.92, 0.54, difficulty) * rng.randf_range(0.86, 1.17)
         if hard_spawn_clock <= 0.0:
             _spawn_hazard(difficulty, true, true)
             hard_spawn_clock = lerpf(0.61, 0.31, difficulty) * rng.randf_range(0.82, 1.12)
-        if lane_event_timer <= 0.0:
+        if station_top > H + 40.0:
             _end_lane_event()
     else:
         if neutral_spawn_clock <= 0.0:
@@ -262,6 +274,8 @@ func _start_game() -> void:
     lane_event_timer = 0.0
     next_lane_event_at = LANE_EVENT_FIRST
     lane_choice_banner_timer = 0.0
+    station_top = STATION_START_TOP
+    station_locked_side = ""
     objects.clear()
     particles.clear()
     last_near_ids.clear()
@@ -278,17 +292,19 @@ func _finish(success: bool) -> void:
     queue_redraw()
 
 func _lane_score_multiplier() -> float:
-    return 1.35 if lane_event_active and _is_hard_position(player_x) else 1.0
+    return 1.35 if _station_at_player() and _is_hard_position(player_x) else 1.0
 
 func _dash_score_multiplier() -> float:
     return 2.0 if dash_score_timer > 0.0 else 1.0
 
 func _begin_lane_event() -> void:
     lane_event_active = true
-    lane_event_timer = LANE_EVENT_DURATION
+    station_top = STATION_START_TOP
+    station_locked_side = ""
+    lane_event_timer = (H + 40.0 - STATION_START_TOP) / STATION_SPEED
     next_lane_event_at += LANE_EVENT_INTERVAL
     hard_lane_right = rng.randf() < 0.5
-    lane_choice_banner_timer = 1.7
+    lane_choice_banner_timer = 2.4
     easy_spawn_clock = 0.12
     hard_spawn_clock = 0.08
     shake = maxf(shake, 1.8)
@@ -297,6 +313,43 @@ func _end_lane_event() -> void:
     lane_event_active = false
     lane_event_timer = 0.0
     lane_choice_banner_timer = 0.0
+    station_locked_side = ""
+    station_top = STATION_START_TOP
+
+func _station_at_player() -> bool:
+    if not lane_event_active:
+        return false
+    return PLAYER_Y + PLAYER_RADIUS >= station_top and PLAYER_Y - PLAYER_RADIUS <= station_top + STATION_HEIGHT
+
+func _station_barrier_rects() -> Array[Rect2]:
+    return [
+        Rect2(0.0, station_top, STATION_EDGE_WALL, STATION_HEIGHT),
+        Rect2(LANE_SPLIT - STATION_CENTER_WALL * 0.5, station_top, STATION_CENTER_WALL, STATION_HEIGHT),
+        Rect2(W - STATION_EDGE_WALL, station_top, STATION_EDGE_WALL, STATION_HEIGHT)
+    ]
+
+func _check_station_collision() -> void:
+    if not _station_at_player():
+        return
+
+    var player_rect := Rect2(
+        Vector2(player_x - PLAYER_RADIUS, PLAYER_Y - PLAYER_RADIUS),
+        Vector2(PLAYER_RADIUS * 2.0, PLAYER_RADIUS * 2.0)
+    )
+
+    for barrier in _station_barrier_rects():
+        if player_rect.intersects(barrier):
+            hp = 0
+            combo = 1
+            flash = 0.45
+            shake = 12.0
+            result_reason = "STATION COLLISION"
+            _burst(Vector2(player_x, PLAYER_Y), 24, Color("ffb347"))
+            _finish(false)
+            return
+
+    if station_locked_side.is_empty():
+        station_locked_side = "RIGHT" if player_x > LANE_SPLIT else "LEFT"
 
 func _is_hard_position(x: float) -> bool:
     if x >= RIGHT_LANE_MIN:
@@ -503,6 +556,8 @@ func _draw() -> void:
     for obj in objects:
         _draw_object(obj, offset)
 
+    _draw_station(offset)
+
     for p in particles:
         var alpha: float = clampf(p.life / p.max, 0.0, 1.0)
         var pc: Color = p.color
@@ -513,9 +568,9 @@ func _draw() -> void:
     _draw_dash_button()
 
     if lane_choice_banner_timer > 0.0 and lane_event_active:
-        var choice := "LANES!  LEFT EASY | RIGHT HARD" if hard_lane_right else "LANES!  LEFT HARD | RIGHT EASY"
+        var choice := "STATION SPLIT — CHOOSE A LANE"
         draw_rect(Rect2(Vector2(38, 192), Vector2(314, 42)), Color(0.02, 0.04, 0.07, 0.92), true)
-        _text(choice, Vector2(48, 220), 16, Color("ffd166"))
+        _text(choice, Vector2(62, 220), 16, Color("ffd166"))
 
     if near_miss_timer > 0.0:
         var pulse := 0.78 + sin(Time.get_ticks_msec() * 0.035) * 0.12
@@ -537,15 +592,6 @@ func _draw() -> void:
 func _draw_background() -> void:
     var t := Time.get_ticks_msec() / 1000.0
 
-    if lane_event_active:
-        var easy_col := Color(0.08, 0.18, 0.22, 0.28)
-        var hard_col := Color(0.24, 0.07, 0.12, 0.34 if not finale_active else 0.45)
-        var left_col := easy_col if hard_lane_right else hard_col
-        var right_col := hard_col if hard_lane_right else easy_col
-        draw_rect(Rect2(Vector2(LEFT_LANE_MIN, 0), Vector2(LEFT_LANE_MAX - LEFT_LANE_MIN, H)), left_col)
-        draw_rect(Rect2(Vector2(RIGHT_LANE_MIN, 0), Vector2(RIGHT_LANE_MAX - RIGHT_LANE_MIN, H)), right_col)
-        draw_line(Vector2(LANE_SPLIT, 0), Vector2(LANE_SPLIT, H), Color(0.45, 0.75, 0.85, 0.35), 3.0)
-
     for i in 18:
         var y := fmod(float(i) * 57.0 + t * (55.0 + (i % 3) * 12.0), H + 80.0) - 40.0
         var x := 18.0 + float((i * 73) % 354)
@@ -561,6 +607,43 @@ func _draw_background() -> void:
     if finale_active:
         var pulse := 0.12 + (sin(t * 8.0) + 1.0) * 0.04
         draw_rect(Rect2(Vector2.ZERO, Vector2(W, H)), Color(1.0, 0.08, 0.15, pulse), true)
+
+func _draw_station(offset: Vector2) -> void:
+    if not lane_event_active:
+        return
+
+    var easy_tint := Color(0.12, 0.34, 0.38, 0.13)
+    var hard_tint := Color(0.48, 0.08, 0.14, 0.16)
+    var left_tint := easy_tint if hard_lane_right else hard_tint
+    var right_tint := hard_tint if hard_lane_right else easy_tint
+    var y0 := station_top
+    var y1 := station_top + STATION_HEIGHT
+
+    draw_rect(Rect2(Vector2(STATION_EDGE_WALL, y0), Vector2(LANE_SPLIT - STATION_CENTER_WALL * 0.5 - STATION_EDGE_WALL, STATION_HEIGHT)), left_tint, true)
+    draw_rect(Rect2(Vector2(LANE_SPLIT + STATION_CENTER_WALL * 0.5, y0), Vector2(W - STATION_EDGE_WALL - (LANE_SPLIT + STATION_CENTER_WALL * 0.5), STATION_HEIGHT)), right_tint, true)
+
+    var metal := Color("596777")
+    var metal_dark := Color("1e2833")
+    var edge := Color("9aa9b8")
+    var warning := Color("ffb347")
+
+    for barrier in _station_barrier_rects():
+        var shifted := Rect2(barrier.position + offset, barrier.size)
+        draw_rect(shifted, metal_dark, true)
+        draw_rect(shifted, metal, false, 4.0)
+        var strip_y := shifted.position.y + 24.0
+        while strip_y < shifted.end.y - 12.0:
+            draw_line(Vector2(shifted.position.x + 4.0, strip_y), Vector2(shifted.end.x - 4.0, strip_y + 18.0), warning, 4.0)
+            draw_line(Vector2(shifted.position.x + 4.0, strip_y + 18.0), Vector2(shifted.end.x - 4.0, strip_y), metal_dark, 4.0)
+            strip_y += 62.0
+
+    var panel_y := y0 + 38.0
+    while panel_y < y1 - 24.0:
+        draw_circle(Vector2(LANE_SPLIT, panel_y) + offset, 4.0, edge)
+        panel_y += 74.0
+
+    if _station_at_player() and not station_locked_side.is_empty():
+        _text("LOCKED %s" % station_locked_side, Vector2(135, 650), 17, Color("ffd166"))
 
 func _draw_player(offset: Vector2) -> void:
     var pos := Vector2(player_x, PLAYER_Y) + offset
@@ -638,12 +721,12 @@ func _draw_title() -> void:
     _text("NEON", Vector2(102, 220), 52, Color("77f7ff"))
     _text("DRIFTLINE", Vector2(54, 276), 47, Color("f0fbff"))
     _text("SURVIVE. THEN EXTRACT.", Vector2(57, 351), 21, Color("ffd166"))
-    _text("LANES APPEAR PERIODICALLY", Vector2(62, 416), 18, Color("ffd166"))
-    _text("READ THEM. CHOOSE FAST.", Vector2(82, 444), 18, Color("bdeef4"))
-    _text("DASH = x2 SCORE BURST", Vector2(87, 476), 17, Color("ffd166"))
-    _text("Drag to steer. Tap DASH to burst.", Vector2(54, 506), 16, Color("bdeef4"))
-    _text("Near misses slow time + build combo.", Vector2(48, 533), 16, Color("8ea9b8"))
-    _text("At 50 sec: reach the extraction gate.", Vector2(43, 560), 16, Color("8ea9b8"))
+    _text("STATION SPLITS APPROACH", Vector2(73, 416), 18, Color("ffd166"))
+    _text("CHOOSE A LANE BEFORE IMPACT", Vector2(56, 444), 18, Color("bdeef4"))
+    _text("WALL CONTACT = INSTANT DEATH", Vector2(56, 476), 16, Color("ff8fa6"))
+    _text("DASH = x2 SCORE BURST", Vector2(87, 506), 17, Color("ffd166"))
+    _text("Drag to steer. Tap DASH to burst.", Vector2(54, 533), 16, Color("bdeef4"))
+    _text("Near misses slow time + build combo.", Vector2(48, 560), 16, Color("8ea9b8"))
     draw_rect(Rect2(Vector2(54, 606), Vector2(282, 76)), Color("123544"), true)
     draw_rect(Rect2(Vector2(54, 606), Vector2(282, 76)), Color("77f7ff"), false, 3.0)
     _text("TAP TO LAUNCH", Vector2(92, 656), 24, Color("f0fbff"))
