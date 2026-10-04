@@ -31,7 +31,7 @@ const DASH_FORWARD_SPEED := 760.0
 const DASH_FORWARD_DISTANCE := 170.0
 const DASH_RETURN_RATE := 4.0
 const DASH_SCORE_DURATION := 0.9
-const LANE_EVENT_FIRST := 7.0
+const LANE_EVENT_FIRST := 10.0
 const LANE_EVENT_INTERVAL := 12.0
 const PLAYER_RADIUS := 14.0
 const STATION_HEIGHT := 560.0
@@ -52,7 +52,8 @@ const SEEKER_DAMAGE := 7.0
 const LASER_DPS := 3.0
 const REPAIR_INTERVAL_MIN := 24.0
 const REPAIR_INTERVAL_MAX := 34.0
-const REPAIR_RETRY_FULL := 6.0
+const REPAIR_RETRY_FULL := 12.0
+const FIELD_REPAIR_CHANCE := 0.28
 
 var rng := RandomNumberGenerator.new()
 var playing := false
@@ -192,11 +193,9 @@ func _process(delta: float) -> void:
         fire_clock = _weapon_interval()
 
     if repair_clock <= 0.0:
-        if hp < 3:
+        if hp < 3 and rng.randf() < FIELD_REPAIR_CHANCE:
             _spawn_repair()
-            repair_clock = rng.randf_range(REPAIR_INTERVAL_MIN, REPAIR_INTERVAL_MAX)
-        else:
-            repair_clock = REPAIR_RETRY_FULL
+        repair_clock = rng.randf_range(REPAIR_INTERVAL_MIN, REPAIR_INTERVAL_MAX) if hp < 3 else REPAIR_RETRY_FULL
 
     if lane_event_active:
         station_top += STATION_SPEED * game_delta
@@ -304,7 +303,7 @@ func _start_game() -> void:
     easy_spawn_clock = 0.90
     hard_spawn_clock = 0.72
     pickup_clock = 1.3
-    neutral_spawn_clock = 0.95
+    neutral_spawn_clock = 1.65
     fire_clock = 0.18
     repair_clock = 18.0
     current_weapon = "single"
