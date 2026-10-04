@@ -1,63 +1,78 @@
 # Neon Driftline
 
-A phone-first Godot arcade roguelite built around one-thumb movement, automatic weapons, risk/reward station corridors, and a deliberately slow escalation curve.
+A phone-first Godot arcade roguelite built around one-thumb movement, auto-weapons, score-risk play, escalating enemy archetypes, and station splits.
 
-## Run progression
+## Progression
 
-A new run starts with **3 HP and no weapon**. Level 1 is intentionally a survival/tutorial stage: dodge first, earn score, then buy your first gun in the shop.
+Runs begin with **3 HP and no weapon**.
 
-- **Level 1:** 18 seconds, circles and squares only, exactly **one short station split**, no yellow diamonds, no starting weapon.
-- Each following level adds about **3 seconds**, up to a 45-second cap.
-- Enemy pressure rises gradually through slightly faster and denser spawns.
-- Station splits get **longer every level**.
-- Extra splits are introduced slowly: Levels 1–2 have one, 3–4 have two, 5–6 have three, and Level 7+ can have four.
-- HP, equipped weapon, and unspent score persist between levels.
-- Field repair drops remain rare; the between-level shop is the reliable recovery source.
+- **Level 1:** 18 seconds, sparse slow circles only, one short station split. The hard corridor contains a few small circle clusters.
+- **Level 2:** moving squares enter the enemy pool.
+- **Level 4:** yellow diamonds enter. Diamonds are the toughest standard enemy and actively steer toward the player's horizontal position.
+- **Level 6:** purple shooting rhomboids enter. They periodically aim projectiles at the player's current position.
+- Level duration increases by about 3 seconds per stage to a 45-second cap.
+- Station splits gradually become longer and more numerous.
+- Enemy density and speed continue rising slowly with level.
+
+## Tight score economy
+
+Score is intentionally compact so individual actions remain legible.
+
+- **Circle kill:** 1 point.
+- **Moving square kill:** 2 points.
+- **Shooting rhomboid kill:** 4 points.
+- **Smart yellow diamond kill:** 5 points.
+- **Ordinary near miss:** roughly 20–50 points as combo rises.
+- **Dash near miss:** roughly 120–180 points as combo rises.
+- **Energy pickup:** 10 points normally; hard-lane energy starts at 20 before the lane bonus.
+- Nonlethal weapon damage gives no score.
+- Repairs and weapon pickups themselves give no score.
+- Passive survival time no longer prints free score.
+
+The hard station lane still applies its score bonus where relevant.
 
 ## Shop
 
-Score is both run score and spendable currency. Clearing a level awards a small bonus before opening the shop.
+The shop uses the same compact score scale.
 
-- **Repair +1 hit:** 500 score, up to 3 HP.
-- **Single Auto D1:** 350 score.
-- **Dual Auto D1x2:** 650 score.
-- **Cone Cannon D3x3:** 900 score.
-- **Heat Seeker D7:** 1150 score.
-- **Thin Laser 3 DPS:** 850 score.
+- **Single Auto D1:** 45
+- **Repair +1 hit:** 75
+- **Dual Auto D1x2:** 90
+- **Thin Laser 3 DPS:** 120
+- **Cone Cannon D3x3:** 130
+- **Heat Seeker D7:** 160
 
-The run begins unarmed, so the Single Auto is normally the first weapon purchase. You can always skip purchases and start the next level.
+Clearing a level also grants a small level-scaled bonus.
 
 ## Weapons
 
-All equipped weapons fire automatically.
-
-- **Single Auto:** one accurate forward bolt, **1 damage**, every **0.24 s**. This is intentionally the weakest gun.
-- **Dual Auto:** two forward bolts, **1 damage each**, every **0.32 s**.
-- **Cone Cannon:** three-way spread, **3 damage per shot**, every **0.72 s**.
-- **Heat Seeker:** one homing missile, **7 damage**, every **1.05 s**.
-- **Thin Laser:** narrow continuous beam, **3 DPS**, damaging only the first obstacle in the beam.
+- **Single Auto:** D1 accurate pulse.
+- **Dual Auto:** D1 × 2.
+- **Cone Cannon:** D3 × 3 spread.
+- **Heat Seeker:** D7 homing projectile.
+- **Thin Laser:** narrow 3 DPS beam.
 
 Weapons cannot damage station structure.
 
-## Obstacles and survival
+## Enemy archetypes
 
-- Red circles: **3 HP**.
-- Red squares: **6 HP**.
-- Yellow diamonds: **12 HP**, introduced only after Level 1.
-- Ordinary obstacle collisions cost one hit.
-- Station outer walls and center bulkheads are indestructible and **instant-kill** on contact.
-- Damaged obstacles show compact HP bars.
+- **Lazy circle — 3 HP:** slow and nontracking. The only Level 1 enemy.
+- **Moving square — 6 HP:** lateral movement makes lanes less predictable.
+- **Smart yellow diamond — 12 HP:** strongest enemy; continuously corrects its lateral motion toward the player.
+- **Shooting rhomboid — 8 HP:** slower body movement but fires aimed purple shots.
+
+Ordinary body collisions cost one hit. Enemy projectiles also cost one hit. Station walls remain indestructible and instantly lethal.
 
 ## Dash
 
-Forward dash surges the ship almost to the top of the screen. The ship then hangs forward while the level scrolls and slowly settles back toward its normal flight line. Dash also creates a short **x2 score window**.
+Dash surges the ship almost to the top of the screen, then leaves it hanging forward while the world scrolls and the ship slowly settles toward its normal flight line. Dash near-misses are intentionally the highest-value repeatable scoring action.
 
 ## Technical target
 
 - Godot 4.7.2 stable
 - Web export using Compatibility renderer
-- 390x844 portrait reference viewport
-- Touch-first input with mouse fallback
+- 390×844 portrait reference viewport
+- Touch-first controls with mouse fallback
 - Procedural vector visuals and runtime-generated SFX
 
 ## Automated smoke test
