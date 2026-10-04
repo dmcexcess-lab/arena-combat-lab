@@ -237,9 +237,9 @@ func _process(delta: float) -> void:
         fire_clock = _weapon_interval()
 
     if repair_clock <= 0.0:
-        if hp < 3 and rng.randf() < FIELD_REPAIR_CHANCE:
+        if hp < max_hp and rng.randf() < FIELD_REPAIR_CHANCE:
             _spawn_repair()
-        repair_clock = rng.randf_range(REPAIR_INTERVAL_MIN, REPAIR_INTERVAL_MAX) if hp < 3 else REPAIR_RETRY_FULL
+        repair_clock = rng.randf_range(REPAIR_INTERVAL_MIN, REPAIR_INTERVAL_MAX) if hp < max_hp else REPAIR_RETRY_FULL
 
     if lane_event_active:
         station_top += STATION_SPEED * world_delta
@@ -410,7 +410,7 @@ func _ship_speed_multiplier() -> float:
     return 1.0 + float(research_ship_speed) * 0.04
 
 func _dash_distance() -> float:
-    return DASH_FORWARD_DISTANCE + float(research_dash) * 35.0
+    return minf(PLAYER_Y - 45.0, DASH_FORWARD_DISTANCE + float(research_dash) * 25.0)
 
 func _dash_speed() -> float:
     return DASH_FORWARD_SPEED + float(research_dash) * 100.0
@@ -496,6 +496,7 @@ func _buy_repair() -> bool:
         return false
     score -= SHOP_REPAIR_COST
     hp += 1
+    _save_run_snapshot()
     return true
 
 func _buy_weapon(weapon: String) -> bool:
@@ -506,6 +507,7 @@ func _buy_weapon(weapon: String) -> bool:
         return false
     score -= cost
     current_weapon = weapon
+    _save_run_snapshot()
     return true
 
 func _start_next_level() -> void:
@@ -596,6 +598,8 @@ func _research_max(track: String) -> int:
         return 1
     if track == "hits":
         return 5
+    if track == "dash":
+        return 5
     return 20
 
 func _research_cost(track: String) -> int:
@@ -608,9 +612,9 @@ func _research_cost(track: String) -> int:
         "damage":
             return int(round(1000.0 * pow(1.80, lvl)))
         "hits":
-            return int(round(2500.0 * pow(2.0, lvl)))
+            return int(round(2000.0 * pow(1.50, lvl)))
         "shield":
-            return 7500
+            return 15000
     return 99999999
 
 func _buy_research(track: String) -> bool:
@@ -1379,7 +1383,7 @@ func _move_objects(delta: float) -> void:
                 continue
         elif obj.type == "repair":
             if absf(dy) < obj.r + 18.0 and dx < obj.r + 20.0:
-                if hp < 3:
+                if hp < max_hp:
                     hp += 1
                     score += 0
                     _burst(Vector2(obj.x, obj.y), 12, Color("e8fff3"))
@@ -1735,7 +1739,7 @@ func _draw_research() -> void:
     _text("BANK %07d" % research_credits, Vector2(108, 112), 18, Color("ffd166"))
     _text("PERMANENT ACROSS RUNS", Vector2(87, 145), 15, Color("8ea9b8"))
     _draw_research_button(RESEARCH_SHIP_RECT, "ship", "SHIP SPEED", "+4% scroll, +8% near score")
-    _draw_research_button(RESEARCH_DASH_RECT, "dash", "DASH", "+35px / +100 speed / +12% dash-near")
+    _draw_research_button(RESEARCH_DASH_RECT, "dash", "DASH", "+25px / +100 speed / +12% dash-near")
     _draw_research_button(RESEARCH_DAMAGE_RECT, "damage", "DAMAGE", "+3% all weapon damage")
     _draw_research_button(RESEARCH_HITS_RECT, "hits", "HITS", "+1 starting hit")
     _draw_research_button(RESEARCH_SHIELD_RECT, "shield", "SHIELD", "1 projectile block each run")
