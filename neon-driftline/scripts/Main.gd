@@ -155,7 +155,7 @@ func _ready() -> void:
     queue_redraw()
 
 func _notification(what: int) -> void:
-    if what == NOTIFICATION_APPLICATION_FOCUS_OUT or what == NOTIFICATION_APPLICATION_PAUSED:
+    if what == NOTIFICATION_WM_WINDOW_FOCUS_OUT or what == NOTIFICATION_APPLICATION_FOCUS_OUT or what == NOTIFICATION_APPLICATION_PAUSED:
         if (playing or shop_open) and not game_over:
             _pause_run()
         _save_meta()
