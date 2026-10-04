@@ -82,13 +82,13 @@ func _initialize() -> void:
     scene.dash_cooldown = 0.0
     scene._dash()
     var dash_start_y: float = scene.player_y
-    scene._process(0.05)
+    scene._process(0.20)
     if scene.dash_cooldown <= 0.0 or scene.dash_timer <= 0.0:
-        print("SMOKE FAIL: dash did not activate")
+        print("SMOKE FAIL: dash did not stay active long enough for extended travel")
         quit(1)
         return
-    if scene.player_y >= dash_start_y:
-        print("SMOKE FAIL: dash did not move the ship forward")
+    if dash_start_y - scene.player_y < 145.0:
+        print("SMOKE FAIL: dash did not travel far enough forward")
         quit(1)
         return
     if absf(scene.player_x - 195.0) > 0.5:
@@ -97,6 +97,21 @@ func _initialize() -> void:
         return
     if scene._dash_score_multiplier() <= 1.0 or scene.dash_score_timer <= 0.0:
         print("SMOKE FAIL: dash score multiplier did not activate")
+        quit(1)
+        return
+
+    var far_y: float = scene.player_y
+    scene._process(0.12)
+    if scene.dash_timer > 0.0:
+        print("SMOKE FAIL: dash should be transitioning into return")
+        quit(1)
+        return
+    if scene.player_y >= scene.PLAYER_Y - 55.0:
+        print("SMOKE FAIL: return to flight line is too fast")
+        quit(1)
+        return
+    if scene.player_y <= far_y:
+        print("SMOKE FAIL: ship did not begin returning after dash")
         quit(1)
         return
 
