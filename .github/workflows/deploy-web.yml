@@ -15,7 +15,7 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  GODOT_VERSION: 4.7.1
+  GODOT_VERSION: 4.7.2
   GODOT_STATUS: stable
 
 jobs:
@@ -58,32 +58,59 @@ jobs:
           fi
           grep -q 'ARENA SMOKE OK' "$LOG"
 
-      - name: Export Web build and reject script errors
+      - name: Run headless Neon Driftline smoke test
         shell: bash
         run: |
           set -euxo pipefail
-          mkdir -p build/web
-          SHORT_SHA="${GITHUB_SHA:0:12}"
-          BASENAME="arena-${SHORT_SHA}"
-          LOG=/tmp/godot-export.log
+          LOG=/tmp/neon-smoke.log
           set +e
           "/tmp/godot/Godot_v${GODOT_VERSION}-${GODOT_STATUS}_linux.x86_64" \
-            --headless --path . --export-release Web "build/web/${BASENAME}.html" \
-            2>&1 | tee "$LOG"
+            --headless --path neon-driftline --script res://tests/SmokeTest.gd 2>&1 | tee "$LOG"
           GODOT_EXIT=${PIPESTATUS[0]}
           set -e
           if [ "$GODOT_EXIT" -ne 0 ]; then
-            echo "Godot export exited with code $GODOT_EXIT"
+            echo "Neon Driftline smoke test exited with code $GODOT_EXIT"
             exit "$GODOT_EXIT"
           fi
-          if grep -E 'SCRIPT ERROR|Parse Error|Failed to load script' "$LOG"; then
-            echo 'Godot emitted script errors; refusing to publish broken build.'
+          if grep -E 'SCRIPT ERROR|Parse Error|Failed to load script|SMOKE FAIL' "$LOG"; then
+            echo 'Neon Driftline smoke test reported an error; refusing to publish.'
             exit 1
           fi
-          mv "build/web/${BASENAME}.html" build/web/index.html
+          grep -q 'NEON DRIFTLINE SMOKE OK' "$LOG"
+
+      - name: Export Web builds and reject script errors
+        shell: bash
+        run: |
+          set -euxo pipefail
+          mkdir -p build/web build/web/neon-driftline
+          SHORT_SHA="${GITHUB_SHA:0:12}"
+
+          ARENA_BASENAME="arena-${SHORT_SHA}"
+          ARENA_LOG=/tmp/godot-export-arena.log
+          set +e
+          "/tmp/godot/Godot_v${GODOT_VERSION}-${GODOT_STATUS}_linux.x86_64" \
+            --headless --path . --export-release Web "build/web/${ARENA_BASENAME}.html" \
+            2>&1 | tee "$ARENA_LOG"
+          ARENA_EXIT=${PIPESTATUS[0]}
+          set -e
+          if [ "$ARENA_EXIT" -ne 0 ]; then exit "$ARENA_EXIT"; fi
+          if grep -E 'SCRIPT ERROR|Parse Error|Failed to load script' "$ARENA_LOG"; then exit 1; fi
+          mv "build/web/${ARENA_BASENAME}.html" build/web/index.html
+          test -f "build/web/${ARENA_BASENAME}.pck"
+
+          NEON_BASENAME="neon-${SHORT_SHA}"
+          NEON_LOG=/tmp/godot-export-neon.log
+          set +e
+          "/tmp/godot/Godot_v${GODOT_VERSION}-${GODOT_STATUS}_linux.x86_64" \
+            --headless --path neon-driftline --export-release Web "../build/web/neon-driftline/${NEON_BASENAME}.html" \
+            2>&1 | tee "$NEON_LOG"
+          NEON_EXIT=${PIPESTATUS[0]}
+          set -e
+          if [ "$NEON_EXIT" -ne 0 ]; then exit "$NEON_EXIT"; fi
+          if grep -E 'SCRIPT ERROR|Parse Error|Failed to load script' "$NEON_LOG"; then exit 1; fi
+          mv "build/web/neon-driftline/${NEON_BASENAME}.html" build/web/neon-driftline/index.html
+          test -f "build/web/neon-driftline/${NEON_BASENAME}.pck"
           touch build/web/.nojekyll
-          test -f build/web/index.html
-          test -f "build/web/${BASENAME}.pck"
 
       - name: Keep downloadable build artifact
         uses: actions/upload-artifact@v4
