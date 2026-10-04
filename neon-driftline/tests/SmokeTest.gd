@@ -357,12 +357,15 @@ func _initialize() -> void:
         return
 
     # Economy should be on the compact score scale.
-    if scene.SHOP_SINGLE_COST != 45 or scene.SHOP_REPAIR_COST != 75 or scene.SHOP_SEEKER_COST != 160:
-        _fail("shop prices were not tightened with score scale")
+    if scene.SHOP_SINGLE_COST != 300 or scene.SHOP_DUAL_COST != 1000 or scene.SHOP_LASER_COST != 2500 or scene.SHOP_CONE_COST != 5000 or scene.SHOP_SEEKER_COST != 10000:
+        _fail("weapon prices do not span hundreds through ten-thousands")
+        return
+    if scene.SHOP_REPAIR_COST != 75:
+        _fail("repair price should remain on the compact score scale")
         return
 
     # Level clear opens a frozen shop and awards a clear bonus.
-    scene.score = 3000
+    scene.score = 15000
     scene.hp = 1
     scene.current_weapon = "none"
     scene.objects.append({

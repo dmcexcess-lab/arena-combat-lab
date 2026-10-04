@@ -33,14 +33,14 @@ The hard station lane still applies its score bonus where relevant.
 
 ## Shop
 
-The shop uses the same compact score scale.
+Repairs stay cheap enough to function as recovery, but **weapons are intentionally expensive long-term run goals** rather than routine swaps.
 
-- **Single Auto D1:** 45
 - **Repair +1 hit:** 75
-- **Dual Auto D1x2:** 90
-- **Thin Laser 3 DPS:** 120
-- **Cone Cannon D3x3:** 130
-- **Heat Seeker D7:** 160
+- **Single Auto D1:** 300
+- **Dual Auto D1x2:** 1,000
+- **Thin Laser 3 DPS:** 2,500
+- **Cone Cannon D3x3:** 5,000
+- **Heat Seeker D7:** 10,000
 
 Clearing a level also grants a small level-scaled bonus.
 
