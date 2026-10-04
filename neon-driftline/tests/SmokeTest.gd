@@ -106,6 +106,7 @@ func _initialize() -> void:
         print("SMOKE FAIL: dash should be transitioning into return")
         quit(1)
         return
+    scene._process(0.08)
     if scene.player_y >= scene.PLAYER_Y - 55.0:
         print("SMOKE FAIL: return to flight line is too fast")
         quit(1)
