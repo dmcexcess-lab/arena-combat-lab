@@ -253,7 +253,11 @@ func _lane_score_multiplier() -> float:
     return 1.35 if _is_hard_position(player_x) else 1.0
 
 func _is_hard_position(x: float) -> bool:
-    return (x > LANE_SPLIT) == hard_lane_right
+    if x >= RIGHT_LANE_MIN:
+        return hard_lane_right
+    if x <= LEFT_LANE_MAX:
+        return not hard_lane_right
+    return false
 
 func _lane_bounds(hard_lane: bool) -> Vector2:
     var use_right := hard_lane == hard_lane_right
