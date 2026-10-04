@@ -478,16 +478,30 @@ func _weapon_damage(weapon: String) -> float:
 func _weapon_label(weapon: String) -> String:
     match weapon:
         "single":
-            return "SINGLE PULSE"
+            return "SINGLE D2"
         "dual":
-            return "DUAL PULSE"
+            return "DUAL D1x2"
         "cone":
-            return "CONE CANNON"
+            return "CONE D3x3"
         "seeker":
-            return "HEAT SEEKER"
+            return "SEEKER D7"
         "laser":
-            return "THIN LASER"
-    return "SINGLE PULSE"
+            return "LASER 3 DPS"
+    return "SINGLE D2"
+
+func _weapon_icon(weapon: String) -> String:
+    match weapon:
+        "single":
+            return "1"
+        "dual":
+            return "2"
+        "cone":
+            return "C"
+        "seeker":
+            return "H"
+        "laser":
+            return "L"
+    return "?"
 
 func _obstacle_max_hp(kind: int) -> float:
     match kind:
@@ -588,13 +602,14 @@ func _consume_shot_hit(obj: Dictionary) -> bool:
 func _apply_laser_damage(delta: float) -> void:
     if current_weapon != "laser" or not playing:
         return
+    var survivors: Array[Dictionary] = []
     for obj in objects:
-        if obj.type != "hazard":
-            continue
-        if float(obj.y) >= player_y:
-            continue
-        if absf(float(obj.x) - player_x) <= float(obj.r) + 4.0:
-            _apply_damage_to_hazard(obj, LASER_DPS * delta)
+        var destroyed := false
+        if obj.type == "hazard" and float(obj.y) < player_y and absf(float(obj.x) - player_x) <= float(obj.r) + 4.0:
+            destroyed = _apply_damage_to_hazard(obj, LASER_DPS * delta)
+        if not destroyed:
+            survivors.append(obj)
+    objects = survivors
 
 func _spawn_weapon_pickup() -> void:
     var choices := ["single", "dual", "cone", "seeker", "laser"]
@@ -933,7 +948,7 @@ func _draw_object(obj: Dictionary, offset: Vector2) -> void:
     if obj.type == "weapon":
         draw_circle(p, obj.r + 8.0, Color(0.66, 0.45, 1.0, 0.18))
         draw_circle(p, obj.r, Color("a882ff"))
-        _text(String(obj.weapon).substr(0, 1).to_upper(), p + Vector2(-5, 6), 16, Color("ffffff"))
+        _text(_weapon_icon(String(obj.weapon)), p + Vector2(-5, 6), 16, Color("ffffff"))
         return
 
     if obj.type == "repair":
