@@ -28,9 +28,19 @@ const STATION_SPEED := 210.0
 const STATION_START_TOP := -550.0
 const STATION_CENTER_WALL := 24.0
 const STATION_EDGE_WALL := 42.0
-const AUTO_FIRE_INTERVAL := 0.34
-const SHOT_SPEED := 650.0
 const SHOT_RADIUS := 4.0
+const SINGLE_INTERVAL := 0.24
+const DUAL_INTERVAL := 0.32
+const CONE_INTERVAL := 0.72
+const SEEKER_INTERVAL := 1.05
+const LASER_INTERVAL := 0.06
+const SINGLE_DAMAGE := 2.0
+const DUAL_DAMAGE := 1.0
+const CONE_DAMAGE := 3.0
+const SEEKER_DAMAGE := 7.0
+const LASER_DPS := 3.0
+const WEAPON_PICKUP_MIN := 7.0
+const WEAPON_PICKUP_MAX := 10.0
 const REPAIR_INTERVAL_MIN := 8.0
 const REPAIR_INTERVAL_MAX := 12.0
 const REPAIR_RETRY_FULL := 2.0
@@ -74,7 +84,11 @@ var next_lane_event_at := LANE_EVENT_FIRST
 var lane_choice_banner_timer := 0.0
 var neutral_spawn_clock := 0.0
 var fire_clock := 0.0
+var weapon_clock := 0.0
 var repair_clock := 0.0
+var current_weapon := "single"
+var weapon_banner_timer := 0.0
+var weapon_banner_text := ""
 var station_top := STATION_START_TOP
 var station_locked_side := ""
 var objects: Array[Dictionary] = []
@@ -128,6 +142,7 @@ func _process(delta: float) -> void:
         return
 
     near_miss_timer = maxf(0.0, near_miss_timer - delta)
+    weapon_banner_timer = maxf(0.0, weapon_banner_timer - delta)
     lane_choice_banner_timer = maxf(0.0, lane_choice_banner_timer - delta)
     finale_banner_timer = maxf(0.0, finale_banner_timer - delta)
     flash = maxf(0.0, flash - delta)
@@ -156,12 +171,19 @@ func _process(delta: float) -> void:
     neutral_spawn_clock -= game_delta
     pickup_clock -= game_delta
     fire_clock -= game_delta
+    weapon_clock -= game_delta
     repair_clock -= game_delta
     var difficulty := clampf(elapsed / RUN_TIME, 0.0, 1.0)
 
-    if fire_clock <= 0.0:
+    if current_weapon == "laser":
+        _apply_laser_damage(game_delta)
+    elif fire_clock <= 0.0:
         _fire_weapon()
-        fire_clock = AUTO_FIRE_INTERVAL
+        fire_clock = _weapon_interval()
+
+    if weapon_clock <= 0.0:
+        _spawn_weapon_pickup()
+        weapon_clock = rng.randf_range(WEAPON_PICKUP_MIN, WEAPON_PICKUP_MAX)
 
     if repair_clock <= 0.0:
         if hp < 3:
@@ -274,7 +296,11 @@ func _start_game() -> void:
     pickup_clock = 0.9
     neutral_spawn_clock = 0.45
     fire_clock = 0.12
+    weapon_clock = 4.0
     repair_clock = 2.0
+    current_weapon = "single"
+    weapon_banner_timer = 0.0
+    weapon_banner_text = ""
     dash_cooldown = 0.0
     dash_timer = 0.0
     dash_score_timer = 0.0
@@ -404,10 +430,13 @@ func _spawn_hazard(difficulty: float, hard_lane: bool, lane_mode: bool = true) -
     elif kind == 2:
         radius = rng.randf_range(11.0, 16.0)
         speed += 95.0 if hard_lane else 65.0
+    var obstacle_hp := _obstacle_max_hp(kind)
     objects.append({
         "id": rng.randi(),
         "type": "hazard",
         "kind": kind,
+        "hp": obstacle_hp,
+        "max_hp": obstacle_hp,
         "hard": hard_lane and lane_mode,
         "x": x,
         "y": -40.0,
@@ -418,20 +447,128 @@ func _spawn_hazard(difficulty: float, hard_lane: bool, lane_mode: bool = true) -
         "lane_max": lane_max
     })
 
+func _weapon_interval() -> float:
+    match current_weapon:
+        "single":
+            return SINGLE_INTERVAL
+        "dual":
+            return DUAL_INTERVAL
+        "cone":
+            return CONE_INTERVAL
+        "seeker":
+            return SEEKER_INTERVAL
+        "laser":
+            return LASER_INTERVAL
+    return SINGLE_INTERVAL
+
+func _weapon_damage(weapon: String) -> float:
+    match weapon:
+        "single":
+            return SINGLE_DAMAGE
+        "dual":
+            return DUAL_DAMAGE
+        "cone":
+            return CONE_DAMAGE
+        "seeker":
+            return SEEKER_DAMAGE
+        "laser":
+            return LASER_DPS
+    return SINGLE_DAMAGE
+
+func _weapon_label(weapon: String) -> String:
+    match weapon:
+        "single":
+            return "SINGLE D2"
+        "dual":
+            return "DUAL D1x2"
+        "cone":
+            return "CONE D3x3"
+        "seeker":
+            return "SEEKER D7"
+        "laser":
+            return "LASER 3 DPS"
+    return "SINGLE D2"
+
+func _weapon_icon(weapon: String) -> String:
+    match weapon:
+        "single":
+            return "1"
+        "dual":
+            return "2"
+        "cone":
+            return "C"
+        "seeker":
+            return "H"
+        "laser":
+            return "L"
+    return "?"
+
+func _obstacle_max_hp(kind: int) -> float:
+    match kind:
+        0:
+            return 3.0
+        1:
+            return 6.0
+        2:
+            return 12.0
+    return 3.0
+
+func _spawn_shot(x: float, y: float, vx: float, vy: float, damage: float, homing: bool = false) -> void:
+    shots.append({
+        "x": x,
+        "y": y,
+        "vx": vx,
+        "vy": vy,
+        "r": SHOT_RADIUS,
+        "damage": damage,
+        "homing": homing
+    })
+
 func _fire_weapon() -> void:
     if not playing:
         return
-    for offset_x in [-9.0, 9.0]:
-        shots.append({
-            "x": player_x + offset_x,
-            "y": player_y - 20.0,
-            "r": SHOT_RADIUS
-        })
+    match current_weapon:
+        "single":
+            _spawn_shot(player_x, player_y - 22.0, 0.0, -690.0, SINGLE_DAMAGE)
+        "dual":
+            _spawn_shot(player_x - 10.0, player_y - 20.0, 0.0, -650.0, DUAL_DAMAGE)
+            _spawn_shot(player_x + 10.0, player_y - 20.0, 0.0, -650.0, DUAL_DAMAGE)
+        "cone":
+            _spawn_shot(player_x, player_y - 22.0, -145.0, -520.0, CONE_DAMAGE)
+            _spawn_shot(player_x, player_y - 24.0, 0.0, -560.0, CONE_DAMAGE)
+            _spawn_shot(player_x, player_y - 22.0, 145.0, -520.0, CONE_DAMAGE)
+        "seeker":
+            _spawn_shot(player_x, player_y - 24.0, 0.0, -370.0, SEEKER_DAMAGE, true)
+        "laser":
+            pass
+
+func _nearest_hazard_position(from_pos: Vector2) -> Vector2:
+    var best := Vector2(from_pos.x, -40.0)
+    var best_d := INF
+    for obj in objects:
+        if obj.type != "hazard":
+            continue
+        var p := Vector2(float(obj.x), float(obj.y))
+        if p.y >= from_pos.y:
+            continue
+        var d := from_pos.distance_squared_to(p)
+        if d < best_d:
+            best_d = d
+            best = p
+    return best
 
 func _move_shots(delta: float) -> void:
     var next: Array[Dictionary] = []
     for shot in shots:
-        shot.y -= SHOT_SPEED * delta
+        if shot.homing:
+            var pos := Vector2(float(shot.x), float(shot.y))
+            var target := _nearest_hazard_position(pos)
+            var desired := (target - pos).normalized() * 430.0
+            shot.vx = lerpf(float(shot.vx), desired.x, minf(1.0, delta * 4.5))
+            shot.vy = lerpf(float(shot.vy), desired.y, minf(1.0, delta * 4.5))
+        shot.x += float(shot.vx) * delta
+        shot.y += float(shot.vy) * delta
+
         var blocked := false
         if lane_event_active:
             var point := Vector2(shot.x, shot.y)
@@ -439,21 +576,73 @@ func _move_shots(delta: float) -> void:
                 if barrier.has_point(point):
                     blocked = true
                     break
-        if not blocked and shot.y > -30.0:
+        if not blocked and shot.y > -45.0 and shot.y < H + 40.0 and shot.x > -40.0 and shot.x < W + 40.0:
             next.append(shot)
     shots = next
+
+func _apply_damage_to_hazard(obj: Dictionary, damage: float) -> bool:
+    obj.hp = maxf(0.0, float(obj.hp) - damage)
+    score += int(18.0 * damage * combo * _dash_score_multiplier())
+    if float(obj.hp) <= 0.0:
+        score += int((90.0 + float(obj.max_hp) * 28.0) * combo * _dash_score_multiplier())
+        _burst(Vector2(obj.x, obj.y), 10, Color("ffd166"))
+        return true
+    if damage >= 1.0:
+        _burst(Vector2(obj.x, obj.y), 3, Color("fff4c2"))
+    return false
 
 func _consume_shot_hit(obj: Dictionary) -> bool:
     for i in range(shots.size() - 1, -1, -1):
         var shot: Dictionary = shots[i]
         var dx := absf(float(shot.x) - float(obj.x))
         var dy := absf(float(shot.y) - float(obj.y))
-        if dx < float(obj.r) + SHOT_RADIUS and dy < float(obj.r) + SHOT_RADIUS:
+        if dx < float(obj.r) + float(shot.r) and dy < float(obj.r) + float(shot.r):
+            var damage := float(shot.damage)
             shots.remove_at(i)
-            score += int(120 * combo * _dash_score_multiplier())
-            _burst(Vector2(obj.x, obj.y), 8, Color("ffd166"))
-            return true
+            return _apply_damage_to_hazard(obj, damage)
     return false
+
+func _apply_laser_damage(delta: float) -> void:
+    if current_weapon != "laser" or not playing:
+        return
+    var target_index := -1
+    var target_y := -INF
+    for i in objects.size():
+        var obj: Dictionary = objects[i]
+        if obj.type != "hazard":
+            continue
+        if float(obj.y) >= player_y:
+            continue
+        if absf(float(obj.x) - player_x) > float(obj.r) + 4.0:
+            continue
+        if float(obj.y) > target_y:
+            target_y = float(obj.y)
+            target_index = i
+    if target_index < 0:
+        return
+    var target: Dictionary = objects[target_index]
+    if _apply_damage_to_hazard(target, LASER_DPS * delta):
+        objects.remove_at(target_index)
+
+func _spawn_weapon_pickup() -> void:
+    var choices := ["single", "dual", "cone", "seeker", "laser"]
+    choices.erase(current_weapon)
+    var weapon := choices[rng.randi_range(0, choices.size() - 1)]
+    var hard_lane := lane_event_active and rng.randf() < 0.5
+    var bounds := _lane_bounds(hard_lane) if lane_event_active else Vector2(LEFT, RIGHT)
+    objects.append({
+        "id": rng.randi(),
+        "type": "weapon",
+        "weapon": weapon,
+        "hard": false,
+        "x": rng.randf_range(bounds.x + 18.0, bounds.y - 18.0),
+        "y": -34.0,
+        "r": 14.0,
+        "speed": rng.randf_range(210.0, 245.0),
+        "drift": rng.randf_range(-10.0, 10.0),
+        "lane_min": bounds.x,
+        "lane_max": bounds.y
+    })
 
 func _spawn_repair() -> void:
     if hp >= 3:
@@ -562,6 +751,15 @@ func _move_objects(delta: float) -> void:
                     score += int(250 * _dash_score_multiplier())
                     _burst(Vector2(obj.x, obj.y), 12, Color("e8fff3"))
                 continue
+        elif obj.type == "weapon":
+            if absf(dy) < obj.r + 18.0 and dx < obj.r + 20.0:
+                current_weapon = String(obj.weapon)
+                fire_clock = 0.04
+                weapon_banner_text = _weapon_label(current_weapon)
+                weapon_banner_timer = 1.35
+                score += int(180 * _dash_score_multiplier())
+                _burst(Vector2(obj.x, obj.y), 12, Color("a882ff"))
+                continue
         elif obj.type == "extraction":
             if absf(dy) < 19.0:
                 if dx <= obj.half_width - 10.0:
@@ -639,8 +837,13 @@ func _draw() -> void:
 
     for shot in shots:
         var sp := Vector2(shot.x, shot.y) + offset
-        draw_line(sp + Vector2(0, 10), sp - Vector2(0, 8), Color("ffd166"), 4.0)
-        draw_circle(sp - Vector2(0, 8), 3.0, Color("fff4c2"))
+        var col := Color("ffd166") if not shot.homing else Color("ff8fa6")
+        draw_line(sp - Vector2(float(shot.vx), float(shot.vy)).normalized() * -10.0, sp, col, 4.0)
+        draw_circle(sp, 3.0 if not shot.homing else 5.0, Color("fff4c2"))
+
+    if current_weapon == "laser" and playing:
+        var laser_x := player_x + offset.x
+        draw_line(Vector2(laser_x, player_y - 20.0 + offset.y), Vector2(laser_x, 0.0), Color(0.65, 0.95, 1.0, 0.78), 2.0)
 
     _draw_station(offset)
 
@@ -657,6 +860,10 @@ func _draw() -> void:
         var choice := "STATION SPLIT — CHOOSE A LANE"
         draw_rect(Rect2(Vector2(38, 192), Vector2(314, 42)), Color(0.02, 0.04, 0.07, 0.92), true)
         _text(choice, Vector2(62, 220), 16, Color("ffd166"))
+
+    if weapon_banner_timer > 0.0:
+        draw_rect(Rect2(Vector2(78, 244), Vector2(234, 38)), Color(0.08, 0.04, 0.16, 0.9), true)
+        _text("WEAPON: %s" % weapon_banner_text, Vector2(91, 270), 17, Color("d4b8ff"))
 
     if near_miss_timer > 0.0:
         var pulse := 0.78 + sin(Time.get_ticks_msec() * 0.035) * 0.12
@@ -751,6 +958,12 @@ func _draw_object(obj: Dictionary, offset: Vector2) -> void:
         draw_rect(Rect2(Vector2(p.x - half_width, p.y - 18.0), Vector2(half_width * 2.0, 36.0)), Color(0.3, 0.95, 1.0, 0.08), true)
         return
 
+    if obj.type == "weapon":
+        draw_circle(p, obj.r + 8.0, Color(0.66, 0.45, 1.0, 0.18))
+        draw_circle(p, obj.r, Color("a882ff"))
+        _text(_weapon_icon(String(obj.weapon)), p + Vector2(-5, 6), 16, Color("ffffff"))
+        return
+
     if obj.type == "repair":
         draw_circle(p, obj.r + 7.0, Color(0.85, 1.0, 0.95, 0.14))
         draw_circle(p, obj.r, Color("d9fff2"))
@@ -778,6 +991,12 @@ func _draw_object(obj: Dictionary, offset: Vector2) -> void:
     else:
         draw_colored_polygon(PackedVector2Array([p + Vector2(0,-obj.r), p + Vector2(obj.r,0), p + Vector2(0,obj.r), p + Vector2(-obj.r,0)]), col)
 
+    if obj.has("hp") and float(obj.hp) < float(obj.max_hp):
+        var bw := maxf(18.0, float(obj.r) * 1.8)
+        var ratio := clampf(float(obj.hp) / float(obj.max_hp), 0.0, 1.0)
+        draw_rect(Rect2(Vector2(p.x - bw * 0.5, p.y + obj.r + 7.0), Vector2(bw, 3.0)), Color(0.15,0.15,0.18,0.85), true)
+        draw_rect(Rect2(Vector2(p.x - bw * 0.5, p.y + obj.r + 7.0), Vector2(bw * ratio, 3.0)), Color("ffd166"), true)
+
 func _draw_hud() -> void:
     _text("%02d" % int(maxf(0.0, RUN_TIME - elapsed)), Vector2(20, 50), 30, Color("f0fbff"))
     _text("SCORE %07d" % score, Vector2(145, 46), 20, Color("bdeef4"))
@@ -794,7 +1013,7 @@ func _draw_hud() -> void:
     if dash_score_timer > 0.0:
         _text("DASH x2 SCORE", Vector2(134, 146), 16, Color("ffd166"))
     else:
-        _text("AUTO PULSE", Vector2(145, 146), 14, Color("ffd166"))
+        _text(_weapon_label(current_weapon), Vector2(118, 146), 14, Color("ffd166"))
 
     for i in 3:
         var c := Color("ff4f78") if i < hp else Color(0.3,0.3,0.38,0.55)
@@ -819,9 +1038,9 @@ func _draw_title() -> void:
     _text("STATION SPLITS APPROACH", Vector2(73, 416), 18, Color("ffd166"))
     _text("CHOOSE A LANE BEFORE IMPACT", Vector2(56, 444), 18, Color("bdeef4"))
     _text("WALL CONTACT = INSTANT DEATH", Vector2(56, 476), 16, Color("ff8fa6"))
-    _text("AUTO CANNONS FIRE FORWARD", Vector2(63, 506), 16, Color("ffd166"))
-    _text("REPAIR CORES RESTORE 1 HIT", Vector2(65, 533), 16, Color("6bffb0"))
-    _text("Drag to steer. DASH = x2 score.", Vector2(62, 560), 16, Color("bdeef4"))
+    _text("5 AUTO WEAPONS — GRAB CORES", Vector2(58, 506), 16, Color("ffd166"))
+    _text("YELLOW DIAMONDS = TANKIEST", Vector2(64, 533), 16, Color("ffb347"))
+    _text("REPAIRS +1 HIT. DASH = x2.", Vector2(70, 560), 16, Color("6bffb0"))
     draw_rect(Rect2(Vector2(54, 606), Vector2(282, 76)), Color("123544"), true)
     draw_rect(Rect2(Vector2(54, 606), Vector2(282, 76)), Color("77f7ff"), false, 3.0)
     _text("TAP TO LAUNCH", Vector2(92, 656), 24, Color("f0fbff"))

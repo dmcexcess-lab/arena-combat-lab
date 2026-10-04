@@ -16,7 +16,7 @@ func _initialize() -> void:
     root.add_child(scene)
     await process_frame
 
-    for method_name in ["_start_game", "_dash", "_fire_weapon", "_move_shots", "_consume_shot_hit", "_spawn_repair", "_register_near_miss", "_begin_lane_event", "_end_lane_event", "_station_at_player", "_station_barrier_rects", "_check_station_collision", "_begin_finale", "_spawn_extraction_gate", "_lane_score_multiplier", "_dash_score_multiplier"]:
+    for method_name in ["_start_game", "_dash", "_fire_weapon", "_weapon_interval", "_weapon_damage", "_weapon_label", "_obstacle_max_hp", "_move_shots", "_consume_shot_hit", "_apply_laser_damage", "_spawn_weapon_pickup", "_spawn_repair", "_register_near_miss", "_begin_lane_event", "_end_lane_event", "_station_at_player", "_station_barrier_rects", "_check_station_collision", "_begin_finale", "_spawn_extraction_gate", "_lane_score_multiplier", "_dash_score_multiplier"]:
         if not scene.has_method(method_name):
             print("SMOKE FAIL: missing gameplay method ", method_name)
             quit(1)
@@ -34,41 +34,150 @@ func _initialize() -> void:
         quit(1)
         return
 
-    # Weapon must auto-fire forward from the ship.
+    # Obstacle durability must scale by shape: circle < square < yellow diamond.
+    if not (scene._obstacle_max_hp(0) < scene._obstacle_max_hp(1) and scene._obstacle_max_hp(1) < scene._obstacle_max_hp(2)):
+        print("SMOKE FAIL: obstacle health ordering is incorrect")
+        quit(1)
+        return
+    if scene._obstacle_max_hp(2) != 12.0:
+        print("SMOKE FAIL: yellow diamond should be the tankiest obstacle")
+        quit(1)
+        return
+
+    # Single auto: one accurate D2 projectile.
     scene.shots.clear()
-    scene.fire_clock = 0.0
-    scene._process(0.02)
+    scene.current_weapon = "single"
+    scene._fire_weapon()
+    if scene.shots.size() != 1 or float(scene.shots[0].damage) != scene.SINGLE_DAMAGE:
+        print("SMOKE FAIL: single auto weapon profile is wrong")
+        quit(1)
+        return
+
+    # Dual auto: two D1 projectiles.
+    scene.shots.clear()
+    scene.current_weapon = "dual"
+    scene._fire_weapon()
     if scene.shots.size() != 2:
-        print("SMOKE FAIL: auto-fire did not produce twin pulse shots")
+        print("SMOKE FAIL: dual auto did not fire two shots")
         quit(1)
         return
     for shot in scene.shots:
-        if shot.y >= scene.player_y:
-            print("SMOKE FAIL: auto-fire shot did not originate forward of the ship")
+        if float(shot.damage) != scene.DUAL_DAMAGE:
+            print("SMOKE FAIL: dual auto damage is wrong")
             quit(1)
             return
 
-    # Pulse shots destroy ordinary hazards and award score.
+    # Cone cannon: slow three-way D3 spread.
+    scene.shots.clear()
+    scene.current_weapon = "cone"
+    scene._fire_weapon()
+    if scene.shots.size() != 3 or scene._weapon_interval() <= scene.DUAL_INTERVAL:
+        print("SMOKE FAIL: cone weapon cadence/spread is wrong")
+        quit(1)
+        return
+    if not (float(scene.shots[0].vx) < 0.0 and float(scene.shots[1].vx) == 0.0 and float(scene.shots[2].vx) > 0.0):
+        print("SMOKE FAIL: cone shots do not form a spread")
+        quit(1)
+        return
+
+    # Heat seeker: one slow, powerful D7 homing projectile.
+    scene.shots.clear()
+    scene.current_weapon = "seeker"
+    scene._fire_weapon()
+    if scene.shots.size() != 1 or not scene.shots[0].homing or float(scene.shots[0].damage) != scene.SEEKER_DAMAGE:
+        print("SMOKE FAIL: heat seeker profile is wrong")
+        quit(1)
+        return
+    if scene._weapon_interval() <= scene.CONE_INTERVAL:
+        print("SMOKE FAIL: heat seeker should be the slowest projectile weapon")
+        quit(1)
+        return
+
+    # Projectiles must respect obstacle HP rather than one-shot every shape.
+    scene.shots.clear()
+    scene.current_weapon = "single"
     scene.objects.clear()
-    var shot_x: float = scene.shots[0].x
-    var shot_y: float = scene.shots[0].y
-    scene.objects.append({
+    var circle_hp: float = scene._obstacle_max_hp(0)
+    var target := {
         "id": 999001,
         "type": "hazard",
         "kind": 0,
+        "hp": circle_hp,
+        "max_hp": circle_hp,
         "hard": false,
-        "x": shot_x,
-        "y": shot_y,
+        "x": scene.player_x,
+        "y": scene.player_y - 120.0,
+        "r": 18.0,
+        "speed": 0.0,
+        "drift": 0.0,
+        "lane_min": scene.LEFT,
+        "lane_max": scene.RIGHT
+    }
+    scene.objects.append(target)
+    scene._spawn_shot(float(target.x), float(target.y), 0.0, 0.0, scene.SINGLE_DAMAGE)
+    scene._move_objects(0.0)
+    if scene.objects.is_empty():
+        print("SMOKE FAIL: D2 single shot incorrectly one-shot a 3 HP circle")
+        quit(1)
+        return
+    if absf(float(scene.objects[0].hp) - 1.0) > 0.01:
+        print("SMOKE FAIL: obstacle damage was not applied correctly")
+        quit(1)
+        return
+    scene._spawn_shot(float(scene.objects[0].x), float(scene.objects[0].y), 0.0, 0.0, scene.SINGLE_DAMAGE)
+    scene._move_objects(0.0)
+    if not scene.objects.is_empty():
+        print("SMOKE FAIL: depleted obstacle was not destroyed")
+        quit(1)
+        return
+
+    # Thin laser is continuous, weak DPS and removes an obstacle only after enough exposure.
+    scene.objects.clear()
+    scene.current_weapon = "laser"
+    scene.player_x = 195.0
+    var laser_hp: float = scene._obstacle_max_hp(0)
+    scene.objects.append({
+        "id": 999002,
+        "type": "hazard",
+        "kind": 0,
+        "hp": laser_hp,
+        "max_hp": laser_hp,
+        "hard": false,
+        "x": scene.player_x,
+        "y": scene.player_y - 180.0,
         "r": 18.0,
         "speed": 0.0,
         "drift": 0.0,
         "lane_min": scene.LEFT,
         "lane_max": scene.RIGHT
     })
-    var score_before_shot: int = scene.score
+    scene._apply_laser_damage(0.5)
+    if scene.objects.is_empty() or float(scene.objects[0].hp) >= laser_hp:
+        print("SMOKE FAIL: laser did not apply continuous weak damage")
+        quit(1)
+        return
+    scene._apply_laser_damage(0.6)
+    if not scene.objects.is_empty():
+        print("SMOKE FAIL: laser did not eventually destroy depleted target")
+        quit(1)
+        return
+
+    # Weapon pickups must offer a different weapon and swap on collection.
+    scene.objects.clear()
+    scene.current_weapon = "single"
+    scene._spawn_weapon_pickup()
+    if scene.objects.size() != 1 or scene.objects[0].type != "weapon" or String(scene.objects[0].weapon) == "single":
+        print("SMOKE FAIL: weapon pickup did not offer a different weapon")
+        quit(1)
+        return
+    var offered_weapon := String(scene.objects[0].weapon)
+    scene.objects[0].x = scene.player_x
+    scene.objects[0].y = scene.player_y
+    scene.objects[0].speed = 0.0
+    scene.objects[0].drift = 0.0
     scene._move_objects(0.0)
-    if not scene.objects.is_empty() or scene.score <= score_before_shot:
-        print("SMOKE FAIL: pulse shot did not destroy ordinary hazard")
+    if scene.current_weapon != offered_weapon:
+        print("SMOKE FAIL: weapon pickup did not swap current weapon")
         quit(1)
         return
 
