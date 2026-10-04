@@ -286,6 +286,7 @@ func _dash_score_multiplier() -> float:
 func _begin_lane_event() -> void:
     lane_event_active = true
     lane_event_timer = LANE_EVENT_DURATION
+    next_lane_event_at += LANE_EVENT_INTERVAL
     hard_lane_right = rng.randf() < 0.5
     lane_choice_banner_timer = 1.7
     easy_spawn_clock = 0.12
@@ -295,7 +296,6 @@ func _begin_lane_event() -> void:
 func _end_lane_event() -> void:
     lane_event_active = false
     lane_event_timer = 0.0
-    next_lane_event_at = elapsed + LANE_EVENT_INTERVAL
     lane_choice_banner_timer = 0.0
 
 func _is_hard_position(x: float) -> bool:
@@ -376,9 +376,9 @@ func _begin_finale() -> void:
 
 func _spawn_extraction_gate() -> void:
     extraction_spawned = true
-    var hard_lane := rng.randf() < 0.5
-    extraction_lane = "HARD" if hard_lane else "EASY"
-    var x := _lane_center(hard_lane)
+    var gate_right := rng.randf() < 0.5
+    extraction_lane = "RIGHT" if gate_right else "LEFT"
+    var x := (RIGHT_LANE_MIN + RIGHT_LANE_MAX) * 0.5 if gate_right else (LEFT_LANE_MIN + LEFT_LANE_MAX) * 0.5
     objects.append({
         "id": rng.randi(),
         "type": "extraction",
