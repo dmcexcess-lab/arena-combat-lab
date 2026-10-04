@@ -28,7 +28,11 @@ func _initialize() -> void:
         "_dash_score_multiplier", "_level_duration", "_split_count_for_level",
         "_station_height_for_level", "_first_split_time", "_level_difficulty", "_spawn_interval",
         "_shop_weapon_cost", "_open_shop", "_buy_repair", "_buy_weapon",
-        "_start_next_level", "_handle_shop_tap"
+        "_start_next_level", "_handle_shop_tap", "_ship_speed_multiplier", "_dash_distance",
+        "_dash_speed", "_damage_multiplier", "_near_miss_research_multiplier",
+        "_research_cost", "_buy_research", "_pause_run", "_resume_run",
+        "_quit_run_with_score", "_bank_run_score", "_save_meta", "_save_run_snapshot",
+        "_load_run_snapshot", "_clear_run_snapshot"
     ]:
         if not scene.has_method(method_name):
             _fail("missing gameplay method " + method_name)
@@ -51,6 +55,110 @@ func _initialize() -> void:
     if scene._station_height_for_level() != scene.STATION_HEIGHT_BASE:
         _fail("level 1 should use the shortest station split")
         return
+
+    # Permanent research modifies the intended systems and uses accumulated banked score.
+    scene.research_credits = 100000
+    if not scene._buy_research("ship") or not scene._buy_research("dash") or not scene._buy_research("damage") or not scene._buy_research("hits") or not scene._buy_research("shield"):
+        _fail("research purchase flow failed")
+        return
+    if scene.research_ship_speed != 1 or scene.research_dash != 1 or scene.research_damage != 1 or scene.research_hits != 1 or scene.research_shield != 1:
+        _fail("research levels did not increment correctly")
+        return
+    if scene._ship_speed_multiplier() <= 1.0 or scene._dash_speed() <= scene.DASH_FORWARD_SPEED or scene._dash_distance() <= scene.DASH_FORWARD_DISTANCE or scene._damage_multiplier() <= 1.0:
+        _fail("research effects were not applied")
+        return
+    if scene._research_cost("shield") <= scene._research_cost("hits"):
+        _fail("shield research should be more expensive than hits research")
+        return
+
+    # Ship speed and dash research both increase near-miss scoring.
+    scene.lane_event_active = false
+    scene.combo = 1
+    scene.score = 0
+    scene.research_ship_speed = 0
+    scene.research_dash = 0
+    scene.dash_score_timer = 0.0
+    scene._register_near_miss()
+    var base_near: int = scene.score
+    scene.score = 0
+    scene.combo = 1
+    scene.research_ship_speed = 1
+    scene._register_near_miss()
+    var speed_near: int = scene.score
+    if speed_near <= base_near:
+        _fail("ship-speed research did not raise ordinary near-miss score")
+        return
+    scene.score = 0
+    scene.combo = 1
+    scene.dash_score_timer = 0.5
+    scene.research_dash = 0
+    scene._register_near_miss()
+    var base_dash_near: int = scene.score
+    scene.score = 0
+    scene.combo = 1
+    scene.dash_score_timer = 0.5
+    scene.research_dash = 1
+    scene._register_near_miss()
+    if scene.score <= base_dash_near:
+        _fail("dash research did not raise dash near-miss score")
+        return
+
+    # Starting a researched run applies permanent hits and shield.
+    scene._start_game()
+    if scene.max_hp != 4 or scene.hp != 4 or scene.shield_charges != 1:
+        _fail("researched hits/shield did not apply to new run")
+        return
+    scene.current_weapon = "single"
+    scene.shots.clear()
+    scene._fire_weapon()
+    if scene.shots.is_empty() or float(scene.shots[0].damage) <= scene.SINGLE_DAMAGE:
+        _fail("permanent damage research did not raise weapon damage")
+        return
+
+    # Shield absorbs one projectile without consuming a hit.
+    scene.enemy_shots.clear()
+    scene.invuln = 0.0
+    var hp_before_shield: int = scene.hp
+    scene.enemy_shots.append({"x": scene.player_x, "y": scene.player_y, "vx": 0.0, "vy": 0.0, "r": scene.ENEMY_SHOT_RADIUS})
+    scene._move_enemy_shots(0.0)
+    if scene.hp != hp_before_shield or scene.shield_charges != 0:
+        _fail("shield did not absorb exactly one projectile")
+        return
+
+    # Pause freezes the run; resume continues; quitting banks the remaining score.
+    scene.score = 321
+    scene.neutral_spawn_clock = 999.0
+    scene.easy_spawn_clock = 999.0
+    scene.hard_spawn_clock = 999.0
+    scene.pickup_clock = 999.0
+    scene.repair_clock = 999.0
+    var elapsed_before_pause: float = scene.elapsed
+    scene._pause_run()
+    scene._process(1.0)
+    if not scene.run_paused or scene.elapsed != elapsed_before_pause:
+        _fail("paused run continued simulating")
+        return
+    scene._resume_run()
+    if scene.run_paused:
+        _fail("resume did not clear paused state")
+        return
+    var credits_before_quit: int = scene.research_credits
+    scene._pause_run()
+    scene._quit_run_with_score()
+    if scene.playing or scene.run_paused or scene.research_credits != credits_before_quit + 321:
+        _fail("quit-with-score did not bank run score and return to menu")
+        return
+
+    # Reset research to baseline for legacy gameplay balance tests.
+    scene.research_ship_speed = 0
+    scene.research_dash = 0
+    scene.research_damage = 0
+    scene.research_hits = 0
+    scene.research_shield = 0
+    scene.research_credits = 0
+    scene._save_meta()
+    scene._clear_run_snapshot()
+    scene._start_game()
     scene.elapsed = scene._first_split_time()
     scene._begin_lane_event()
     if scene.lane_events_started != 1 or scene.station_height != scene.STATION_HEIGHT_BASE:
@@ -455,6 +563,21 @@ func _initialize() -> void:
     if not scene.shop_open or scene.game_over or scene.level != 2:
         _fail("level timer did not transition into shop")
         return
+
+    # Durable run snapshot preserves an active paused run.
+    scene._start_game()
+    scene.score = 432
+    scene.level = 3
+    scene.elapsed = 7.5
+    scene.current_weapon = "dual"
+    scene._pause_run()
+    if not scene._load_run_snapshot():
+        _fail("saved run snapshot could not be reloaded")
+        return
+    if scene.score != 432 or scene.level != 3 or absf(scene.elapsed - 7.5) > 0.01 or scene.current_weapon != "dual":
+        _fail("run snapshot did not preserve core run state")
+        return
+    scene.run_paused = false
 
     # Dash surges almost to the top, then coasts back very slowly while the world scrolls.
     scene._start_next_level()
