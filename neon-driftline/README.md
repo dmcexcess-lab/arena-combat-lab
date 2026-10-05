@@ -186,3 +186,21 @@ Swipe/drag steering has been removed. Multi-touch allows steering with one thumb
 - During an active station split, the hard side receives a translucent red background wash.
 - The red wash exists only while the split is active and disappears when the station segment ends.
 - No pre-split divider line is restored.
+
+
+## Sound effects
+
+Neon Driftline now uses a generated, self-contained procedural SFX bank rather than external audio assets. A pool of AudioStreamPlayer voices allows sounds to overlap instead of constantly cutting each other off.
+
+Sound cues now cover:
+
+- Single, dual, cone, seeker, and laser weapons
+- Dash and near misses
+- Enemy bolts and pentagon homing missiles
+- Player hits and shield absorption
+- Enemy destruction
+- Green energy, +1 hit, and weapon pickups
+- Shop/research purchases
+- Level clear and run death
+
+Weapon-fire sounds are intentionally short and quieter than impact/reward cues so automatic weapons do not dominate the mix.
