@@ -172,10 +172,28 @@ var enemy_shots: Array[Dictionary] = []
 var pending_drops: Array[Dictionary] = []
 var particles: Array[Dictionary] = []
 var last_near_ids: Dictionary = {}
-var sfx_player: AudioStreamPlayer
+var sfx_players: Array[AudioStreamPlayer] = []
+var sfx_cursor := 0
 var near_sfx: AudioStreamWAV
 var dash_sfx: AudioStreamWAV
 var finale_sfx: AudioStreamWAV
+var shot_sfx: AudioStreamWAV
+var dual_sfx: AudioStreamWAV
+var cone_sfx: AudioStreamWAV
+var seeker_sfx: AudioStreamWAV
+var laser_sfx: AudioStreamWAV
+var enemy_shot_sfx: AudioStreamWAV
+var missile_sfx: AudioStreamWAV
+var hit_sfx: AudioStreamWAV
+var shield_sfx: AudioStreamWAV
+var kill_sfx: AudioStreamWAV
+var energy_sfx: AudioStreamWAV
+var repair_sfx: AudioStreamWAV
+var weapon_pickup_sfx: AudioStreamWAV
+var buy_sfx: AudioStreamWAV
+var level_clear_sfx: AudioStreamWAV
+var death_sfx: AudioStreamWAV
+var laser_sfx_clock := 0.0
 
 func _ready() -> void:
     rng.randomize()
@@ -193,21 +211,52 @@ func _notification(what: int) -> void:
         _save_meta()
 
 func _setup_audio() -> void:
-    sfx_player = AudioStreamPlayer.new()
-    add_child(sfx_player)
-    near_sfx = _make_tone(940.0, 0.085, 0.22)
-    dash_sfx = _make_tone(360.0, 0.07, 0.18)
-    finale_sfx = _make_tone(620.0, 0.16, 0.2)
+    for i in 10:
+        var player := AudioStreamPlayer.new()
+        player.bus = "Master"
+        add_child(player)
+        sfx_players.append(player)
+
+    near_sfx = _make_sweep(760.0, 1160.0, 0.085, 0.16)
+    dash_sfx = _make_sweep(180.0, 520.0, 0.11, 0.22)
+    finale_sfx = _make_sweep(480.0, 820.0, 0.18, 0.17)
+    shot_sfx = _make_sweep(760.0, 510.0, 0.045, 0.09)
+    dual_sfx = _make_sweep(690.0, 430.0, 0.055, 0.085)
+    cone_sfx = _make_sweep(330.0, 170.0, 0.10, 0.14, 0.10)
+    seeker_sfx = _make_sweep(250.0, 420.0, 0.13, 0.14, 0.06)
+    laser_sfx = _make_sweep(1280.0, 1040.0, 0.055, 0.055)
+    enemy_shot_sfx = _make_sweep(390.0, 270.0, 0.07, 0.08)
+    missile_sfx = _make_sweep(150.0, 250.0, 0.18, 0.13, 0.12)
+    hit_sfx = _make_sweep(150.0, 75.0, 0.16, 0.22, 0.22)
+    shield_sfx = _make_sweep(920.0, 1460.0, 0.12, 0.16)
+    kill_sfx = _make_sweep(520.0, 180.0, 0.11, 0.11, 0.18)
+    energy_sfx = _make_sweep(720.0, 1180.0, 0.10, 0.13)
+    repair_sfx = _make_sweep(520.0, 960.0, 0.16, 0.13)
+    weapon_pickup_sfx = _make_sweep(410.0, 780.0, 0.15, 0.13)
+    buy_sfx = _make_sweep(620.0, 840.0, 0.07, 0.09)
+    level_clear_sfx = _make_sweep(430.0, 980.0, 0.24, 0.16)
+    death_sfx = _make_sweep(210.0, 55.0, 0.34, 0.20, 0.24)
 
 func _make_tone(freq: float, duration: float, volume: float) -> AudioStreamWAV:
+    return _make_sweep(freq, freq, duration, volume)
+
+func _make_sweep(start_freq: float, end_freq: float, duration: float, volume: float, noise_mix: float = 0.0) -> AudioStreamWAV:
     var rate := 22050
-    var sample_count := int(rate * duration)
+    var sample_count := maxi(1, int(rate * duration))
     var data := PackedByteArray()
     data.resize(sample_count * 2)
+    var phase := 0.0
+    var local_rng := RandomNumberGenerator.new()
+    local_rng.seed = int(start_freq * 31.0 + end_freq * 17.0 + duration * 10000.0)
     for i in sample_count:
-        var t := float(i) / float(rate)
-        var envelope := 1.0 - float(i) / float(sample_count)
-        var sample := int(sin(TAU * freq * t) * 32767.0 * volume * envelope)
+        var u := float(i) / float(sample_count)
+        var freq := lerpf(start_freq, end_freq, u)
+        phase += TAU * freq / float(rate)
+        var envelope := pow(1.0 - u, 1.55)
+        var tonal := sin(phase)
+        var noise := local_rng.randf_range(-1.0, 1.0)
+        var mixed := lerpf(tonal, noise, clampf(noise_mix, 0.0, 1.0))
+        var sample := int(clampf(mixed * volume * envelope, -1.0, 1.0) * 32767.0)
         data.encode_s16(i * 2, sample)
     var wav := AudioStreamWAV.new()
     wav.format = AudioStreamWAV.FORMAT_16_BITS
@@ -216,11 +265,16 @@ func _make_tone(freq: float, duration: float, volume: float) -> AudioStreamWAV:
     wav.data = data
     return wav
 
-func _play_sfx(stream: AudioStreamWAV) -> void:
-    if sfx_player == null or stream == null:
+func _play_sfx(stream: AudioStreamWAV, pitch: float = 1.0, volume_db: float = 0.0) -> void:
+    if stream == null or sfx_players.is_empty():
         return
-    sfx_player.stream = stream
-    sfx_player.play()
+    var player := sfx_players[sfx_cursor % sfx_players.size()]
+    sfx_cursor = (sfx_cursor + 1) % sfx_players.size()
+    player.stop()
+    player.stream = stream
+    player.pitch_scale = pitch
+    player.volume_db = volume_db
+    player.play()
 
 func _process(delta: float) -> void:
     if run_paused or not playing:
@@ -237,6 +291,7 @@ func _process(delta: float) -> void:
     dash_cooldown = maxf(0.0, dash_cooldown - delta)
     dash_score_timer = maxf(0.0, dash_score_timer - delta)
     slowmo_timer = maxf(0.0, slowmo_timer - delta)
+    laser_sfx_clock = maxf(0.0, laser_sfx_clock - delta)
 
     var game_delta := delta * (0.52 if slowmo_timer > 0.0 else 1.0)
     var world_delta := game_delta * _ship_speed_multiplier()
@@ -556,6 +611,7 @@ func _open_shop() -> void:
     lane_event_timer = 0.0
     station_locked_side = ""
     station_top = -station_height - 40.0
+    _play_sfx(level_clear_sfx)
     _save_run_snapshot()
     queue_redraw()
 
@@ -564,6 +620,7 @@ func _buy_repair() -> bool:
         return false
     score -= SHOP_REPAIR_COST
     hp += 1
+    _play_sfx(repair_sfx)
     _save_run_snapshot()
     return true
 
@@ -575,6 +632,7 @@ func _buy_weapon(weapon: String) -> bool:
         return false
     score -= cost
     current_weapon = weapon
+    _play_sfx(buy_sfx)
     _save_run_snapshot()
     return true
 
@@ -620,6 +678,7 @@ func _start_next_level() -> void:
     shots.clear()
     enemy_shots.clear()
     last_near_ids.clear()
+    _play_sfx(finale_sfx, 1.12, -2.0)
 
 func _handle_shop_tap(pos: Vector2) -> void:
     if SHOP_REPAIR_RECT.has_point(pos):
@@ -644,6 +703,7 @@ func _finish(success: bool) -> void:
     won = success
     if result_reason.is_empty():
         result_reason = "RUN ENDED"
+    _play_sfx(level_clear_sfx if success else death_sfx)
     _bank_run_score()
     _clear_run_snapshot()
     queue_redraw()
@@ -705,6 +765,7 @@ func _buy_research(track: String) -> bool:
             research_hits += 1
         "shield":
             research_shield += 1
+    _play_sfx(buy_sfx, 1.08)
     _save_meta()
     return true
 
@@ -751,6 +812,7 @@ func _buy_start_weapon_research(weapon: String) -> bool:
         _:
             return false
     starting_weapon = weapon
+    _play_sfx(weapon_pickup_sfx, 0.96)
     _save_meta()
     return true
 
@@ -758,6 +820,7 @@ func _select_start_weapon(weapon: String) -> bool:
     if not _weapon_start_unlocked(weapon):
         return false
     starting_weapon = weapon
+    _play_sfx(buy_sfx, 1.16, -3.0)
     _save_meta()
     return true
 
@@ -1349,15 +1412,19 @@ func _fire_weapon() -> void:
             pass
         "single":
             _spawn_shot(player_x, player_y - 22.0, 0.0, -690.0, SINGLE_DAMAGE * _damage_multiplier())
+            _play_sfx(shot_sfx, rng.randf_range(0.97, 1.03), -5.0)
         "dual":
             _spawn_shot(player_x - 10.0, player_y - 20.0, 0.0, -650.0, DUAL_DAMAGE * _damage_multiplier())
             _spawn_shot(player_x + 10.0, player_y - 20.0, 0.0, -650.0, DUAL_DAMAGE * _damage_multiplier())
+            _play_sfx(dual_sfx, rng.randf_range(0.98, 1.04), -5.0)
         "cone":
             _spawn_shot(player_x, player_y - 22.0, -145.0, -520.0, CONE_DAMAGE * _damage_multiplier())
             _spawn_shot(player_x, player_y - 24.0, 0.0, -560.0, CONE_DAMAGE * _damage_multiplier())
             _spawn_shot(player_x, player_y - 22.0, 145.0, -520.0, CONE_DAMAGE * _damage_multiplier())
+            _play_sfx(cone_sfx, rng.randf_range(0.96, 1.02), -3.0)
         "seeker":
             _spawn_shot(player_x, player_y - 24.0, 0.0, -370.0, SEEKER_DAMAGE * _damage_multiplier(), true)
+            _play_sfx(seeker_sfx, rng.randf_range(0.97, 1.03), -3.0)
         "laser":
             pass
 
@@ -1405,6 +1472,7 @@ func _apply_damage_to_hazard(obj: Dictionary, damage: float) -> bool:
         score += int(round(float(_kill_score(int(obj.kind))) * _lane_score_multiplier()))
         _queue_kill_drop(obj)
         _burst(Vector2(obj.x, obj.y), 10, Color("ffd166"))
+        _play_sfx(kill_sfx, rng.randf_range(0.92, 1.08), -3.0)
         return true
     if damage >= 1.0:
         _burst(Vector2(obj.x, obj.y), 3, Color("fff4c2"))
@@ -1440,6 +1508,9 @@ func _apply_laser_damage(delta: float) -> void:
     if target_index < 0:
         return
     var target: Dictionary = objects[target_index]
+    if laser_sfx_clock <= 0.0:
+        _play_sfx(laser_sfx, rng.randf_range(0.98, 1.03), -8.0)
+        laser_sfx_clock = 0.12
     if _apply_damage_to_hazard(target, LASER_DPS * _damage_multiplier() * delta):
         objects.remove_at(target_index)
         _flush_pending_drops(objects)
@@ -1480,6 +1551,7 @@ func _fire_enemy_shot(obj: Dictionary) -> void:
         "damage": 1,
         "homing": false
     })
+    _play_sfx(enemy_shot_sfx, rng.randf_range(0.94, 1.06), -7.0)
 
 func _fire_enemy_missile(obj: Dictionary) -> void:
     var from_pos := Vector2(float(obj.x), float(obj.y) + float(obj.r))
@@ -1497,6 +1569,7 @@ func _fire_enemy_missile(obj: Dictionary) -> void:
         "damage": ENEMY_MISSILE_DAMAGE,
         "homing": true
     })
+    _play_sfx(missile_sfx, rng.randf_range(0.96, 1.04), -4.0)
 
 func _move_enemy_shots(delta: float) -> void:
     var next: Array[Dictionary] = []
@@ -1528,6 +1601,7 @@ func _move_enemy_shots(delta: float) -> void:
                 # Any enemy projectile, including a 2-hit missile, consumes only one shield charge.
                 shield_charges -= 1
                 _burst(Vector2(shot.x, shot.y), 12, Color("77f7ff"))
+                _play_sfx(shield_sfx, 1.0, -2.0)
             elif invuln <= 0.0:
                 _take_hit(int(shot.get("damage", 1)))
                 _burst(Vector2(shot.x, shot.y), 8 if bool(shot.get("homing", false)) else 6, Color("ff8f5b") if bool(shot.get("homing", false)) else Color("d48cff"))
@@ -1745,6 +1819,7 @@ func _move_objects(delta: float) -> void:
                 combo = mini(combo + 1, 8)
                 best_combo = maxi(best_combo, combo)
                 _burst(Vector2(obj.x, obj.y), 9, Color("6bffb0"))
+                _play_sfx(energy_sfx, 1.06 if dash_score_timer > 0.0 else 1.0, -3.0)
                 continue
         elif obj.type == "repair":
             if absf(dy) < obj.r + 18.0 and dx < obj.r + 20.0:
@@ -1752,6 +1827,7 @@ func _move_objects(delta: float) -> void:
                     hp += 1
                     score += 0
                     _burst(Vector2(obj.x, obj.y), 12, Color("e8fff3"))
+                    _play_sfx(repair_sfx, 1.0, -2.0)
                 continue
         elif obj.type == "weapon":
             if absf(dy) < obj.r + 18.0 and dx < obj.r + 20.0:
@@ -1761,6 +1837,7 @@ func _move_objects(delta: float) -> void:
                 weapon_banner_timer = 1.35
                 score += 0
                 _burst(Vector2(obj.x, obj.y), 12, Color("a882ff"))
+                _play_sfx(weapon_pickup_sfx, 1.0, -2.0)
                 continue
         elif obj.type == "extraction":
             if absf(dy) < 19.0:
@@ -1800,6 +1877,7 @@ func _take_hit(amount: int = 1) -> void:
     invuln = HIT_INVULN_TIME
     flash = 0.22
     shake = 7.0
+    _play_sfx(hit_sfx, 0.92 if amount > 1 else 1.0, -1.0)
     if hp <= 0:
         _finish(false)
 
