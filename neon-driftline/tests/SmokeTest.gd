@@ -689,8 +689,8 @@ func _initialize() -> void:
     })
     scene._move_objects(0.1)
     var square_drift: float = float(scene.objects[0].drift)
-    if square_drift <= 0.0 or square_drift > 4.0:
-        _fail("square drone should only creep slowly toward player")
+    if square_drift <= 0.0 or square_drift > 5.5:
+        _fail("square drone should track laterally a little faster, but still slowly")
         return
 
     # Diamond is smarter/faster laterally, but remains capped and dodgeable.
@@ -707,7 +707,7 @@ func _initialize() -> void:
     })
     scene._move_objects(0.1)
     var diamond_drift: float = float(scene.objects[0].drift)
-    if diamond_drift <= square_drift or diamond_drift > 82.0:
+    if diamond_drift <= square_drift * 3.0 or diamond_drift > 82.0:
         _fail("smart diamond should track faster than square but remain capped")
         return
 

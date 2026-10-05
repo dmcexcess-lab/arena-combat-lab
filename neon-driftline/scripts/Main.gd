@@ -1666,8 +1666,8 @@ func _move_objects(delta: float) -> void:
                 obj.drift = lerpf(float(obj.drift), 0.0, minf(1.0, delta * 0.20))
 
             elif kind == 1:
-                var square_target := clampf((player_x - float(obj.x)) * 0.16, -22.0, 22.0)
-                obj.drift = lerpf(float(obj.drift), square_target, minf(1.0, delta * 0.85))
+                var square_target := clampf((player_x - float(obj.x)) * 0.19, -28.0, 28.0)
+                obj.drift = lerpf(float(obj.drift), square_target, minf(1.0, delta * 1.0))
 
             elif kind == 2:
                 var predicted_x := lerpf(player_x, target_x, 0.55)
