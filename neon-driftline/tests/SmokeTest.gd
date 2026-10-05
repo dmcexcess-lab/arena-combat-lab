@@ -38,11 +38,32 @@ func _initialize() -> void:
         "_research_cost", "_buy_research", "_weapon_research_cost", "_weapon_start_unlocked",
         "_buy_start_weapon_research", "_select_start_weapon", "_valid_starting_weapon",
         "_pause_run", "_resume_run", "_quit_run_with_score", "_bank_run_score", "_save_meta", "_save_run_snapshot",
-        "_load_run_snapshot", "_clear_run_snapshot"
+        "_load_run_snapshot", "_clear_run_snapshot", "_make_tone", "_make_sweep", "_play_sfx"
     ]:
         if not scene.has_method(method_name):
             _fail("missing gameplay method " + method_name)
             return
+
+    # Procedural SFX bank is self-contained and polyphonic.
+    if scene.sfx_players.size() < 8:
+        _fail("SFX pool is not polyphonic enough")
+        return
+    for stream_name in [
+        "shot_sfx", "dual_sfx", "cone_sfx", "seeker_sfx", "laser_sfx",
+        "enemy_shot_sfx", "missile_sfx", "hit_sfx", "shield_sfx", "kill_sfx",
+        "energy_sfx", "repair_sfx", "weapon_pickup_sfx", "buy_sfx",
+        "level_clear_sfx", "death_sfx", "near_sfx", "dash_sfx"
+    ]:
+        var stream = scene.get(stream_name)
+        if stream == null or stream.data.size() <= 0:
+            _fail("missing/generated-empty SFX stream " + stream_name)
+            return
+    var cursor_before_sfx: int = scene.sfx_cursor
+    scene._play_sfx(scene.shot_sfx)
+    scene._play_sfx(scene.energy_sfx)
+    if scene.sfx_cursor == cursor_before_sfx:
+        _fail("SFX pool cursor did not advance")
+        return
 
     scene._start_game()
     await process_frame
