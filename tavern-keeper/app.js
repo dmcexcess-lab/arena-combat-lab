@@ -4,7 +4,7 @@ const C=window.TavernKeeperCore;
 const $=id=>document.getElementById(id);
 const SAVE_KEY='tavernKeeper.slice3.v1';
 
-let roster=null,expeditions=null,renderedLogs={},saveClock=0,offlineReturn=null,lastCheckpointMs=Date.now();
+let roster=null,expeditions=null,renderedLogs={},saveClock=0,offlineReturn=null,lastCheckpointMs=Date.now(),currentScreen='scene',sceneSignature='';
 
 function newGame(){
   roster=new C.TavernRoster({funds:30});
@@ -124,6 +124,107 @@ function patronOrder(p){
   if(p.food)parts.push('food');
   if(p.drink)parts.push('drink');
   return parts.join(' + ');
+}
+
+function screenExists(name){
+  return !!document.querySelector('.app-screen[data-screen="'+name+'"]');
+}
+function renderHeader(){
+  $('funds').textContent=roster.funds.toFixed(1)+'g';
+  $('tavernGps').textContent=roster.tavern.projectedGoldRate().toFixed(2);
+  $('prepTime').textContent=fmtPrepTime(roster.prepMinutes);
+}
+function renderVisibleScreen(name=currentScreen){
+  renderHeader();
+  if(name==='scene')renderScene();
+  else if(name==='tavern')renderEconomy();
+  else if(name==='merchant')renderMerchants();
+  else if(name==='applicants')renderApplicants();
+  else if(name==='workshop')renderCrafting();
+  else if(name==='contracts')renderContractBoard();
+  else if(name==='chronicle')renderChronicle();
+  else if(name==='heroes'){renderRoster();renderHome();renderHistoryLog();}
+  else if(name==='expeditions')renderExpedition();
+}
+function openScreen(name){
+  if(!screenExists(name))name='scene';
+  currentScreen=name;
+  document.querySelectorAll('.app-screen').forEach(function(screen){
+    screen.classList.toggle('active',screen.dataset.screen===name);
+  });
+  document.body.classList.toggle('scene-mode',name==='scene');
+  document.body.dataset.screen=name;
+  renderVisibleScreen(name);
+  if(name==='scene')renderScene(true);
+  window.scrollTo({top:0,left:0,behavior:'auto'});
+}
+function personMarkup(kind,label,x,y,index,state){
+  return '<div class="scene-person '+kind+' '+state+'" title="'+label.replace(/"/g,'&quot;')+'" style="--x:'+x+'%;--y:'+y+'%;--delay:'+(index%7)*-0.23+'s">'+
+    '<i class="shadow"></i><i class="legs"></i><i class="body"></i><i class="head"></i><i class="arm"></i><i class="prop"></i></div>';
+}
+function renderScene(force=false){
+  if(!$('tavernRoom'))return;
+  const t=roster.tavern;
+  const active=expeditions.activeEntries();
+  const homeHeroes=roster.aliveHeroes().filter(function(h){return !expeditionLocked(h.id);});
+  const selectedContract=roster.getContract();
+  const chron=roster.chronicleSummary();
+  const merchant=roster.merchants.active;
+  const applicant=roster.recruitment.active;
+
+  $('scenePatronStatus').textContent=t.active.length+' seated · '+t.queue.length+' waiting';
+  $('sceneHeroStatus').textContent=homeHeroes.length+' hero'+(homeHeroes.length===1?'':'es')+' home';
+  $('sceneExpeditionStatus').textContent=active.length+' expedition'+(active.length===1?'':'s')+' active';
+  $('sceneContractBadge').textContent='Threat '+selectedContract.threat+' · '+selectedContract.name;
+  $('sceneExpeditionBadge').textContent=active.length?active.length+' active':'No expeditions';
+  $('sceneChronicleBadge').textContent=chron.entries.length+' entries';
+  $('sceneWorkshopBadge').textContent='Lv '+t.workshopLevel+' · '+Object.values(roster.inventory||{}).reduce((n,v)=>n+(Number(v)||0),0)+' stored';
+  $('sceneHeroBadge').textContent=homeHeroes.length+' home · '+roster.fallen.length+' fallen';
+  $('sceneBarBadge').textContent='Service Lv '+t.serviceLevel+' · '+t.active.length+'/'+t.seats+' seats';
+  $('sceneMerchantBadge').textContent=merchant?merchant.name+' · Q'+merchant.quality:'On the road';
+  $('sceneApplicantBadge').textContent=applicant?applicant.hero.name+' · '+applicant.cost+'g':'No applicant';
+
+  const latest=t.log.length?t.log[t.log.length-1].text:'Tap an object to manage the tavern.';
+  $('sceneToast').textContent=latest;
+  $('sceneServer').classList.toggle('busy',t.active.some(function(p){return !p.served;}));
+  $('sceneServer').classList.toggle('resting',!t.active.some(function(p){return !p.served;}));
+  $('tavernRoom').dataset.service=String(t.serviceLevel);
+  $('tavernRoom').dataset.bar=String(t.barLevel);
+  $('tavernRoom').dataset.seats=String(t.seats);
+
+  const sig=JSON.stringify({
+    patrons:t.active.map(p=>[p.id,p.type,p.served,p.food,p.drink]),
+    queue:t.queue.map(p=>[p.id,p.type]),
+    heroes:homeHeroes.map(h=>[h.id,h.id===roster.selectedHeroId]),
+    merchant:merchant?[merchant.name,merchant.quality]:null,
+    applicant:applicant?[applicant.hero.id,applicant.quality]:null
+  });
+  if(!force&&sig===sceneSignature)return;
+  sceneSignature=sig;
+
+  const seats=[[31,58],[43,64],[54,56],[64,66],[73,57],[37,77],[55,78],[70,77],[47,48],[61,47],[79,68],[28,72]];
+  const queueSlots=[[88,62],[91,68],[88,74],[92,79],[87,84]];
+  $('scenePatrons').innerHTML=t.active.map(function(p,i){
+    const type=C.PATRON_TYPES[p.type]||C.PATRON_TYPES.laborer;
+    const pos=seats[i%seats.length];
+    const state=(p.served?'served ':'waiting-service ')+(p.food?'food ':'')+(p.drink?'drink ':'');
+    return personMarkup('patron '+p.type,type.name,pos[0],pos[1],i,state);
+  }).join('')+t.queue.map(function(p,i){
+    const type=C.PATRON_TYPES[p.type]||C.PATRON_TYPES.laborer,pos=queueSlots[i%queueSlots.length];
+    return personMarkup('patron '+p.type,type.name+' waiting',pos[0],pos[1],i+20,'queued');
+  }).join('');
+
+  const heroSlots=[[24,80],[32,84],[40,80],[35,72],[28,69],[44,71]];
+  $('sceneHeroes').innerHTML=homeHeroes.slice(0,6).map(function(h,i){
+    const pos=heroSlots[i%heroSlots.length];
+    const state=(h.id===roster.selectedHeroId?'selected ':'')+(h.injuries.length?'injured':'ready');
+    return personMarkup('hero',h.name,pos[0],pos[1],i+40,state);
+  }).join('');
+
+  let visitors='';
+  if(merchant)visitors+=personMarkup('visitor merchant-visitor',merchant.name,17,61,61,'present');
+  if(applicant)visitors+=personMarkup('visitor applicant-visitor',applicant.hero.name,86,57,62,'present');
+  $('sceneVisitor').innerHTML=visitors;
 }
 
 function renderOfflineReturn(){
@@ -698,6 +799,7 @@ function startExpedition(){
   renderedLogs[result.entry.id]=0;
   selectAvailableHero();
   renderAll();
+  openScreen('expeditions');
   saveGame();
 }
 
@@ -711,13 +813,25 @@ function closeReport(){
 }
 function renderAll(){
   settleResolved();
-  renderEconomy();renderMerchants();renderApplicants();renderCrafting();renderContractBoard();renderChronicle();renderRoster();renderHome();renderHistoryLog();renderExpedition();
+  renderEconomy();renderMerchants();renderApplicants();renderCrafting();renderContractBoard();renderChronicle();renderRoster();renderHome();renderHistoryLog();renderExpedition();renderScene();renderHeader();
 }
 
 loadGame();
 renderAll();
 renderOfflineReturn();
+openScreen('scene');
 saveGame();
+
+document.querySelectorAll('[data-open-screen]').forEach(function(el){
+  el.addEventListener('click',function(){openScreen(el.dataset.openScreen);});
+});
+document.querySelectorAll('[data-back-tavern]').forEach(function(el){
+  el.addEventListener('click',function(){openScreen('scene');});
+});
+document.querySelector('.brand')?.addEventListener('click',function(){openScreen('scene');});
+document.addEventListener('keydown',function(e){
+  if(e.key==='Escape'&&currentScreen!=='scene')openScreen('scene');
+});
 
 $('repairWeapon').addEventListener('click',function(){const h=selected();if(h&&!expeditionLocked(h.id)){const r=roster.repairEquippedGear(h.id,'weapon');if(r.ok){renderAll();saveGame();}}});
 $('repairArmor').addEventListener('click',function(){const h=selected();if(h&&!expeditionLocked(h.id)){const r=roster.repairEquippedGear(h.id,'armor');if(r.ok){renderAll();saveGame();}}});
@@ -727,7 +841,7 @@ $('recruitApplicant').addEventListener('click',function(){
 });
 $('deploy').addEventListener('click',startExpedition);
 $('returnHome').addEventListener('click',closeReport);
-$('newTavern').addEventListener('click',function(){localStorage.removeItem(SAVE_KEY);newGame();$('summaryBody').innerHTML='<p>New tavern started.</p>';renderAll();renderOfflineReturn();saveGame();});
+$('newTavern').addEventListener('click',function(){localStorage.removeItem(SAVE_KEY);newGame();$('summaryBody').innerHTML='<p>New tavern started.</p>';renderAll();renderOfflineReturn();openScreen('scene');saveGame();});
 $('closeOfflineSummary').addEventListener('click',function(){offlineReturn=null;renderOfflineReturn();});
 document.querySelectorAll('[data-speed]').forEach(function(b){
   b.addEventListener('click',function(){
@@ -762,16 +876,12 @@ window.addEventListener('pagehide',function(){saveGame();});
 
 setInterval(function(){
   if(document.hidden)return;
-  const earned=roster.tickTavern(0.25);
+  roster.tickTavern(0.25);
   expeditions.tickAll();
   const settledCount=settleResolved();
   if(settledCount)selectAvailableHero();
-  renderEconomy();
-  renderMerchants();
-  renderApplicants();
-  renderExpedition();
-  if(settledCount){renderCrafting();renderContractBoard();renderChronicle();renderRoster();renderHome();renderHistoryLog();}
-  else if(earned>0){renderHome();renderChronicle();}
+  renderVisibleScreen();
+  if(settledCount&&currentScreen==='scene')renderScene(true);
   saveClock+=0.25;
   if(saveClock>=1){saveClock=0;saveGame();}
 },250);

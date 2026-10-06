@@ -3,12 +3,12 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-  <title>Tavern Keeper — Release Candidate</title>
+  <title>Tavern Keeper — Animated Tavern</title>
   <link rel="stylesheet" href="styles.css">
 </head>
-<body>
-<header>
-  <div><h1>Tavern Keeper</h1><p>Release Candidate — Survive, Profit, Remember</p></div>
+<body class="scene-mode">
+<header class="game-header">
+  <div class="brand"><h1>Tavern Keeper</h1><p>Live Tavern</p></div>
   <div class="top-stats">
     <div><span>Tavern funds</span><strong id="funds">0.0g</strong></div>
     <div><span>Tavern g/s</span><strong id="tavernGps">0.00</strong></div>
@@ -17,23 +17,76 @@
   </div>
 </header>
 
-<main>
-  <section class="panel onboarding-panel">
-    <div class="section-title"><h2>Run the Tavern</h2><span class="status">START HERE</span></div>
-    <div class="onboarding-steps">
-      <div><strong>1 · Earn</strong><p>Patrons generate steady tavern gold. Improve the building without risking a hero.</p></div>
-      <div><strong>2 · Prepare</strong><p>Select a hero. Feed, rest, treat injuries, repair gear, and choose a loadout.</p></div>
-      <div><strong>3 · Choose Risk</strong><p>Pick any contract. Threat is advisory, never a gate. Higher threat is genuinely more dangerous.</p></div>
-      <div><strong>4 · Send Them</strong><p>The hero acts autonomously. Partial success still pays; death is permanent. The tavern survives.</p></div>
-    </div>
-    <p class="release-rule"><strong>Core rule:</strong> you manage the people who go adventuring—you do not control them in combat.</p>
-  </section>
-  <section id="offlineReturn" class="panel offline-return hidden">
+<section id="offlineReturn" class="panel offline-return hidden overlay-panel">
     <div class="section-title"><h2>While You Were Away</h2><span id="offlineDuration" class="status">0m</span></div>
     <div id="offlineSummary"></div>
     <button id="closeOfflineSummary">Dismiss Return Summary</button>
   </section>
-  <section class="panel economy-panel">
+
+<main id="appShell" class="scene-shell">
+  <section id="sceneScreen" class="app-screen active" data-screen="scene" aria-label="Animated tavern">
+    <div class="scene-intro">
+      <div><strong>Your tavern is the menu.</strong><span>Tap what you want to manage.</span></div>
+      <div class="scene-status-strip">
+        <span id="scenePatronStatus">0 patrons</span>
+        <span id="sceneHeroStatus">0 heroes home</span>
+        <span id="sceneExpeditionStatus">0 expeditions</span>
+      </div>
+    </div>
+
+    <div id="tavernRoom" class="tavern-room" aria-label="Tavern interior">
+      <div class="room-wall">
+        <div class="roof-beam beam-a"></div><div class="roof-beam beam-b"></div>
+        <div class="scene-window"><i></i><i></i><span></span></div>
+        <div class="fireplace"><div class="fire-glow"></div><div class="flame f1"></div><div class="flame f2"></div><div class="flame f3"></div></div>
+        <div class="hanging-lamp lamp-a"></div><div class="hanging-lamp lamp-b"></div>
+      </div>
+      <div class="wood-floor"></div>
+
+      <button class="scene-object hotspot contract-board-object" data-open-screen="contracts" aria-label="Open contract board">
+        <span class="object-art"><i></i><i></i><i></i></span><b>Contract Board</b><small id="sceneContractBadge">Threat 2 selected</small>
+      </button>
+
+      <button class="scene-object hotspot wall-map-object" data-open-screen="expeditions" aria-label="Open expeditions">
+        <span class="map-art"></span><b>Road Map</b><small id="sceneExpeditionBadge">No expeditions</small>
+      </button>
+
+      <button class="scene-object hotspot ledger-object" data-open-screen="chronicle" aria-label="Open tavern chronicle">
+        <span class="book-art"></span><b>Chronicle</b><small id="sceneChronicleBadge">0 entries</small>
+      </button>
+
+      <button class="scene-object hotspot workshop-object" data-open-screen="workshop" aria-label="Open workshop">
+        <span class="workbench-art"><i></i></span><b>Workshop</b><small id="sceneWorkshopBadge">Lv 1</small>
+      </button>
+
+      <button class="scene-object hotspot hero-table-object" data-open-screen="heroes" aria-label="Open hero roster and preparation">
+        <span class="table-art"></span><b>Heroes' Table</b><small id="sceneHeroBadge">0 home</small>
+      </button>
+
+      <button class="scene-object hotspot bar-object" data-open-screen="tavern" aria-label="Manage tavern">
+        <span class="bar-art"><i></i><i></i><i></i></span><b>Bar & Tavern</b><small id="sceneBarBadge">Lv 1 service</small>
+      </button>
+
+      <button class="scene-object hotspot merchant-object" data-open-screen="merchant" aria-label="Visit merchant">
+        <span class="merchant-table-art"></span><b>Merchant Corner</b><small id="sceneMerchantBadge">On the road</small>
+      </button>
+
+      <button class="scene-object hotspot door-object" data-open-screen="applicants" aria-label="Check applicants">
+        <span class="door-art"><i></i></span><b>Front Door</b><small id="sceneApplicantBadge">No applicant</small>
+      </button>
+
+      <div id="scenePatrons" class="scene-actors patron-actors" aria-hidden="true"></div>
+      <div id="sceneHeroes" class="scene-actors hero-actors" aria-hidden="true"></div>
+      <div id="sceneVisitor" class="scene-actors visitor-actors" aria-hidden="true"></div>
+      <div id="sceneServer" class="scene-person server-person" aria-hidden="true"><i class="head"></i><i class="body"></i><i class="arm"></i></div>
+
+      <div class="scene-toast" id="sceneToast">Tap an object to manage the tavern.</div>
+    </div>
+  </section>
+
+  <section class="app-screen menu-screen" data-screen="tavern">
+    <div class="screen-header"><button class="back-tavern" data-back-tavern>← Back to Tavern</button><div><h2>Bar & Tavern</h2><p>Patrons, service, facilities and upgrades.</p></div></div>
+    <section class="panel economy-panel screen-panel">
     <div class="section-title"><h2>Tavern Floor</h2><span id="serviceStatus" class="status">OPEN</span></div>
     <div class="economy-metrics">
       <div><span>Projected income</span><strong id="projectedGps">0.00 g/s</strong></div>
@@ -67,8 +120,11 @@
     <h3>Improve the Tavern</h3>
     <div id="tavernUpgrades" class="upgrade-grid"></div>
   </section>
+  </section>
 
-  <section class="panel merchant-panel">
+  <section class="app-screen menu-screen" data-screen="merchant">
+    <div class="screen-header"><button class="back-tavern" data-back-tavern>← Back to Tavern</button><div><h2>Merchant Corner</h2><p>Buy from whoever is currently visiting.</p></div></div>
+    <section class="panel merchant-panel screen-panel">
     <div class="section-title"><h2>Visiting Merchant</h2><span id="merchantStatus" class="status">ON THE ROAD</span></div>
     <div class="merchant-summary">
       <div><span>Merchant</span><strong id="merchantName">No merchant present</strong></div>
@@ -80,8 +136,11 @@
     <div id="merchantOffers" class="merchant-offers"></div>
     <div id="merchantLog" class="merchant-log"></div>
   </section>
+  </section>
 
-  <section class="panel applicant-panel">
+  <section class="app-screen menu-screen" data-screen="applicants">
+    <div class="screen-header"><button class="back-tavern" data-back-tavern>← Back to Tavern</button><div><h2>Front Door</h2><p>Meet applicants looking for work.</p></div></div>
+    <section class="panel applicant-panel screen-panel">
     <div class="section-title"><h2>Applicants</h2><span id="applicantStatus" class="status">NO APPLICANT</span></div>
     <div class="applicant-summary">
       <div><span>Name</span><strong id="applicantName">No applicant present</strong></div>
@@ -94,8 +153,11 @@
     <button id="recruitApplicant" class="primary" disabled>Recruit Applicant</button>
     <div id="applicantLog" class="applicant-log"></div>
   </section>
+  </section>
 
-  <section class="panel crafting-panel">
+  <section class="app-screen menu-screen" data-screen="workshop">
+    <div class="screen-header"><button class="back-tavern" data-back-tavern>← Back to Tavern</button><div><h2>Workshop & Stash</h2><p>Craft, store, equip and repair.</p></div></div>
+    <section class="panel crafting-panel screen-panel">
     <div class="section-title"><h2>Workshop &amp; Stash</h2><span class="status">CRAFTING</span></div>
     <div class="craft-layout">
       <div>
@@ -111,14 +173,20 @@
     </div>
     <div id="craftLog" class="craft-log"></div><h3>Maintenance Log</h3><div id="repairLog" class="craft-log"></div>
   </section>
+  </section>
 
-  <section class="panel contract-board-panel">
+  <section class="app-screen menu-screen" data-screen="contracts">
+    <div class="screen-header"><button class="back-tavern" data-back-tavern>← Back to Tavern</button><div><h2>Contract Board</h2><p>Choose the work. Threat is advisory.</p></div></div>
+    <section class="panel contract-board-panel screen-panel">
     <div class="section-title"><h2>Contract Board</h2><span class="status">ANY HERO MAY DEPLOY</span></div>
     <p class="contract-board-note">Threat is advisory. Failed contracts still pay for performance already achieved.</p>
     <div id="contractBoard" class="contract-board"></div>
   </section>
+  </section>
 
-  <section class="panel chronicle-panel">
+  <section class="app-screen menu-screen" data-screen="chronicle">
+    <div class="screen-header"><button class="back-tavern" data-back-tavern>← Back to Tavern</button><div><h2>Tavern Chronicle</h2><p>Records, legends, deaths and milestones.</p></div></div>
+    <section class="panel chronicle-panel screen-panel">
     <div class="section-title"><h2>Tavern Chronicle</h2><span id="chronicleStatus" class="status">0 ENTRIES</span></div>
     <p class="chronicle-note">Contracts, feats, recruits, deaths, records and tavern milestones become permanent history.</p>
     <div class="legacy-metrics">
@@ -142,16 +210,17 @@
       </div>
     </div>
   </section>
+  </section>
 
-  <aside class="panel roster-panel">
+  <section class="app-screen menu-screen hero-screen" data-screen="heroes">
+    <div class="screen-header"><button class="back-tavern" data-back-tavern>← Back to Tavern</button><div><h2>Heroes' Table</h2><p>Select, prepare, equip and send a hero.</p></div></div>
+    <div class="focused-grid"><aside class="panel roster-panel screen-panel">
     <div class="section-title"><h2>Hero Roster</h2><span id="rosterCount" class="status">0 alive</span></div>
     <div id="heroRoster" class="hero-roster"></div>
     <h3>Fallen</h3>
     <div id="fallenRoster" class="fallen-roster"></div>
     <div class="save-actions"><button id="newTavern" class="danger">New Tavern / Clear Save</button></div>
-  </aside>
-
-  <section class="panel tavern" id="tavernPanel">
+  </aside><section class="panel tavern screen-panel" id="tavernPanel">
     <div class="section-title"><h2>Selected Hero</h2><span id="risk" class="risk">—</span></div>
     <div id="heroCard" class="hero-card"></div>
 
@@ -193,9 +262,12 @@
     <h3 class="history-heading">Career History</h3>
     <div id="careerHistory" class="career-history"></div>
     <div id="prepLog" class="prep-log"></div>
+  </section></div>
   </section>
 
-  <section class="panel expedition" id="expeditionPanel">
+  <section class="app-screen menu-screen expedition-screen" data-screen="expeditions">
+    <div class="screen-header"><button class="back-tavern" data-back-tavern>← Back to Tavern</button><div><h2>Road Map</h2><p>Follow every active expedition and review completed reports.</p></div></div>
+    <section class="panel expedition screen-panel" id="expeditionPanel">
     <div class="section-title"><h2>Expeditions</h2><div class="expedition-head-meta"><span id="expeditionCount" class="status">0 ACTIVE · 0 TOTAL</span><span id="status" class="status">READY</span></div></div>
     <div id="expeditionTabs" class="expedition-tabs"><p class="empty">No expeditions yet.</p></div>
     <div id="activeHeroBanner" class="active-hero-banner">No active expedition.</div>
@@ -210,12 +282,13 @@
     <h3>Event Feed</h3><div id="log" class="log"></div>
     <details><summary>Decision Debug</summary><pre id="debug"></pre></details>
   </section>
-
-  <section class="panel summary" id="summaryPanel">
+    <section class="panel summary screen-panel" id="summaryPanel">
     <h2>Expedition Summary</h2>
     <div id="summaryBody"><p>Select a hero, prepare them, then deploy.</p></div>
     <button id="returnHome" disabled>Close Selected Report</button>
   </section>
+  </section>
 </main>
+
 <script src="core.js"></script><script src="app.js"></script>
 </body></html>

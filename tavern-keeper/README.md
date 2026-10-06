@@ -1,61 +1,39 @@
-# Tavern Keeper — Slice 15 Release Candidate
+# Tavern Keeper — Animated Tavern
 
-Run a fantasy tavern, prepare persistent heroes, send them into autonomous contracts, collect what they earn, and remember whoever comes back.
+Tavern Keeper now opens inside the tavern itself.
 
-## Core loop
+Instead of one long management dashboard, the live tavern room is the home screen. Tap physical objects in the room to manage the corresponding system while patrons, heroes and visitors continue moving through the tavern.
 
-**Earn → recruit → prepare → equip → choose risk → deploy → watch the autonomous expedition → collect partial/full rewards → recover or memorialize → improve the tavern → repeat.**
+## Room navigation
 
-Heroes are not directly controlled in combat. Threat is advisory rather than a gate. Failure still pays for actual performance. Death is permanent for the hero, not for the tavern.
+- **Bar counter** — patrons, income, facilities and tavern upgrades
+- **Contract board** — choose contracts and threat
+- **Heroes' table** — roster, preparation, equipment and deployment
+- **Workbench** — stash, crafting and repairs
+- **Merchant corner** — buy current visiting stock
+- **Front door** — inspect/recruit applicants
+- **Chronicle ledger** — records, legends, deaths and milestones
+- **Wall map** — follow concurrent expeditions and reports
 
-## Release systems
+Every management system is now a focused screen with **Back to Tavern** rather than part of one giant scrolling page.
 
-- Persistent heroes with careers, traits, titles, injuries and permanent death.
-- Five discrete autonomous contract types with explicit partial objectives.
-- Concurrent expeditions with individual Pause / 1× / 4× / 12× speeds.
-- Dynamic expedition gold/sec plus separate stable tavern income.
-- Tavern facilities that materially improve meals, morale, rest, treatment and maintenance.
-- Crafting, merchants, equipment condition and repair.
-- Recruitment that can rebuild the roster even after total hero loss.
-- Up to 8 hours of deterministic offline progression.
-- Persistent Chronicle, legends, memorials, milestones and record-holders.
+## Live room
 
-## Release balance
+The animated room reflects real simulation state: seated/waiting patrons, food/drink service, heroes who are actually home, merchant/applicant presence, active expeditions and current tavern status. Deployed heroes disappear from the tavern until they return.
 
-Seeded release acceptance checks the full founding roster across the board. Aggregate success is approximately:
+Fireplace, lamps, rain, people, mugs, queues and the server animate with reduced-motion support.
 
-- Threat 1: **100%**
-- Threat 2: **99%**
-- Threat 3: **27%**
-- Threat 4: **25%**
-- Threat 6: **15%**
+## Core game
 
-These are roster-level acceptance figures, not promised odds for an individual hero. Builds and personality matter substantially.
+The Slice 15 simulation is unchanged: persistent autonomous heroes, permanent death, preparation, five contract types, concurrent expeditions, crafting, merchants, recruitment, facilities, equipment durability, 8-hour offline progress and the persistent Chronicle.
 
-## Run
+## Tests
 
-Open `index.html` directly or serve the folder locally with `python3 -m http.server 8000`.
-
-## Release gate
+Run all existing simulation suites plus:
 
 ```bash
-node tests/test_core.js
-node tests/test_preparation.js
-node tests/test_roster.js
-node tests/test_tavern.js
-node tests/test_crafting.js
-node tests/test_merchants.js
-node tests/test_contracts.js
-node tests/test_recruitment.js
-node tests/test_durability.js
-node tests/test_concurrency.js
-node tests/test_objectives.js
-node tests/test_facilities.js
-node tests/test_offline.js
-node tests/test_chronicle.js
 node tests/test_release.js
+node tests/test_scene_ui.js
 ```
 
-## Status
-
-Feature architecture is frozen after Slice 15. Future work should be evidence-driven bug fixing, balancing, accessibility and polish rather than automatic scope expansion.
+`test_scene_ui.js` locks the tavern-first shell, physical navigation, separate management screens, live-state bindings, animation contract and mobile interaction structure.

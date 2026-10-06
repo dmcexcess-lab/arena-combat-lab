@@ -2,6 +2,18 @@
 
 Current truth: `PROJECT_CONTEXT.md` · Future: `ROADMAP.md`
 
+## 2026-10-05 — Tavern Keeper: Animated Tavern Shell & Diegetic Navigation
+- Reopened the post-release presentation architecture while leaving the Slice 15 simulation unchanged.
+- Replaced the dashboard-first default with a full-screen animated tavern interior.
+- Added eight diegetic destinations: bar/tavern management, contract board, heroes' table, workshop, merchant corner, front door/applicants, Chronicle ledger and expedition road map.
+- Split the former long scrolling dashboard into eight focused management screens, each with a single Back to Tavern path; Escape and the title also return home.
+- Deploying a hero now naturally transitions to the expedition/road-map screen.
+- The tavern scene mirrors authoritative state: seated and queued patrons, served food/drink states, non-deployed heroes, active merchant, active applicant, facility/service status, selected contract, Chronicle total and active expeditions.
+- Added animated fireplace, lamps, rain, patron bob/queue behavior, mug lifting and a working server, with `prefers-reduced-motion` support.
+- Added touch-oriented scene hit areas and retained 44px coarse-pointer controls.
+- Optimized mobile rendering so hidden menu screens stop repainting every 250 ms while the underlying simulation continues globally.
+- Added `test_scene_ui.js` and updated release UX acceptance to require the tavern scene/navigation architecture.
+
 ## 2026-10-05 — Tavern Keeper Slice 15: Balance, UX & Release Acceptance
 - Froze Tavern Keeper architecture for release acceptance; no new major gameplay system was introduced.
 - Ran broad seeded batches across every contract and the prepared/ranged/reckless/unprepared hero profiles.

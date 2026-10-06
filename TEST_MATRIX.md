@@ -72,7 +72,12 @@ Operational checklist for humans + AIs. Keep compact; add only behaviors whose r
 - Reckless Borin retains substantial death risk on Threat 3/4/6 while cautious Edrin/Mara generally retreat rather than die; personality is not flattened by balancing.
 - Every upper-tier non-success path retains positive average gold; release balancing must not reintroduce zero-value failure.
 - Seeded five-minute tavern income remains between release bands: baseline 50–120g and fully developed >2× but <4× baseline; starting functional upgrade costs remain 15–40g.
-- Release web UX includes the four-step onboarding flow, viewport-fit mobile metadata, coarse-pointer 44px touch targets, 16px mobile numeric inputs, mobile stacked header, deploy/new-tavern controls and expedition speed controls.
+- Release web UX retains viewport-fit mobile metadata, coarse-pointer 44px touch targets, 16px mobile numeric inputs, mobile stacked header, deploy/new-tavern controls and expedition speed controls.
+- Animated tavern shell: the default app screen is the live tavern room, followed by exactly eight focused management screens (tavern, merchant, applicants, workshop, contracts, Chronicle, heroes and expeditions).
+- Eight unique physical room hotspots map one-to-one to those management screens; every management screen has Back to Tavern, Escape returns to the room and deploying a hero opens Expeditions.
+- Scene projection uses authoritative tavern/roster systems: active + queued patrons, non-deployed living heroes, merchant/applicant presence, current contract, active expeditions, Chronicle count and facility/service status.
+- Animated scene membership is signature-gated so actor DOM is not rebuilt every quarter-second; hidden management screens do not repaint continuously while simulation remains active.
+- Tavern room includes fireplace/lamp/rain/person/server/mug/queue animation plus `prefers-reduced-motion` support and coarse-pointer touch-safe interaction.
 
 ### Arena
 - Main scene instantiates without script/runtime errors.
