@@ -185,9 +185,13 @@
   <section class="app-screen menu-screen" data-screen="contracts">
     <div class="screen-header"><button class="back-tavern" data-back-tavern>← Back to Tavern</button><div><h2>Contract Board</h2><p>Choose the work. Threat is advisory.</p></div></div>
     <section class="panel contract-board-panel screen-panel">
-    <div class="section-title"><h2>Contract Board</h2><span class="status">ANY HERO MAY DEPLOY</span></div>
-    <p class="contract-board-note">Threat is advisory. Failed contracts still pay for performance already achieved.</p>
+    <div class="section-title"><h2>Contract Board</h2><span id="jobBoardProgress" class="status">Tavern Lv 1 · Rep 0 · 2/5 jobs</span></div>
+    <p class="contract-board-note">Build tavern level and reputation to attract more—and harder—work. Failed contracts keep gold earned before the hero returns, retreats or dies.</p>
     <div id="contractBoard" class="contract-board"></div>
+    <div class="job-assignment-panel">
+      <div class="contract-card selected-contract"><div><h3 id="selectedContractName">—</h3><span id="selectedContractThreat" class="threat">Threat —</span></div><p id="selectedContractObjective">Choose a job above.</p><small id="selectedContractRisk">Choose an available hero.</small></div>
+      <div class="job-assignment"><label>Assign hero<select id="jobHeroSelect"></select></label><button id="jobDeploy" class="primary">Accept Job</button></div>
+    </div>
   </section>
   </section>
 
@@ -220,7 +224,7 @@
   </section>
 
   <section class="app-screen menu-screen hero-screen" data-screen="heroes">
-    <div class="screen-header"><button class="back-tavern" data-back-tavern>← Back to Tavern</button><div><h2>Heroes' Table</h2><p>Select, prepare, equip and send a hero.</p></div></div>
+    <div class="screen-header"><button class="back-tavern" data-back-tavern>← Back to Tavern</button><div><h2>Heroes' Table</h2><p>Select, prepare and equip heroes. Assign work from the Contract Board.</p></div></div>
     <div class="focused-grid"><aside class="panel roster-panel screen-panel">
     <div class="section-title"><h2>Hero Roster</h2><span id="rosterCount" class="status">0 alive</span></div>
     <div id="heroRoster" class="hero-roster"></div>
@@ -262,10 +266,6 @@
     </div>
     <div class="maintenance-actions"><button id="repairWeapon">Repair Weapon</button><button id="repairArmor">Repair Armor</button></div><small class="loadout-note">Gear condition persists. Worn/damaged/broken equipment loses effectiveness until repaired.</small>
 
-    <div class="contract-card selected-contract"><div><h3 id="selectedContractName">—</h3><span id="selectedContractThreat" class="threat">Threat —</span></div><p id="selectedContractObjective">Select a contract from the board.</p><small id="selectedContractRisk">Threat is advisory.</small></div>
-    <label>Seed <input id="seed" type="number" value="42" min="1"></label>
-    <button id="deploy" class="primary">Deploy Selected Hero</button>
-
     <h3 class="history-heading">Career History</h3>
     <div id="careerHistory" class="career-history"></div>
     <div id="prepLog" class="prep-log"></div>
@@ -284,8 +284,7 @@
     <div class="bars"><label>Health<div><i id="hpBar"></i></div></label><label>Fatigue<div><i id="fatigueBar"></i></div></label><label>Hunger<div><i id="hungerBar"></i></div></label><label>Morale<div><i id="moraleBar"></i></div></label></div>
     <div class="current"><div><span>Location</span><strong id="location">—</strong></div><div><span>Moodlets</span><strong id="moodlets">—</strong></div></div>
     <div class="current"><div><span>Injuries</span><strong id="fieldInjuries">None</strong></div><div><span>Potions</span><strong id="fieldPotions">—</strong></div></div><div class="current"><div><span>Weapon condition</span><strong id="fieldWeapon">—</strong></div><div><span>Armor condition</span><strong id="fieldArmor">—</strong></div></div><div class="current"><div><span>Objective score</span><strong id="fieldObjectiveScore">—</strong></div><div><span>Objective state</span><strong id="fieldObjectiveState">—</strong></div></div>
-    <div class="controls"><button data-speed="0">Pause hero</button><button data-speed="1" class="active">1×</button><button data-speed="4">4×</button><button data-speed="12">12×</button><button id="step">Step hero</button></div>
-    <p class="economy-note">Each expedition runs at its own speed. Tavern service, merchants and applicants continue in real time.</p>
+    <p class="economy-note">Expeditions run at one authoritative real-time speed. Tavern service, merchants and applicants continue while heroes are away.</p>
     <h3>Event Feed</h3><div id="log" class="log"></div>
     <details><summary>Decision Debug</summary><pre id="debug"></pre></details>
   </section>

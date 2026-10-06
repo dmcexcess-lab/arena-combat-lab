@@ -2,7 +2,7 @@
 'use strict';
 const C=window.TavernKeeperCore;
 const $=id=>document.getElementById(id);
-const SAVE_KEY='tavernKeeper.slice3.v1';
+const SAVE_KEY='tavernKeeper.reputationBoard.v1';
 
 let roster=null,expeditions=null,renderedLogs={},saveClock=0,offlineReturn=null,lastCheckpointMs=Date.now(),currentScreen='scene',sceneSignature='',scenePatronActors=new Map(),sceneStaffActors=new Map(),sceneMotionRaf=0,sceneMotionLast=0;
 
@@ -17,7 +17,7 @@ function newGame(){
 function saveGame(){
   try{
     const now=Date.now();
-    localStorage.setItem(SAVE_KEY,JSON.stringify({version:4,savedAtMs:now,roster:roster.snapshot(),expeditions:expeditions.snapshot()}));
+    localStorage.setItem(SAVE_KEY,JSON.stringify({version:5,savedAtMs:now,roster:roster.snapshot(),expeditions:expeditions.snapshot()}));
     lastCheckpointMs=now;
     $('saveState').textContent='Saved';
   }catch(_){$('saveState').textContent='Unavailable';}
@@ -41,7 +41,7 @@ function loadGame(){
       const legacyId='exp_1';
       expeditions=C.ExpeditionManager.fromSnapshot({
         version:1,nextId:2,selectedId:legacyId,
-        entries:[{id:legacyId,heroId:data.activeHeroId||data.expedition.hero?.id,speed:1,settled:!!data.settled,settlement:null,expedition:data.expedition}]
+        entries:[{id:legacyId,heroId:data.activeHeroId||data.expedition.hero?.id,settled:!!data.settled,settlement:null,expedition:data.expedition}]
       });
     }else expeditions=new C.ExpeditionManager();
     const savedAt=Number(data.savedAtMs);
@@ -660,36 +660,45 @@ function renderCrafting(){
 }
 
 function renderContractBoard(){
-  const h=selected();
+  const availableIds=roster.availableContractIds();
+  if(!availableIds.includes(roster.selectedContractId))roster.selectContract(availableIds[0]);
   const selectedContract=roster.getContract();
+  const availableHeroes=roster.aliveHeroes().filter(function(hero){return !expeditionLocked(hero.id);});
+  let h=selected();
+  if(!h||expeditionLocked(h.id))h=availableHeroes[0]||null;
+  if(h&&roster.selectedHeroId!==h.id)roster.selectHero(h.id);
+
   $('selectedContractName').textContent=selectedContract.name;
   $('selectedContractThreat').textContent='Threat '+selectedContract.threat;
   $('selectedContractObjective').textContent=selectedContract.objective;
-  $('selectedContractRisk').textContent=h
-    ? C.threatAssessment(h,selectedContract)+' for '+h.name+' · '+selectedContract.kind+' · '+selectedContract.durationHint+' at ×1 · income ×'+selectedContract.incomeMult.toFixed(2)
-    : selectedContract.kind+' · '+selectedContract.durationHint+' at ×1 · income ×'+selectedContract.incomeMult.toFixed(2)+' · select a living hero for risk assessment';
+  $('selectedContractRisk').textContent=(h?C.threatAssessment(h,selectedContract)+' for '+h.name+' · ':'')+
+    selectedContract.kind+' · base +'+selectedContract.jobGps.toFixed(1)+' g/s · '+selectedContract.durationHint;
+  $('jobBoardProgress').textContent='Tavern Lv '+roster.tavernLevel()+' · Rep '+roster.tavernReputation()+' · '+availableIds.length+'/5 jobs';
 
-  $('contractBoard').innerHTML=C.CONTRACT_ORDER.map(function(id){
+  $('contractBoard').innerHTML=availableIds.map(function(id){
     const c=C.CONTRACTS[id];
-    const assessment=h?C.threatAssessment(h,c):'No hero selected';
+    const assessment=h?C.threatAssessment(h,c):'Choose an available hero';
     const mats=c.materialProfile.map(function(mat){return C.MATERIAL_NAMES[mat]||mat;}).join(' · ');
     return '<button class="board-contract '+(id===roster.selectedContractId?'selected':'')+'" data-contract="'+id+'">'+
       '<div><strong>'+c.name+'</strong><span>Threat '+c.threat+'</span></div>'+
-      '<em>'+c.kind+' · '+c.durationHint+' at ×1 · '+assessment+'</em>'+
+      '<em>Base +'+c.jobGps.toFixed(1)+' g/s · '+c.durationHint+' · '+assessment+'</em>'+
       '<p>'+c.brief+'</p>'+
       '<small>Objectives: '+c.subObjectives.join(' · ')+'</small>'+
-      '<small>Income ×'+c.incomeMult.toFixed(2)+' · '+mats+'</small></button>';
+      '<small>'+mats+'</small></button>';
   }).join('');
+
+  $('jobHeroSelect').innerHTML=availableHeroes.length?availableHeroes.map(function(hero){
+    return '<option value="'+hero.id+'" '+(h&&hero.id===h.id?'selected':'')+'>'+hero.name+' · Rank '+hero.career.rank+' · '+C.threatAssessment(hero,selectedContract)+'</option>';
+  }).join(''):'<option value="">No available heroes</option>';
+  $('jobHeroSelect').disabled=!availableHeroes.length;
+  $('jobDeploy').disabled=!h||!availableIds.includes(selectedContract.id);
 
   document.querySelectorAll('[data-contract]').forEach(function(btn){
     btn.addEventListener('click',function(){
-      roster.selectContract(btn.dataset.contract);
-      renderAll();
-      saveGame();
+      if(roster.selectContract(btn.dataset.contract)){renderContractBoard();saveGame();}
     });
   });
 }
-
 function renderRoster(){
   const heroes=roster.aliveHeroes();
   $('rosterCount').textContent=heroes.length+' alive · '+expeditions.activeEntries().length+' deployed';
@@ -755,7 +764,6 @@ function renderHome(){
     $('skills').innerHTML=chipList([]);
     $('titles').innerHTML=chipList([]);
     $('careerHistory').innerHTML='<p class="empty">No career history.</p>';
-    $('deploy').disabled=true;
     document.querySelectorAll('[data-prep]').forEach(function(b){b.disabled=true;});
     return;
   }
@@ -806,7 +814,6 @@ function renderHome(){
   }
 
   document.querySelectorAll('[data-prep]').forEach(function(btn){btn.disabled=expeditionLocked(h.id)||!roster.canPrepare(h.id,btn.dataset.prep);});
-  $('deploy').disabled=expeditionLocked(h.id)||!h.alive;
 }
 
 function renderChronicle(){
@@ -862,7 +869,7 @@ function renderExpeditionTabs(){
   }
   $('expeditionTabs').innerHTML=entries.map(function(entry){
     const e=entry.expedition,h=e.hero;
-    const state=e.state==='deployed'?(entry.speed===0?'PAUSED':'ACTIVE ×'+entry.speed):e.state.toUpperCase();
+    const state=e.state==='deployed'?'ACTIVE':e.state.toUpperCase();
     return '<button class="expedition-tab '+(entry.id===expeditions.selectedId?'selected':'')+' '+e.state+'" data-expedition="'+entry.id+'">'+
       '<div><strong>'+h.name+'</strong><span>'+state+'</span></div>'+
       '<small>'+e.contract.name+' · score '+Math.round(e.objectiveScore||0)+'/100 · '+e.gold.toFixed(1)+'g</small></button>';
@@ -924,8 +931,6 @@ function renderExpedition(){
     ['hpBar','fatigueBar','hungerBar','moraleBar'].forEach(function(id){setBar(id,0);});
     $('log').innerHTML='<p class="empty">No expedition selected.</p>';
     $('debug').textContent='No decision yet.';
-    document.querySelectorAll('[data-speed]').forEach(function(b){b.disabled=true;b.classList.remove('active');});
-    $('step').disabled=true;
     renderSummary(null);
     return;
   }
@@ -958,18 +963,16 @@ function renderExpedition(){
   }
   const d=exp.decisionDebug.length?exp.decisionDebug[exp.decisionDebug.length-1]:null;
   $('debug').textContent=d?JSON.stringify(d,null,2):'No decision yet.';
-  document.querySelectorAll('[data-speed]').forEach(function(b){
-    b.disabled=exp.state!=='deployed';
-    b.classList.toggle('active',exp.state==='deployed'&&+b.dataset.speed===entry.speed);
-  });
-  $('step').disabled=exp.state!=='deployed';
   renderSummary(entry);
 }
 
 function startExpedition(){
-  const h=selected();
-  if(!h||expeditionLocked(h.id))return;
-  const result=expeditions.deploy({hero:h,seed:+$('seed').value||1,contract:roster.getContract(),speed:1});
+  const heroId=$('jobHeroSelect').value;
+  const h=roster.getHero(heroId),contract=roster.getContract();
+  if(!h||expeditionLocked(h.id)||!roster.availableContractIds().includes(contract.id))return;
+  roster.selectHero(h.id);
+  const seed=((Date.now()>>>0)^((roster.history.length+1)*2654435761))>>>0||1;
+  const result=expeditions.deploy({hero:h,seed,contract});
   if(!result.ok)return;
   renderedLogs[result.entry.id]=0;
   selectAvailableHero();
@@ -977,7 +980,6 @@ function startExpedition(){
   openScreen('expeditions');
   saveGame();
 }
-
 function closeReport(){
   const entry=focusedEntry();
   if(!entry||entry.expedition.state==='deployed'||!entry.settled)return;
@@ -1015,26 +1017,15 @@ $('recruitApplicant').addEventListener('click',function(){
   const r=roster.recruitApplicant();
   if(r.ok){renderAll();saveGame();}
 });
-$('deploy').addEventListener('click',startExpedition);
 $('returnHome').addEventListener('click',closeReport);
 $('newTavern').addEventListener('click',function(){localStorage.removeItem(SAVE_KEY);newGame();$('summaryBody').innerHTML='<p>New tavern started.</p>';renderAll();renderOfflineReturn();openScreen('scene');saveGame();});
 $('closeOfflineSummary').addEventListener('click',function(){offlineReturn=null;renderOfflineReturn();});
-document.querySelectorAll('[data-speed]').forEach(function(b){
-  b.addEventListener('click',function(){
-    const entry=focusedEntry();
-    if(entry&&entry.expedition.state==='deployed'&&expeditions.setSpeed(entry.id,+b.dataset.speed)){renderExpedition();saveGame();}
-  });
+$('jobHeroSelect').addEventListener('change',function(){
+  if(this.value)roster.selectHero(this.value);
+  renderContractBoard();
+  saveGame();
 });
-$('step').addEventListener('click',function(){
-  const entry=focusedEntry();
-  if(entry&&entry.expedition.state==='deployed'){
-    entry.expedition.tick(0.25);
-    const settledCount=settleResolved();
-    if(settledCount)selectAvailableHero();
-    renderAll();saveGame();
-  }
-});
-
+$('jobDeploy').addEventListener('click',startExpedition);
 document.addEventListener('visibilitychange',function(){
   if(document.hidden){
     saveGame();
