@@ -169,10 +169,10 @@
         mine_mouth:{id:'mine_mouth',name:'Mine Mouth',progress:8,next:['timber_gallery'],encounter:null,materials:[['scrap_iron',0.45]]},
         timber_gallery:{id:'timber_gallery',name:'Timber Gallery',progress:16,next:['fungus_cave','lower_tunnel'],encounter:{enemy:'cave_crawler',count:[2,3]},materials:[['medicinal_herb',0.45],['scrap_iron',0.5]]},
         fungus_cave:{id:'fungus_cave',name:'Fungus Cave',progress:18,next:['collapsed_lift'],optional:true,risk:0.72,reward:1.25,encounter:{enemy:'cave_stalker',count:[1,2]},materials:[['strange_gland',0.75],['medicinal_herb',0.75]]},
-        lower_tunnel:{id:'lower_tunnel',name:'Lower Tunnel',progress:16,next:['collapsed_lift'],encounter:{enemy:'cave_crawler',count:[2,4]},materials:[['scrap_iron',0.65]]},
+        lower_tunnel:{id:'lower_tunnel',name:'Lower Tunnel',progress:16,next:['collapsed_lift'],encounter:{enemy:'cave_crawler',count:[2,3]},materials:[['scrap_iron',0.65]]},
         collapsed_lift:{id:'collapsed_lift',name:'Collapsed Lift',progress:20,next:['brood_chamber','miner_gallery'],encounter:{enemy:'cave_stalker',count:[1,2]},materials:[['strange_gland',0.45],['scrap_iron',0.55]]},
-        brood_chamber:{id:'brood_chamber',name:'Brood Chamber',progress:18,next:['miner_gallery'],optional:true,risk:0.95,reward:1.55,encounter:{enemy:'cave_stalker',count:[2,3]},materials:[['strange_gland',0.9]]},
-        miner_gallery:{id:'miner_gallery',name:'Missing Miners',progress:24,next:['resolution'],encounter:{enemy:'cave_crawler',count:[3,4]},materials:[['medicinal_herb',0.5],['scrap_iron',0.8]]},
+        brood_chamber:{id:'brood_chamber',name:'Brood Chamber',progress:18,next:['miner_gallery'],optional:true,risk:0.95,reward:1.55,encounter:{enemy:'cave_stalker',count:[2,2]},materials:[['strange_gland',0.9]]},
+        miner_gallery:{id:'miner_gallery',name:'Missing Miners',progress:24,next:['resolution'],encounter:{enemy:'cave_crawler',count:[2,3]},materials:[['medicinal_herb',0.5],['scrap_iron',0.8]]},
         resolution:{id:'resolution',name:'Miners Recovered',progress:0,next:[],encounter:null,materials:[]}
       }
     },
@@ -200,7 +200,7 @@
     raider:{id:'raider',name:'Road Raider',hp:38,damage:[6,11],accuracy:0.74,defense:2,xp:3,danger:0.46},
     cave_crawler:{id:'cave_crawler',name:'Cave Crawler',hp:31,damage:[5,10],accuracy:0.72,defense:1,xp:2,danger:0.38},
     cave_stalker:{id:'cave_stalker',name:'Cave Stalker',hp:43,damage:[7,13],accuracy:0.76,defense:2,xp:3,danger:0.56},
-    troll:{id:'troll',name:'Bridge Troll',hp:82,damage:[10,17],accuracy:0.69,defense:3,xp:6,danger:0.82}
+    troll:{id:'troll',name:'Bridge Troll',hp:142,damage:[14,23],accuracy:0.80,defense:4,xp:6,danger:0.94}
   };
 
   const MATERIAL_NAMES={rat_tail:'Rat Tail',medicinal_herb:'Medicinal Herb',scrap_iron:'Scrap Iron',strange_gland:'Strange Gland'};

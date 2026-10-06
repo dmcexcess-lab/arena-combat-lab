@@ -2,6 +2,19 @@
 
 Current truth: `PROJECT_CONTEXT.md` · Future: `ROADMAP.md`
 
+## 2026-10-05 — Tavern Keeper Slice 15: Balance, UX & Release Acceptance
+- Froze Tavern Keeper architecture for release acceptance; no new major gameplay system was introduced.
+- Ran broad seeded batches across every contract and the prepared/ranged/reckless/unprepared hero profiles.
+- Fixed the major threat inversion: reduced excess Blackroot Mine encounter density and strengthened the Wren Bridge troll to make Threat 6 the hardest aggregate contract.
+- Release batch now measures founding-roster aggregate success at roughly 100% / 99% / 27% / 25% / 15% across Threat 1 / 2 / 3 / 4 / 6.
+- Preserved personality risk: cautious heroes typically retreat from lethal contracts while reckless Borin retains high permanent-death exposure on upper-tier work.
+- Verified deliberately unprepared heroes cannot brute-force the board and upper-tier failures retain positive performance/objective pay.
+- Verified seeded five-minute tavern income remains bounded: baseline about 76.8g, fully developed about 232.65g.
+- Added a four-step onboarding panel explaining earn → prepare → choose risk → autonomous deployment.
+- Improved phone layout: compact two-column header stats, 44px coarse-pointer controls and 16px numeric inputs to avoid iOS zoom/readability problems.
+- Added `test_release.js`, covering seeded threat bands, preparation separation, death behavior, paid failure, economy bands, offline constants and static phone/desktop UX requirements.
+- Slice 15 closes the planned feature-slice sequence; subsequent work is evidence-driven maintenance, tuning and polish.
+
 ## 2026-10-05 — Tavern Keeper Slice 14: Chronicle & Tavern Legacy
 - Added a persistent Chronicle owned by TavernRoster, with up to 1,000 event entries, one-time milestones and record-holders.
 - Fresh taverns record the opening and founding roster; recruited heroes retain explicit applicant origin/quality/cost history.

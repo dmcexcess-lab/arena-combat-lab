@@ -67,6 +67,12 @@ Operational checklist for humans + AIs. Keep compact; add only behaviors whose r
 - Tavern facility, patron, revenue and contract-count milestones are one-time and cannot duplicate on repeated checks/offline ticks.
 - Slice 13/older saves without Chronicle data reconstruct recruitment origins, prior contract entries, explicit death memorials and current records from existing ledgers.
 - Offline expedition settlement writes the same Chronicle events as live settlement; TavernRoster snapshot v11 round-trips Chronicle exactly.
+- Slice 15 release acceptance: 250 seeded runs per founder build per contract enforce a monotonic aggregate threat curve, with Threat 1/2 reliable, Threat 3/4 risky and Threat 6 hardest.
+- Deliberately unprepared heroes remain at or below 2% success on every contract; preparation therefore remains a decisive player lever.
+- Reckless Borin retains substantial death risk on Threat 3/4/6 while cautious Edrin/Mara generally retreat rather than die; personality is not flattened by balancing.
+- Every upper-tier non-success path retains positive average gold; release balancing must not reintroduce zero-value failure.
+- Seeded five-minute tavern income remains between release bands: baseline 50–120g and fully developed >2× but <4× baseline; starting functional upgrade costs remain 15–40g.
+- Release web UX includes the four-step onboarding flow, viewport-fit mobile metadata, coarse-pointer 44px touch targets, 16px mobile numeric inputs, mobile stacked header, deploy/new-tavern controls and expedition speed controls.
 
 ### Arena
 - Main scene instantiates without script/runtime errors.

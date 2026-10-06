@@ -1,30 +1,42 @@
-# Tavern Keeper — Slice 14: Chronicle & Tavern Legacy
+# Tavern Keeper — Slice 15 Release Candidate
 
-The tavern now remembers what happened there.
+Run a fantasy tavern, prepare persistent heroes, send them into autonomous contracts, collect what they earn, and remember whoever comes back.
 
-## Slice 14
+## Core loop
 
-- Founding heroes and recruited applicants have persistent origins.
-- Every resolved contract becomes a Chronicle entry.
-- Boss kills, full rescues and strong escorts become named feats.
-- Rank/title growth becomes visible career history.
-- Dead heroes receive permanent memorial entries.
-- Exceptional careers become living or fallen **Tavern Legends**.
-- Tavern upgrades and long-term patron/revenue/contract thresholds become milestones.
-- Seven persistent records track the strongest careers and individual expeditions.
-- Fallen heroes can retain records and legend status after death.
-- Old saves reconstruct as much Chronicle history as their existing ledgers support.
-- Offline-resolved contracts write the same Chronicle history as live contracts.
+**Earn → recruit → prepare → equip → choose risk → deploy → watch the autonomous expedition → collect partial/full rewards → recover or memorialize → improve the tavern → repeat.**
 
-## Records
+Heroes are not directly controlled in combat. Threat is advisory rather than a gate. Failure still pays for actual performance. Death is permanent for the hero, not for the tavern.
 
-Most Contracts · Most Successes · Most Kills · Most Career Gold · Highest Rank · Best Objective Score · Largest Contract Payout
+## Release systems
+
+- Persistent heroes with careers, traits, titles, injuries and permanent death.
+- Five discrete autonomous contract types with explicit partial objectives.
+- Concurrent expeditions with individual Pause / 1× / 4× / 12× speeds.
+- Dynamic expedition gold/sec plus separate stable tavern income.
+- Tavern facilities that materially improve meals, morale, rest, treatment and maintenance.
+- Crafting, merchants, equipment condition and repair.
+- Recruitment that can rebuild the roster even after total hero loss.
+- Up to 8 hours of deterministic offline progression.
+- Persistent Chronicle, legends, memorials, milestones and record-holders.
+
+## Release balance
+
+Seeded release acceptance checks the full founding roster across the board. Aggregate success is approximately:
+
+- Threat 1: **100%**
+- Threat 2: **99%**
+- Threat 3: **27%**
+- Threat 4: **25%**
+- Threat 6: **15%**
+
+These are roster-level acceptance figures, not promised odds for an individual hero. Builds and personality matter substantially.
 
 ## Run
 
 Open `index.html` directly or serve the folder locally with `python3 -m http.server 8000`.
 
-## Tests
+## Release gate
 
 ```bash
 node tests/test_core.js
@@ -41,8 +53,9 @@ node tests/test_objectives.js
 node tests/test_facilities.js
 node tests/test_offline.js
 node tests/test_chronicle.js
+node tests/test_release.js
 ```
 
-## Next Operation (Slice 15)
+## Status
 
-Run **Balance, UX & Release Acceptance** with architecture frozen: seeded balance batches, economy/readiness/pathology checks, mobile/desktop usability and final release closure rather than another large system expansion.
+Feature architecture is frozen after Slice 15. Future work should be evidence-driven bug fixing, balancing, accessibility and polish rather than automatic scope expansion.
