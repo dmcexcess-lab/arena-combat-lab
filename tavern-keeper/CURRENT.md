@@ -1,10 +1,34 @@
 # CURRENT — Tavern Keeper
 
 ## Current operation
-Major Change 3 — Long-form Contract Pacing
+Major Change 4 — Reputation-Gated Job Board Reset
 
 ## Status
-Implemented on top of the spatial tavern simulation. Contract resolution now runs on a long-form real-time clock while preserving the existing autonomous route/combat/decision model.
+Implemented as a deliberate new progression generation. The browser save key changes, so this build force-starts Tavern Keeper from a fresh tavern rather than importing the prior three-founder/speed-control economy.
+
+## Progression reset
+- New tavern starts with exactly one founding hero: Edrin Vale.
+- Contract Board starts with two low-threat jobs and can expand to a maximum of five.
+- Board access is gated by BOTH tavern level and reputation.
+- Tavern level comes from facility, service and seating improvements.
+- Reputation comes from patrons served, lifetime tavern revenue and successful contracts.
+- Current board ladder exposes 2 → 3 → 4 → 4 → 5 jobs while harder threats unlock with progression.
+- Heroes are assigned from a dropdown on the Contract Board.
+- Heroes' Table has no Deploy action; it is preparation, equipment and career management only.
+
+## Contract economy / time
+- One simulation speed only. Pause, ×4, ×12 and manual-step controls are removed.
+- Contract ladder:
+  - Threat 1: base +1 g/s · 15 min
+  - Threat 2: base +2 g/s · 30 min
+  - Threat 3: base +3 g/s · 1h 30m
+  - Threat 4: base +5 g/s · 4 hr
+  - Threat 6: base +8 g/s · 8 hr
+- Gold accrues continuously at the advertised base job g/s while deployed; existing performance events can still add rewards.
+- Autonomous combat, route and objective logic remains active.
+- Death or retreat can end a job early.
+- Completing the objective starts a return journey; successful settlement occurs at the listed duration.
+- Threat 6's 8-hour duration intentionally matches the offline progression cap.
 
 ## Default experience
 - The app now opens directly into a live animated tavern room instead of a long dashboard.
@@ -35,20 +59,6 @@ Implemented on top of the spatial tavern simulation. Contract resolution now run
 - The newest tavern service event appears as an ambient room status line.
 - Patron/staff translation is state-driven with `requestAnimationFrame`; CSS animation is limited to fire, lamps, rain, walking limbs, serving arms and mugs.
 - `prefers-reduced-motion` disables continuous animation.
-
-## Contract pacing
-- Normal-speed target bands are threat-scaled:
-  - Threat 1: 5–10 minutes
-  - Threat 2: 10–20 minutes
-  - Threat 3: 25–45 minutes
-  - Threat 4: 1–2 hours
-  - Threat 6: 2–4 hours
-- These are target bands, not fixed countdowns. Route branches, combat length, retreat and death remain simulation-driven.
-- Contract actions now mature on per-contract pacing intervals instead of once per 250 ms browser loop.
-- Needs, preparation decay and rewards advance per expedition action rather than per wall-clock second, preserving the established Slice 15 risk/economy balance while reports are spread across the longer contract clock.
-- Longer wall-clock contracts therefore do not become easier/harder or inflate payouts merely because they take longer.
-- ×1/×4/×12 speed controls and offline catch-up use the same pacing model.
-- Expedition snapshots persist the pacing clock; existing saves migrate without schema-reset behavior.
 
 ## Rendering / phone behavior
 - The underlying simulation continues globally regardless of which screen is open.
@@ -90,4 +100,4 @@ node tests/test_scene_ui.js
 - Offline progression remains capped at 8 hours.
 
 ## NEXT OPERATION
-Playtest the long-form contract clock alongside the spatial tavern on phone/desktop. Verify the five duration bands at ×1, offline continuation, ×4/×12 acceleration, report cadence, patron entry/exit flow, outside queue spacing, staff travel and door readability. Keep combat/economy rules unchanged unless separately requested.
+Playtest the forced fresh-start progression on phone/desktop: one founder, two starting low-threat jobs, Contract Board hero assignment, reputation/level unlocks through five jobs, single-speed expeditions, 15m→8h contract timing, g/s accrual, offline continuation, and spatial tavern flow.

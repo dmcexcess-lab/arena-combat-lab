@@ -23,15 +23,28 @@ The room now has persistent spatial actors. Patrons arrive from the exterior roa
 
 Fireplace, lamps and rain remain ambient. Patron/staff translation is driven by stateful routes rather than looping position animation; walk cycles, serving arms and mugs are local animations with reduced-motion support.
 
-## Contract pacing
+## Job board progression
 
-Contracts now unfold on a long-form real-time clock at normal speed. Threat is also a commitment tier: Threat 1 targets about 5–10 minutes, Threat 2 about 10–20 minutes, Threat 3 about 25–45 minutes, Threat 4 about 1–2 hours, and Threat 6 about 2–4 hours. Branching, combat, retreat and death can move an individual run outside its target band.
+A new tavern starts over with one founding hero and two low-threat jobs on the board. The board grows to a maximum of five job choices as both tavern level and reputation rise. Tavern level comes from facilities, service and seating. Reputation comes from patrons served, tavern revenue and successful contracts.
 
-Expedition reports, combat rounds and route decisions are paced simulation events rather than events fired every browser repaint. Offline progress uses the same 0.25-second simulation quantum, and the existing ×1/×4/×12 expedition speeds remain authoritative.
+Heroes are assigned from a dropdown on the Contract Board. The Heroes' Table is preparation, equipment and career management only.
+
+## Contract economy and time
+
+There is one authoritative speed. Pause, ×4, ×12 and manual-step controls are removed.
+
+Jobs advertise a base contract income rate and listed duration:
+- Threat 1: +1 g/s for 15 minutes
+- Threat 2: +2 g/s for 30 minutes
+- Threat 3: +3 g/s for 1h 30m
+- Threat 4: +5 g/s for 4 hours
+- Threat 6: +8 g/s for 8 hours
+
+Gold accrues continuously while the hero is away. Autonomous travel, combat and objective events still occur during the job and can affect performance rewards. Death or retreat ends the job early. Once the route is complete, a surviving hero remains away on the return journey until the listed duration completes. The hardest 8-hour job matches the offline progression cap.
 
 ## Core game
 
-The Slice 15 simulation is unchanged: persistent autonomous heroes, permanent death, preparation, five contract types, concurrent expeditions, crafting, merchants, recruitment, facilities, equipment durability, 8-hour offline progress and the persistent Chronicle.
+The underlying simulation remains: persistent autonomous heroes, permanent death, preparation, five contract types, concurrent expeditions, crafting, merchants, recruitment, facilities, equipment durability, 8-hour offline progress and the persistent Chronicle.
 
 ## Tests
 
