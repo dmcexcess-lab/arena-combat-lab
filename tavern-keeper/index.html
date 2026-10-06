@@ -3,12 +3,12 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-  <title>Tavern Keeper — Slice 8</title>
+  <title>Tavern Keeper — Slice 9</title>
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
 <header>
-  <div><h1>Tavern Keeper</h1><p>Slice 8 — Recruitment &amp; Applicants</p></div>
+  <div><h1>Tavern Keeper</h1><p>Slice 9 — Equipment Durability &amp; Maintenance</p></div>
   <div class="top-stats">
     <div><span>Tavern funds</span><strong id="funds">0.0g</strong></div>
     <div><span>Tavern g/s</span><strong id="tavernGps">0.00</strong></div>
@@ -89,7 +89,7 @@
         <div id="recipeList" class="recipe-list"></div>
       </div>
     </div>
-    <div id="craftLog" class="craft-log"></div>
+    <div id="craftLog" class="craft-log"></div><h3>Maintenance Log</h3><div id="repairLog" class="craft-log"></div>
   </section>
 
   <section class="panel contract-board-panel">
@@ -139,7 +139,7 @@
       <div><span>Healing potions</span><strong id="potions">0</strong></div>
       <div><span>Field bandages</span><strong id="bandages">0</strong></div>
     </div>
-    <small class="loadout-note">Equip crafted/stored gear and give consumables from Workshop &amp; Stash.</small>
+    <div class="maintenance-actions"><button id="repairWeapon">Repair Weapon</button><button id="repairArmor">Repair Armor</button></div><small class="loadout-note">Gear condition persists. Worn/damaged/broken equipment loses effectiveness until repaired.</small>
 
     <div class="contract-card selected-contract"><div><h3 id="selectedContractName">—</h3><span id="selectedContractThreat" class="threat">Threat —</span></div><p id="selectedContractObjective">Select a contract from the board.</p><small id="selectedContractRisk">Threat is advisory.</small></div>
     <label>Seed <input id="seed" type="number" value="42" min="1"></label>
@@ -158,7 +158,7 @@
     </div>
     <div class="bars"><label>Health<div><i id="hpBar"></i></div></label><label>Fatigue<div><i id="fatigueBar"></i></div></label><label>Hunger<div><i id="hungerBar"></i></div></label><label>Morale<div><i id="moraleBar"></i></div></label></div>
     <div class="current"><div><span>Location</span><strong id="location">—</strong></div><div><span>Moodlets</span><strong id="moodlets">—</strong></div></div>
-    <div class="current"><div><span>Injuries</span><strong id="fieldInjuries">None</strong></div><div><span>Potions</span><strong id="fieldPotions">—</strong></div></div>
+    <div class="current"><div><span>Injuries</span><strong id="fieldInjuries">None</strong></div><div><span>Potions</span><strong id="fieldPotions">—</strong></div></div><div class="current"><div><span>Weapon condition</span><strong id="fieldWeapon">—</strong></div><div><span>Armor condition</span><strong id="fieldArmor">—</strong></div></div>
     <div class="controls"><button data-speed="0">Pause hero</button><button data-speed="1" class="active">1×</button><button data-speed="4">4×</button><button data-speed="12">12×</button><button id="step">Step hero</button></div>
     <p class="economy-note">Tavern service continues at real-time speed while the hero is deployed or paused.</p>
     <h3>Event Feed</h3><div id="log" class="log"></div>

@@ -44,6 +44,17 @@ function injuryText(hero){
     return (C.INJURY_TYPES[i.type]?C.INJURY_TYPES[i.type].name:i.type)+(i.severity>1?' ×'+i.severity:'');
   }).join(', ');
 }
+function gearConditionText(hero,slot){
+  const itemId=hero?.equipment?.[slot];
+  if(!itemId)return 'None';
+  const d=C.normalizeDurability(hero.gearDurability?.[slot]);
+  return (C.EQUIPMENT[itemId]?.name||itemId)+' · '+Math.round(d)+'% '+C.durabilityCondition(d);
+}
+function repairLabel(itemId,durability,prefix){
+  const q=C.repairQuote(itemId,durability);
+  if(!q||q.missing<=0)return prefix+' · maintained';
+  return prefix+' · '+q.gold+'g'+(q.scrapIron?' + '+q.scrapIron+' iron':'')+' · '+q.minutes+'m';
+}
 function chipList(items,empty){
   empty=empty||'None';
   return items&&items.length?items.map(function(x){return '<span>'+x+'</span>';}).join(''):'<span class="muted">'+empty+'</span>';
@@ -215,7 +226,11 @@ function renderCrafting(){
       const h=selected();
       let action='';
       if(item.slot==='weapon'||item.slot==='armor'){
-        action='<button data-equip="'+id+'" '+(!h||expeditionLocked()?'disabled':'')+'>Equip</button>';
+        const ds=roster.stockDurabilities(id);
+        stat+=' · '+ds.map(function(d){return Math.round(d)+'%';}).join(', ');
+        const worst=ds.length?Math.min.apply(null,ds):100;
+        action='<button data-equip="'+id+'" '+(!h||expeditionLocked()?'disabled':'')+'>Equip best</button>'+
+          '<button data-repair-stock="'+id+'" '+(worst>=100||expeditionLocked()?'disabled':'')+'>'+repairLabel(id,worst,'Repair worst')+'</button>';
       }else if(item.slot==='consumable'){
         action='<button data-give="'+id+'" '+(!h||expeditionLocked()?'disabled':'')+'>Give</button>';
       }
@@ -236,6 +251,9 @@ function renderCrafting(){
   $('craftLog').innerHTML=roster.craftHistory.length?roster.craftHistory.slice().reverse().slice(0,6).map(function(e){
     return '<div><strong>'+e.name+'</strong><span>made '+e.made+' · '+e.minutes+'m</span></div>';
   }).join(''):'<p class="empty">No crafting yet.</p>';
+  $('repairLog').innerHTML=roster.repairHistory.length?roster.repairHistory.slice().reverse().slice(0,6).map(function(e){
+    return '<div><strong>'+e.name+'</strong><span>'+Math.round(e.before)+'% → 100% · '+e.gold+'g'+(e.scrapIron?' + '+e.scrapIron+' iron':'')+'</span></div>';
+  }).join(''):'<p class="empty">No maintenance yet.</p>';
 
   document.querySelectorAll('[data-craft]').forEach(function(btn){
     btn.addEventListener('click',function(){
@@ -247,6 +265,12 @@ function renderCrafting(){
     btn.addEventListener('click',function(){
       const h=selected(); if(!h)return;
       const r=roster.equipInventoryItem(h.id,btn.dataset.equip);
+      if(r.ok){renderAll();saveGame();}
+    });
+  });
+  document.querySelectorAll('[data-repair-stock]').forEach(function(btn){
+    btn.addEventListener('click',function(){
+      const r=roster.repairStoredGear(btn.dataset.repairStock);
       if(r.ok){renderAll();saveGame();}
     });
   });
@@ -344,7 +368,7 @@ function renderHome(){
   if(!h){
     $('risk').textContent='—';
     $('heroCard').innerHTML='<p class="empty">No living hero selected.</p>';
-    ['homeHealth','homeHunger','homeFatigue','homeMorale','careerRank','careerXp','careerContracts','careerSuccesses','potions','bandages','currentWeapon','currentArmor'].forEach(function(id){$(id).textContent='—';});
+    ['homeHealth','homeHunger','homeFatigue','homeMorale','careerRank','careerXp','careerContracts','careerSuccesses','potions','bandages','currentWeapon','currentArmor'].forEach(function(id){$(id).textContent='—';}); $('repairWeapon').disabled=true; $('repairArmor').disabled=true;
     ['homeHealthBar','homeHungerBar','homeFatigueBar','homeMoraleBar'].forEach(function(id){setBar(id,0);});
     $('homeMoodlets').innerHTML=chipList([]);
     $('injuries').innerHTML=chipList([]);
@@ -376,8 +400,14 @@ function renderHome(){
   $('titles').innerHTML=chipList(h.titles,'No titles yet');
   $('potions').textContent=h.supplies.healing_potion||0;
   $('bandages').textContent=h.supplies.field_bandage||0;
-  $('currentWeapon').textContent=(C.EQUIPMENT[h.equipment.weapon]||C.EQUIPMENT.wood_axe).name;
-  $('currentArmor').textContent=h.equipment.armor?(C.EQUIPMENT[h.equipment.armor]?.name||h.equipment.armor):'None';
+  $('currentWeapon').textContent=gearConditionText(h,'weapon');
+  $('currentArmor').textContent=gearConditionText(h,'armor');
+  const wq=C.repairQuote(h.equipment.weapon,h.gearDurability.weapon);
+  const aq=h.equipment.armor?C.repairQuote(h.equipment.armor,h.gearDurability.armor):null;
+  $('repairWeapon').textContent=repairLabel(h.equipment.weapon,h.gearDurability.weapon,'Repair Weapon');
+  $('repairArmor').textContent=h.equipment.armor?repairLabel(h.equipment.armor,h.gearDurability.armor,'Repair Armor'):'No Armor';
+  $('repairWeapon').disabled=expeditionLocked()||!wq||wq.missing<=0||roster.funds<wq.gold||roster.materialCount('scrap_iron')<wq.scrapIron;
+  $('repairArmor').disabled=expeditionLocked()||!aq||aq.missing<=0||roster.funds<aq.gold||roster.materialCount('scrap_iron')<aq.scrapIron;
   $('heroCard').innerHTML='<div><strong>'+h.name+'</strong><span>Rank '+h.career.rank+'</span></div>'+
     '<p>'+Object.entries(h.stats).map(function(kv){return kv[0][0].toUpperCase()+kv[0].slice(1)+' '+kv[1];}).join(' · ')+'</p>'+
     '<small>'+h.traits.join(' · ')+' · Readiness '+C.readinessScore(h).toFixed(0)+(h.recruitment?' · Recruited Q'+h.recruitment.quality:' · Founding hero')+'</small>';
@@ -423,6 +453,8 @@ function renderExpedition(){
   $('moodlets').textContent=h.moodlets.join(', ')||'None';
   $('fieldInjuries').textContent=injuryText(h);
   $('fieldPotions').textContent=h.supplies.healing_potion||0;
+  $('fieldWeapon').textContent=gearConditionText(h,'weapon');
+  $('fieldArmor').textContent=gearConditionText(h,'armor');
   setBar('hpBar',h.health/h.maxHealth*100);
   setBar('fatigueBar',h.fatigue);
   setBar('hungerBar',h.hunger);
@@ -449,6 +481,12 @@ function settleAndRender(){
   const s=exp.summary();
   const mats=Object.entries(s.materials).map(function(kv){return '<span>'+kv[1]+' '+C.MATERIAL_NAMES[kv[0]]+(kv[1]>1?'s':'')+'</span>';}).join('')||'<span>None</span>';
   let progression='';
+  let gearResult='';
+  if(s.gearOutcome){
+    const rec=s.gearOutcome.recovered.map(function(g){return g.name+' '+Math.round(g.durability)+'%';}).join(', ')||'None';
+    const lost=s.gearOutcome.lost.map(function(g){return g.name;}).join(', ')||'None';
+    gearResult='<h3>Death Gear Resolution</h3><p><strong>Recovered:</strong> '+rec+'<br><strong>Lost:</strong> '+lost+'<br><small>Recovery requires at least '+s.gearOutcome.threshold+'% objective progress; recovered gear returns damaged.</small></p>';
+  }
   if(settlement&&settlement.record){
     const r=settlement.record;
     progression='<p class="progression"><strong>Career:</strong> +'+r.xpGained+' XP · rank '+r.rankBefore+' → '+r.rankAfter+
@@ -460,7 +498,7 @@ function settleAndRender(){
     '<div>Enemies<br><strong>'+s.enemiesDefeated+'</strong></div><div>Progress<br><strong>'+s.objectiveProgress+'%</strong></div>'+
     '<div>Peak hero income<br><strong>'+s.peakGoldRate.toFixed(2)+' g/s</strong></div><div>Hero gold<br><strong>'+s.totalGold.toFixed(1)+'</strong></div>'+
     '<div>Hero<br><strong>'+(s.heroAlive?'Alive':'Dead')+'</strong></div><div>Injuries<br><strong>'+s.injuries.length+'</strong></div></div>'+
-    progression+'<h3>Recovered Materials</h3><div class="materials">'+mats+'</div><p class="banked">Current tavern funds: '+roster.funds.toFixed(1)+'g. Tavern service continued while this contract ran.</p>';
+    progression+gearResult+'<h3>Recovered Materials</h3><div class="materials">'+mats+'</div><p class="banked">Current tavern funds: '+roster.funds.toFixed(1)+'g. Tavern service continued while this contract ran.</p>';
   $('returnHome').disabled=false;
   renderEconomy(); renderMerchants(); renderApplicants(); renderCrafting(); renderContractBoard(); renderRoster(); renderHome(); renderHistoryLog();
   saveGame();
@@ -494,6 +532,8 @@ renderPrepActions();
 renderAll();
 if(exp&&exp.state!=='deployed')settleAndRender();
 
+$('repairWeapon').addEventListener('click',function(){const h=selected();if(h){const r=roster.repairEquippedGear(h.id,'weapon');if(r.ok){renderAll();saveGame();}}});
+$('repairArmor').addEventListener('click',function(){const h=selected();if(h){const r=roster.repairEquippedGear(h.id,'armor');if(r.ok){renderAll();saveGame();}}});
 $('recruitApplicant').addEventListener('click',function(){
   const r=roster.recruitApplicant();
   if(r.ok){renderAll();saveGame();}

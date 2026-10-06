@@ -2,6 +2,16 @@
 
 Current truth: `PROJECT_CONTEXT.md` · Future: `ROADMAP.md`
 
+## 2026-10-05 — Tavern Keeper Slice 9: Equipment Durability & Maintenance
+- Added persistent per-copy durability for equipped and stored weapons/armor.
+- Serviceable gear retains full stats; Worn, Damaged and Broken tiers apply progressively stronger combat/readiness penalties.
+- Weapons wear when used in combat; armor wears when hostile hits land.
+- Added tavern repairs for equipped or stored gear using gold, preparation time and Scrap Iron for substantial wear.
+- Crafting and merchant procurement create pristine durable copies; equipment swaps preserve each physical copy's condition.
+- Added deterministic death gear resolution: at 50%+ objective progress, equipped durable gear is recovered into shared stock at at most 35% durability; earlier deaths lose equipped gear.
+- Added save-version-9 migration from Slice 8 durability-less gear.
+- Added test_durability.js and wired it into the deployment gate.
+
 ## 2026-10-05 — Tavern Keeper Slice 8: Recruitment & Applicants
 - Added persistent timed applicant visits driven by the live tavern clock; applicants remain for a finite window and move on if not hired.
 - Added deterministic generated applicant identities with varied stats, AI-relevant traits, health/hunger/fatigue/morale, personal starting gear and supplies.

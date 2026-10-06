@@ -38,6 +38,10 @@ Operational checklist for humans + AIs. Keep compact; add only behaviors whose r
 - Recruited heroes can deploy to every contract regardless of threat and enter the same permanent-death/Fallen flow as founding heroes.
 - A zero-living-hero tavern can continue earning, receive an applicant and rebuild the roster without a full reset.
 - Recruitment state/history round-trip through persistence, Slice 7 saves migrate to a scheduled applicant, and the applicant clock advances through TavernRoster.tickTavern.
+- Slice 9 durability: equipped and stored durable items preserve per-copy condition through inventory transfers and persistence; legacy Slice 8 gear migrates to pristine condition.
+- Worn/Damaged/Broken condition materially reduces readiness/combat effectiveness; contract combat wears weapons on use and armor on landed hostile hits.
+- Equipped/stored repairs spend exact gold/time/Scrap Iron and restore only the targeted physical copy; failed repairs are atomic.
+- Death before 50% objective progress loses equipped durable gear; death at/after 50% recovers it into shared stock at damaged condition.
 
 ### Arena
 - Main scene instantiates without script/runtime errors.

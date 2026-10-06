@@ -37,6 +37,38 @@
     chain_mail:{id:'chain_mail',name:'Chain Mail',slot:'armor',kind:'armor',damage:0,range:0,defense:5,weight:4,premium:true}
   };
 
+  const MAX_DURABILITY=100;
+  function isDurableItem(itemId){
+    const item=EQUIPMENT[itemId];
+    return !!item&&['weapon','armor'].includes(item.slot);
+  }
+  function normalizeDurability(value){
+    const n=Number(value);
+    return clamp(Number.isFinite(n)?n:MAX_DURABILITY,0,MAX_DURABILITY);
+  }
+  function durabilityMultiplier(value){
+    const d=normalizeDurability(value);
+    if(d>=60)return 1;
+    if(d>=30)return 0.8;
+    if(d>0)return 0.6;
+    return 0.25;
+  }
+  function durabilityCondition(value){
+    const d=normalizeDurability(value);
+    if(d>=85)return 'Pristine';
+    if(d>=60)return 'Serviceable';
+    if(d>=30)return 'Worn';
+    if(d>0)return 'Damaged';
+    return 'Broken';
+  }
+  function repairQuote(itemId,durability){
+    if(!isDurableItem(itemId))return null;
+    const d=normalizeDurability(durability),missing=Math.ceil(MAX_DURABILITY-d);
+    if(missing<=0)return{itemId,durability:d,missing:0,gold:0,scrapIron:0,minutes:0};
+    const item=EQUIPMENT[itemId],tier=item.premium?1.35:item.crafted?1.15:1;
+    return {itemId,durability:d,missing,gold:Math.max(1,Math.ceil(missing*0.12*tier)),scrapIron:missing>=15?Math.ceil(missing/50):0,minutes:Math.max(10,Math.ceil(missing/10)*10)};
+  }
+
   const CRAFT_RECIPES = {
     scrap_spear:{id:'scrap_spear',name:'Scrap Spear',category:'weapon',output:'scrap_spear',outputCount:1,minutes:45,materials:{scrap_iron:3,rat_tail:1},description:'A stronger melee weapon built from recovered metal and tough binding.'},
     plated_vest:{id:'plated_vest',name:'Plated Vest',category:'armor',output:'plated_vest',outputCount:1,minutes:55,materials:{scrap_iron:3,rat_tail:2},description:'Improvised plates reinforce a travel vest for better protection.'},
@@ -231,6 +263,7 @@
       maxHealth:100, health:100, hunger:20, fatigue:15, morale:65,
       traits:['Cautious','Resourceful'],
       equipment:{weapon:'rusty_sword',armor:'padded_armor'},
+      gearDurability:{weapon:100,armor:100},
       supplies:{healing_potion:1,field_bandage:0},
       moodlets:[], injuries:[], prepEffects:[], career:normalizeCareer(), history:[], titles:[],
     };
@@ -238,6 +271,10 @@
     Object.assign(h,overrides);
     if(overrides.stats) h.stats=Object.assign(base.stats,overrides.stats);
     if(overrides.equipment) h.equipment=Object.assign(base.equipment,overrides.equipment);
+    h.gearDurability={
+      weapon:normalizeDurability(overrides.gearDurability?.weapon ?? h.gearDurability?.weapon ?? 100),
+      armor:normalizeDurability(overrides.gearDurability?.armor ?? h.gearDurability?.armor ?? 100)
+    };
     if(overrides.supplies) h.supplies=Object.assign(base.supplies,overrides.supplies);
     h.traits=clone(overrides.traits||h.traits||[]);
     h.injuries=clone(overrides.injuries||h.injuries||[]);
@@ -306,7 +343,9 @@
   function gearPower(hero){
     const w=EQUIPMENT[hero.equipment.weapon]||EQUIPMENT.wood_axe;
     const a=EQUIPMENT[hero.equipment.armor]||{defense:0};
-    return (w.damage||0)*1.3 + (a.defense||0)*3 + (hero.supplies.healing_potion||0)*4 + (hero.supplies.field_bandage||0)*1.5;
+    const wd=durabilityMultiplier(hero.gearDurability?.weapon);
+    const ad=hero.equipment.armor?durabilityMultiplier(hero.gearDurability?.armor):1;
+    return (w.damage||0)*wd*1.3 + (a.defense||0)*ad*3 + (hero.supplies.healing_potion||0)*4 + (hero.supplies.field_bandage||0)*1.5;
   }
 
   function readinessScore(hero){
@@ -344,9 +383,13 @@
   function trait(hero,t){ return hero.traits.includes(t); }
   function effectiveDefense(hero){
     const armor=EQUIPMENT[hero.equipment.armor];
-    return (armor?.defense||0) + Math.floor(hero.stats.endurance/4) - Math.floor(totalInjurySeverity(hero)/2);
+    const armorMult=hero.equipment.armor?durabilityMultiplier(hero.gearDurability?.armor):1;
+    return (armor?.defense||0)*armorMult + Math.floor(hero.stats.endurance/4) - Math.floor(totalInjurySeverity(hero)/2);
   }
-  function weapon(hero){ return EQUIPMENT[hero.equipment.weapon] || EQUIPMENT.wood_axe; }
+  function weapon(hero){
+    const base=EQUIPMENT[hero.equipment.weapon] || EQUIPMENT.wood_axe;
+    return Object.assign({},base,{damage:(base.damage||0)*durabilityMultiplier(hero.gearDurability?.weapon),durability:normalizeDurability(hero.gearDurability?.weapon)});
+  }
 
   class PreparationState {
     constructor({hero=makePreset('prepared'),funds=18,materials={},prepMinutes=0}={}){
@@ -384,8 +427,9 @@
       return{ok:true,event};
     }
     setLoadout(weaponId,armorId){
-      if(weaponId&&EQUIPMENT[weaponId]?.slot==='weapon')this.hero.equipment.weapon=weaponId;
-      this.hero.equipment.armor=armorId&&EQUIPMENT[armorId]?.slot==='armor'?armorId:null;
+      if(weaponId&&EQUIPMENT[weaponId]?.slot==='weapon'&&weaponId!==this.hero.equipment.weapon){this.hero.equipment.weapon=weaponId;this.hero.gearDurability.weapon=100;}
+      const nextArmor=armorId&&EQUIPMENT[armorId]?.slot==='armor'?armorId:null;
+      if(nextArmor!==this.hero.equipment.armor){this.hero.equipment.armor=nextArmor;this.hero.gearDurability.armor=100;}
       deriveMoodlets(this.hero);
     }
     settle(expedition){
@@ -410,11 +454,21 @@
       deriveMoodlets(this.hero);
       this.state='deployed'; this.locationId=contract.start; this.elapsed=0; this.goldRate=0.04+contract.threat*0.005; this.peakGoldRate=this.goldRate; this.gold=0;
       this.enemiesDefeated=0; this.areasExplored=[]; this.objectiveProgress=0; this.materials={}; this.log=[]; this.decisionDebug=[]; this.injuriesSuffered=0;
-      this.currentCombat=null; this.retreatReason=null; this.lastDecision=null; this._entered=false; this._resolution=null;
+      this.currentCombat=null; this.retreatReason=null; this.lastDecision=null; this.gearOutcome=null; this._entered=false; this._resolution=null;
       this.addLog(`Deployed to ${contract.name}.`, 'system');
     }
     addLog(text,type='event',reasons=[]){ this.log.push({time:this.elapsed,text,type,reasons}); if(this.log.length>250)this.log.shift(); }
     addMaterial(id,count=1){ this.materials[id]=(this.materials[id]||0)+count; }
+    wearGear(slot,amount=1){
+      const itemId=this.hero.equipment?.[slot];
+      if(!itemId||!isDurableItem(itemId))return 0;
+      const before=normalizeDurability(this.hero.gearDurability?.[slot]),beforeCondition=durabilityCondition(before);
+      const after=normalizeDurability(before-Math.max(0,amount));
+      this.hero.gearDurability[slot]=after;
+      const afterCondition=durabilityCondition(after);
+      if(afterCondition!==beforeCondition)this.addLog(`${EQUIPMENT[itemId].name} is now ${afterCondition.toLowerCase()} (${Math.round(after)}%).`,'gear');
+      return before-after;
+    }
     bumpRate(amount,reason){ const before=this.goldRate; const scaled=amount*(this.contract.incomeMult||1); this.goldRate=clamp(this.goldRate+scaled,0,50); this.peakGoldRate=Math.max(this.peakGoldRate,this.goldRate); if(Math.abs(this.goldRate-before)>=0.009)this.addLog(`Performance ${before.toFixed(2)} → ${this.goldRate.toFixed(2)} gold/sec — ${reason}.`,'income'); }
     updateNeeds(dt){
       const hungerMult=effectActive(this.hero,'hearty_meal')?PREP_EFFECTS.hearty_meal.hungerRateMult:1;
@@ -537,6 +591,7 @@
       const style=w.kind==='ranged'?this.choose(['maintain_distance','fight']):{action:'fight',reasons:['melee weapon']};
       const target=c.enemies.find(e=>e.hp>0);
       if(target){
+        this.wearGear('weapon',this.contract.threat>=5?2:1);
         const careerSkill=w.kind==='ranged'?h.career.skills.ranged:h.career.skills.melee;
         const base=(w.damage + h.stats.might*0.8 + (w.kind==='ranged'?h.stats.finesse*0.7:h.stats.finesse*0.25) + careerSkill*0.5) * (trait(h,'Ratbane')?1.08:1);
         const cond=(100-h.fatigue)*0.0025 + (100-h.hunger)*0.0015;
@@ -556,7 +611,7 @@
         let acc=spec.accuracy - h.stats.finesse*0.015;
         if(w.kind==='ranged' && style.action==='maintain_distance')acc-=0.16;
         if(this.rng.chance(clamp(acc,0.2,0.92))){
-          const dmg=Math.max(1,Math.round(this.rng.range(spec.damage[0],spec.damage[1])-effectiveDefense(h)*0.6)); h.health-=dmg; this.addLog(`${spec.name} wounded ${h.name} for ${dmg}.`,'combat'); this.maybeInjury(dmg,spec);
+          const dmg=Math.max(1,Math.round(this.rng.range(spec.damage[0],spec.damage[1])-effectiveDefense(h)*0.6)); h.health-=dmg; this.wearGear('armor',1+(dmg>=10?1:0)); this.addLog(`${spec.name} wounded ${h.name} for ${dmg}.`,'combat'); this.maybeInjury(dmg,spec);
           if(h.health<=0){h.health=0;h.alive=false;deriveMoodlets(h);this.finish('death',`killed by ${spec.name}`);return;}
         }
       }
@@ -601,10 +656,10 @@
       this._resolution={kind,reason,finalRate,summary:this.summary()};
     }
     summary(){
-      return {contractId:this.contract.id,contract:this.contract.name,threat:this.contract.threat,kind:this.contract.kind,outcome:this.state,reason:this.retreatReason,time:this.elapsed,enemiesDefeated:this.enemiesDefeated,areasExplored:this.areasExplored.length,totalAreas:Object.keys(this.contract.locations).length-1,objectiveProgress:Math.round(this.objectiveProgress),peakGoldRate:this.peakGoldRate,totalGold:this.gold,materials:clone(this.materials),heroAlive:this.hero.alive,health:this.hero.health,fatigue:this.hero.fatigue,hunger:this.hero.hunger,morale:this.hero.morale,injuries:clone(this.hero.injuries),moodlets:clone(this.hero.moodlets),injuriesSuffered:this.injuriesSuffered,seed:this.seed};
+      return {contractId:this.contract.id,contract:this.contract.name,threat:this.contract.threat,kind:this.contract.kind,outcome:this.state,reason:this.retreatReason,time:this.elapsed,enemiesDefeated:this.enemiesDefeated,areasExplored:this.areasExplored.length,totalAreas:Object.keys(this.contract.locations).length-1,objectiveProgress:Math.round(this.objectiveProgress),peakGoldRate:this.peakGoldRate,totalGold:this.gold,materials:clone(this.materials),heroAlive:this.hero.alive,health:this.hero.health,fatigue:this.hero.fatigue,hunger:this.hero.hunger,morale:this.hero.morale,injuries:clone(this.hero.injuries),moodlets:clone(this.hero.moodlets),gearDurability:clone(this.hero.gearDurability),gearOutcome:clone(this.gearOutcome),injuriesSuffered:this.injuriesSuffered,seed:this.seed};
     }
     snapshot(){
-      return {version:2,contractId:this.contract.id,seed:this.seed,rngState:this.rng.state,hero:clone(this.hero),state:this.state,locationId:this.locationId,elapsed:this.elapsed,goldRate:this.goldRate,peakGoldRate:this.peakGoldRate,gold:this.gold,enemiesDefeated:this.enemiesDefeated,areasExplored:clone(this.areasExplored),objectiveProgress:this.objectiveProgress,materials:clone(this.materials),log:clone(this.log),decisionDebug:clone(this.decisionDebug),currentCombat:clone(this.currentCombat),retreatReason:this.retreatReason,lastDecision:clone(this.lastDecision),entered:this._entered,resolution:clone(this._resolution),injuriesSuffered:this.injuriesSuffered};
+      return {version:3,contractId:this.contract.id,seed:this.seed,rngState:this.rng.state,hero:clone(this.hero),state:this.state,locationId:this.locationId,elapsed:this.elapsed,goldRate:this.goldRate,peakGoldRate:this.peakGoldRate,gold:this.gold,enemiesDefeated:this.enemiesDefeated,areasExplored:clone(this.areasExplored),objectiveProgress:this.objectiveProgress,materials:clone(this.materials),log:clone(this.log),decisionDebug:clone(this.decisionDebug),currentCombat:clone(this.currentCombat),retreatReason:this.retreatReason,lastDecision:clone(this.lastDecision),gearOutcome:clone(this.gearOutcome),entered:this._entered,resolution:clone(this._resolution),injuriesSuffered:this.injuriesSuffered};
     }
     static fromSnapshot(data,{contract=null,debug=false}={}){
       if(!data||!data.hero)throw new Error('invalid expedition snapshot');
@@ -615,7 +670,7 @@
       e.goldRate=Number(data.goldRate)||0; e.peakGoldRate=Number(data.peakGoldRate)||0; e.gold=Number(data.gold)||0;
       e.enemiesDefeated=Number(data.enemiesDefeated)||0; e.areasExplored=clone(data.areasExplored||[]); e.objectiveProgress=Number(data.objectiveProgress)||0;
       e.materials=clone(data.materials||{}); e.log=clone(data.log||[]); e.decisionDebug=clone(data.decisionDebug||[]); e.currentCombat=clone(data.currentCombat||null);
-      e.retreatReason=data.retreatReason||null; e.lastDecision=clone(data.lastDecision||null); e._entered=!!data.entered; e._resolution=clone(data.resolution||null); e.injuriesSuffered=Number(data.injuriesSuffered)||0;
+      e.retreatReason=data.retreatReason||null; e.lastDecision=clone(data.lastDecision||null); e.gearOutcome=clone(data.gearOutcome||null); e._entered=!!data.entered; e._resolution=clone(data.resolution||null); e.injuriesSuffered=Number(data.injuriesSuffered)||0;
       return e;
     }
     runToEnd(maxTicks=5000,dt=1){ let n=0;while(this.state==='deployed'&&n++<maxTicks)this.tick(dt);return this.summary(); }
@@ -1012,10 +1067,18 @@
   }
 
   class TavernRoster {
-    constructor({heroes=starterRoster(),fallen=[],funds=30,materials={},inventory={},craftHistory=[],purchaseHistory=[],recruitmentHistory=[],prepMinutes=0,selectedHeroId=null,selectedContractId='greymill_rats',history=[],settledKeys=[],tavern=null,merchants=null,recruitment=null}={}){
+    constructor({heroes=starterRoster(),fallen=[],funds=30,materials={},inventory={},inventoryDurability={},craftHistory=[],purchaseHistory=[],recruitmentHistory=[],repairHistory=[],prepMinutes=0,selectedHeroId=null,selectedContractId='greymill_rats',history=[],settledKeys=[],tavern=null,merchants=null,recruitment=null}={}){
       this.heroes=heroes.map(h=>heroTemplate(h)).filter(h=>h.alive);
       this.fallen=clone(fallen||[]);
-      this.funds=Number(funds)||0; this.materials=clone(materials||{}); this.inventory=clone(inventory||{}); this.craftHistory=clone(craftHistory||[]); this.purchaseHistory=clone(purchaseHistory||[]); this.recruitmentHistory=clone(recruitmentHistory||[]); this.prepMinutes=Number(prepMinutes)||0;
+      this.funds=Number(funds)||0; this.materials=clone(materials||{}); this.inventory=clone(inventory||{}); this.inventoryDurability={}; this.craftHistory=clone(craftHistory||[]); this.purchaseHistory=clone(purchaseHistory||[]); this.recruitmentHistory=clone(recruitmentHistory||[]); this.repairHistory=clone(repairHistory||[]); this.prepMinutes=Number(prepMinutes)||0;
+      for(const [id,rawCount] of Object.entries(this.inventory)){
+        const count=Math.max(0,Math.floor(Number(rawCount)||0)); this.inventory[id]=count;
+        if(isDurableItem(id)){
+          const saved=Array.isArray(inventoryDurability?.[id])?inventoryDurability[id].map(normalizeDurability):[];
+          this.inventoryDurability[id]=saved.slice(0,count);
+          while(this.inventoryDurability[id].length<count)this.inventoryDurability[id].push(100);
+        }
+      }
       this.history=clone(history||[]); this.settledExpeditions=new Set(settledKeys||[]);
       this.selectedHeroId=selectedHeroId&&this.heroes.some(h=>h.id===selectedHeroId)?selectedHeroId:(this.heroes[0]?.id||null);
       this.selectedContractId=CONTRACTS[selectedContractId]?selectedContractId:'greymill_rats';
@@ -1065,13 +1128,37 @@
       this.funds-=cost;
       offer.quantity-=count;
       if(offer.type==='material')this.materials[offer.id]=this.materialCount(offer.id)+count;
-      else this.inventory[offer.id]=this.itemCount(offer.id)+count;
+      else this.addInventoryItem(offer.id,count,100);
       const event={merchant:visit.name,quality:visit.quality,offerKey,id:offer.id,name:offer.name,type:offer.type,count,cost,time:this.merchants.elapsed};
       this.purchaseHistory.push(event); if(this.purchaseHistory.length>50)this.purchaseHistory=this.purchaseHistory.slice(-50);
       this.merchants.logEvent('Purchased '+count+' '+offer.name+' for '+cost.toFixed(1)+'g.','purchase');
       return{ok:true,event};
     }
     itemCount(itemId){ return Math.max(0,Number(this.inventory[itemId])||0); }
+    stockDurabilities(itemId){ return clone(this.inventoryDurability[itemId]||[]); }
+    addInventoryItem(itemId,count=1,durability=100){
+      count=Math.max(1,Math.floor(count));
+      this.inventory[itemId]=this.itemCount(itemId)+count;
+      if(isDurableItem(itemId)){
+        if(!this.inventoryDurability[itemId])this.inventoryDurability[itemId]=[];
+        for(let i=0;i<count;i++)this.inventoryDurability[itemId].push(normalizeDurability(durability));
+      }
+      return this.itemCount(itemId);
+    }
+    takeInventoryItem(itemId){
+      if(this.itemCount(itemId)<1)return{ok:false,reason:'item not in tavern stock'};
+      let durability=null;
+      if(isDurableItem(itemId)){
+        const arr=this.inventoryDurability[itemId]||[];
+        while(arr.length<this.itemCount(itemId))arr.push(100);
+        let best=0;
+        for(let i=1;i<arr.length;i++)if(arr[i]>arr[best])best=i;
+        durability=normalizeDurability(arr.splice(best,1)[0]);
+        this.inventoryDurability[itemId]=arr;
+      }
+      this.inventory[itemId]=this.itemCount(itemId)-1;
+      return{ok:true,itemId,durability};
+    }
     materialCount(materialId){ return Math.max(0,Number(this.materials[materialId])||0); }
     canCraft(recipeId,count=1){
       const recipe=CRAFT_RECIPES[recipeId]; count=Math.max(1,Math.floor(count));
@@ -1084,7 +1171,7 @@
       if(!this.canCraft(recipeId,count))return{ok:false,reason:'insufficient materials'};
       for(const [id,n] of Object.entries(recipe.materials))this.materials[id]=this.materialCount(id)-n*count;
       const made=recipe.outputCount*count;
-      this.inventory[recipe.output]=this.itemCount(recipe.output)+made;
+      this.addInventoryItem(recipe.output,made,100);
       this.prepMinutes+=recipe.minutes*count;
       const event={recipeId,name:recipe.name,count,made,output:recipe.output,minutes:recipe.minutes*count,materials:clone(recipe.materials)};
       this.craftHistory.push(event); if(this.craftHistory.length>50)this.craftHistory=this.craftHistory.slice(-50);
@@ -1096,11 +1183,49 @@
       if(!item||!['weapon','armor'].includes(item.slot))return{ok:false,reason:'not equippable'};
       if(this.itemCount(itemId)<1)return{ok:false,reason:'item not in tavern stock'};
       const previous=h.equipment[item.slot]||null;
-      this.inventory[itemId]=this.itemCount(itemId)-1;
-      if(previous)this.inventory[previous]=this.itemCount(previous)+1;
+      const previousDurability=normalizeDurability(h.gearDurability?.[item.slot]);
+      const taken=this.takeInventoryItem(itemId); if(!taken.ok)return taken;
+      if(previous)this.addInventoryItem(previous,1,previousDurability);
       h.equipment[item.slot]=itemId;
+      h.gearDurability[item.slot]=taken.durability==null?100:taken.durability;
       deriveMoodlets(h);
       return{ok:true,itemId,previous,slot:item.slot};
+    }
+    repairEquippedGear(heroId,slot){
+      const h=this.getHero(heroId);
+      if(!h||!h.alive)return{ok:false,reason:'hero unavailable'};
+      if(!['weapon','armor'].includes(slot))return{ok:false,reason:'invalid slot'};
+      const itemId=h.equipment[slot];
+      if(!itemId)return{ok:false,reason:'slot empty'};
+      const quote=repairQuote(itemId,h.gearDurability?.[slot]);
+      if(!quote||quote.missing<=0)return{ok:false,reason:'already maintained'};
+      if(this.funds<quote.gold)return{ok:false,reason:'insufficient funds',quote};
+      if(this.materialCount('scrap_iron')<quote.scrapIron)return{ok:false,reason:'insufficient scrap iron',quote};
+      this.funds-=quote.gold;
+      this.materials.scrap_iron=this.materialCount('scrap_iron')-quote.scrapIron;
+      this.prepMinutes+=quote.minutes;
+      h.gearDurability[slot]=100;
+      const event={scope:'equipped',heroId:h.id,heroName:h.name,slot,itemId,name:EQUIPMENT[itemId].name,before:quote.durability,after:100,gold:quote.gold,scrapIron:quote.scrapIron,minutes:quote.minutes};
+      this.repairHistory.push(event); if(this.repairHistory.length>50)this.repairHistory=this.repairHistory.slice(-50);
+      return{ok:true,event};
+    }
+    repairStoredGear(itemId){
+      if(!isDurableItem(itemId)||this.itemCount(itemId)<1)return{ok:false,reason:'no repairable stock'};
+      const arr=this.inventoryDurability[itemId]||[];
+      while(arr.length<this.itemCount(itemId))arr.push(100);
+      let worst=0;
+      for(let i=1;i<arr.length;i++)if(arr[i]<arr[worst])worst=i;
+      const quote=repairQuote(itemId,arr[worst]);
+      if(!quote||quote.missing<=0)return{ok:false,reason:'already maintained'};
+      if(this.funds<quote.gold)return{ok:false,reason:'insufficient funds',quote};
+      if(this.materialCount('scrap_iron')<quote.scrapIron)return{ok:false,reason:'insufficient scrap iron',quote};
+      this.funds-=quote.gold;
+      this.materials.scrap_iron=this.materialCount('scrap_iron')-quote.scrapIron;
+      this.prepMinutes+=quote.minutes;
+      const before=arr[worst]; arr[worst]=100; this.inventoryDurability[itemId]=arr;
+      const event={scope:'stock',itemId,name:EQUIPMENT[itemId].name,before,after:100,gold:quote.gold,scrapIron:quote.scrapIron,minutes:quote.minutes};
+      this.repairHistory.push(event); if(this.repairHistory.length>50)this.repairHistory=this.repairHistory.slice(-50);
+      return{ok:true,event};
     }
     giveConsumable(heroId,itemId,count=1){
       const h=this.getHero(heroId),item=EQUIPMENT[itemId]; count=Math.max(1,Math.floor(count));
@@ -1136,6 +1261,21 @@
       const h=this.getHero(heroId); if(!h)return false;
       const prep=new PreparationState({hero:h,funds:this.funds,materials:this.materials,prepMinutes:this.prepMinutes}); prep.setLoadout(weaponId,armorId); this.syncPreparation(heroId,prep); return true;
     }
+    resolveDeathGear(hero,expedition){
+      const threshold=50,recover=expedition.objectiveProgress>=threshold;
+      const result={policy:'recover at 50% objective progress',threshold,recovered:[],lost:[]};
+      for(const slot of ['weapon','armor']){
+        const itemId=hero.equipment?.[slot];
+        if(!itemId||!isDurableItem(itemId))continue;
+        const durability=normalizeDurability(hero.gearDurability?.[slot]);
+        if(recover){
+          const recoveredDurability=Math.min(durability,35);
+          this.addInventoryItem(itemId,1,recoveredDurability);
+          result.recovered.push({slot,itemId,name:EQUIPMENT[itemId].name,durability:recoveredDurability});
+        }else result.lost.push({slot,itemId,name:EQUIPMENT[itemId].name,durability});
+      }
+      return result;
+    }
     startExpedition(heroId=this.selectedHeroId,seed=1,contractId=this.selectedContractId){
       const h=this.getHero(heroId); if(!h||!h.alive)return null;
       const contract=this.getContract(contractId);
@@ -1153,18 +1293,24 @@
       for(const [id,count] of Object.entries(expedition.materials))this.materials[id]=(this.materials[id]||0)+count;
       const updated=heroTemplate(expedition.hero); updated.prepEffects=[];
       const record=applyCareerProgress(updated,expedition);
+      let gearOutcome=null;
+      if(!updated.alive){
+        gearOutcome=this.resolveDeathGear(updated,expedition);
+        expedition.gearOutcome=clone(gearOutcome);
+        record.gearOutcome=clone(gearOutcome);
+      }
       this.history.push({heroId:updated.id,heroName:updated.name,...clone(record)}); if(this.history.length>100)this.history=this.history.slice(-100);
       const idx=this.heroes.findIndex(h=>h.id===heroId);
       if(updated.alive)this.heroes[idx]=updated;
       else{
         this.heroes.splice(idx,1);
-        this.fallen.push({hero:clone(updated),deathRecord:clone(record)}); if(this.fallen.length>50)this.fallen=this.fallen.slice(-50);
+        this.fallen.push({hero:clone(updated),deathRecord:clone(record),gearOutcome:clone(gearOutcome)}); if(this.fallen.length>50)this.fallen=this.fallen.slice(-50);
         if(this.selectedHeroId===heroId)this.selectedHeroId=this.heroes[0]?.id||null;
       }
-      return{ok:true,banked:expedition.gold,heroAlive:updated.alive,record};
+      return{ok:true,banked:expedition.gold,heroAlive:updated.alive,record,gearOutcome};
     }
     snapshot(){
-      return{version:8,heroes:clone(this.heroes),fallen:clone(this.fallen),funds:this.funds,materials:clone(this.materials),inventory:clone(this.inventory),craftHistory:clone(this.craftHistory),purchaseHistory:clone(this.purchaseHistory),recruitmentHistory:clone(this.recruitmentHistory),prepMinutes:this.prepMinutes,selectedHeroId:this.selectedHeroId,selectedContractId:this.selectedContractId,history:clone(this.history),settledKeys:Array.from(this.settledExpeditions),tavern:this.tavern.snapshot(),merchants:this.merchants.snapshot(),recruitment:this.recruitment.snapshot()};
+      return{version:9,heroes:clone(this.heroes),fallen:clone(this.fallen),funds:this.funds,materials:clone(this.materials),inventory:clone(this.inventory),inventoryDurability:clone(this.inventoryDurability),craftHistory:clone(this.craftHistory),purchaseHistory:clone(this.purchaseHistory),recruitmentHistory:clone(this.recruitmentHistory),repairHistory:clone(this.repairHistory),prepMinutes:this.prepMinutes,selectedHeroId:this.selectedHeroId,selectedContractId:this.selectedContractId,history:clone(this.history),settledKeys:Array.from(this.settledExpeditions),tavern:this.tavern.snapshot(),merchants:this.merchants.snapshot(),recruitment:this.recruitment.snapshot()};
     }
     serialize(){ return JSON.stringify(this.snapshot()); }
     static fromSnapshot(data){
@@ -1174,5 +1320,5 @@
     static deserialize(text){ return TavernRoster.fromSnapshot(JSON.parse(text)); }
   }
 
-  return {RNG,EQUIPMENT,CRAFT_RECIPES,INJURY_TYPES,PREP_EFFECTS,PREPARATION_ACTIONS,CONTRACT,CONTRACTS,CONTRACT_ORDER,ENEMIES,MATERIAL_NAMES,PATRON_TYPES,MERCHANT_GOODS,merchantQuality,MerchantSystem,APPLICANT_TRAITS,applicantQuality,RecruitmentSystem,heroTemplate,normalizeCareer,rankFromXp,applyCareerProgress,starterRoster,deriveMoodlets,totalInjurySeverity,addInjury,reduceWorstInjury,removeWorstInjury,readinessScore,threatAssessment,PreparationState,TavernEconomy,TavernRoster,Expedition,makePreset};
+  return {RNG,EQUIPMENT,MAX_DURABILITY,isDurableItem,normalizeDurability,durabilityMultiplier,durabilityCondition,repairQuote,CRAFT_RECIPES,INJURY_TYPES,PREP_EFFECTS,PREPARATION_ACTIONS,CONTRACT,CONTRACTS,CONTRACT_ORDER,ENEMIES,MATERIAL_NAMES,PATRON_TYPES,MERCHANT_GOODS,merchantQuality,MerchantSystem,APPLICANT_TRAITS,applicantQuality,RecruitmentSystem,heroTemplate,normalizeCareer,rankFromXp,applyCareerProgress,starterRoster,deriveMoodlets,totalInjurySeverity,addInjury,reduceWorstInjury,removeWorstInjury,readinessScore,threatAssessment,PreparationState,TavernEconomy,TavernRoster,Expedition,makePreset};
 });
