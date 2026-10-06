@@ -78,10 +78,12 @@ Workflow: `.github/workflows/deploy-web.yml` · Godot 4.7.1 Web.
 
 A build is **compiled and live** only when, for the exact final `main` SHA:
 1. headless Arena smoke test succeeds;
-2. **Export Web build and reject script errors** succeeds;
-3. no `SCRIPT ERROR`, `Parse Error`, or `Failed to load script` appears;
-4. Pages artifact upload succeeds;
-5. deploy job succeeds.
+2. sibling prototype tests required by the workflow succeed (currently Tavern Keeper's Node simulation suite and Neon Driftline's headless smoke);
+3. **Export Web build and reject script errors** succeeds;
+4. no `SCRIPT ERROR`, `Parse Error`, or `Failed to load script` appears;
+5. static sibling prototypes are copied into the Pages artifact at their documented subpaths;
+6. Pages artifact upload succeeds;
+7. deploy job succeeds.
 
 Godot has previously packaged parse errors despite a successful-looking exporter result. Never trust exporter exit code or an older green SHA alone.
 

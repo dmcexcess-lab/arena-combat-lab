@@ -2,6 +2,11 @@
 
 Current truth: `PROJECT_CONTEXT.md` · Future: `ROADMAP.md`
 
+## 2026-10-05 — Tavern Keeper Slice 1 Hosted
+- Added `tavern-keeper/` as a sibling browser prototype without changing the Arena Godot runtime.
+- Published the autonomous contract Slice 1 through the existing Pages artifact at `/tavern-keeper/`.
+- Added CI coverage for the Tavern Keeper deterministic simulation/regression suite before Pages export.
+
 ## 2026-08-13 — Developer Screen Final Pre-Test Pass
 - Reframed the standalone pre-run setup as the four-page **Developer Screen** intended to be opened from the future prison game through `open_dev_screen()`.
 - Replaced the hand-rolled creator name input with a real Godot `LineEdit`, keeping native virtual-keyboard behavior available for mobile Safari; random names now come from a dedicated fantasy-name pool.

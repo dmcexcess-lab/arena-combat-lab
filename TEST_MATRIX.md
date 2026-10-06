@@ -3,6 +3,11 @@
 Operational checklist for humans + AIs. Keep compact; add only behaviors whose regression would materially break the alpha.
 
 ## Automated CI smoke gate
+### Tavern Keeper sibling prototype
+- `node tavern-keeper/tests/test_core.js` passes before Web export.
+- Seeded runs cover success, retreat and death; preparation materially changes outcomes; failed contracts retain nonzero rewards; expedition gold/sec stops on resolution.
+
+### Arena
 - Main scene instantiates without script/runtime errors.
 - Four fixed starter identities exist and equip valid Common gear.
 - `PlayerProfile` normalizes/clamps cosmetics, preserves open appearance data and supplies fantasy random names.

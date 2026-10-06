@@ -35,3 +35,6 @@ Character/Dev Screen work lives in `MainArenaSetup.gd`. Player body/equipment re
 `main.tscn` → `MainArenaSetup -> MainArenaVisuals -> MainArenaBaseVisuals -> MainArenaMap -> MainArenaDevCreatures -> MainArenaCreatures -> MainAlphaAI -> MainAlphaDual -> MainAlphaWeapons -> MainAlphaGear -> MainAlphaWrapper -> MainAlphaCombat -> MainAlphaState -> MainBoundless -> MainMobileWeb -> MainMobile -> MainPerception -> Main`
 
 Primary owners: Setup=Developer Screen + launch boundary; Visuals=player paper doll + identity overlays; BaseVisuals=tiles/creatures; Map=procgen; DevCreatures=expanded catalog + generic roster/spawn; Creatures=base creature behavior/stats; AlphaAI=awareness/tracking; AlphaGear/Combat/State=gear+combat state; MobileWeb=Safari touch; Perception=intent/memory/sound readability.
+
+## Hosted sibling prototype
+`tavern-keeper/` contains **Tavern Keeper — Slice 1: Autonomous Contract Core**, a dependency-free browser prototype that is intentionally separate from the Arena Godot runtime/inheritance chain. Its simulation lives in `core.js`, CI runs `node tavern-keeper/tests/test_core.js`, and Pages publishes it at `/arena-combat-lab/tavern-keeper/`.

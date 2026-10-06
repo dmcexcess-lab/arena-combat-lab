@@ -78,11 +78,17 @@ jobs:
           fi
           grep -q 'NEON DRIFTLINE SMOKE OK' "$LOG"
 
+      - name: Run Tavern Keeper contract simulation tests
+        shell: bash
+        run: |
+          set -euxo pipefail
+          node tavern-keeper/tests/test_core.js
+
       - name: Export Web builds and reject script errors
         shell: bash
         run: |
           set -euxo pipefail
-          mkdir -p build/web build/web/neon-driftline
+          mkdir -p build/web build/web/neon-driftline build/web/tavern-keeper
           SHORT_SHA="${GITHUB_SHA:0:12}"
 
           ARENA_BASENAME="arena-${SHORT_SHA}"
@@ -110,6 +116,10 @@ jobs:
           if grep -E 'SCRIPT ERROR|Parse Error|Failed to load script' "$NEON_LOG"; then exit 1; fi
           mv "build/web/neon-driftline/${NEON_BASENAME}.html" build/web/neon-driftline/index.html
           test -f "build/web/neon-driftline/${NEON_BASENAME}.pck"
+
+          cp tavern-keeper/index.html tavern-keeper/app.js tavern-keeper/core.js tavern-keeper/styles.css build/web/tavern-keeper/
+          test -f build/web/tavern-keeper/index.html
+          test -f build/web/tavern-keeper/core.js
           touch build/web/.nojekyll
 
       - name: Keep downloadable build artifact
