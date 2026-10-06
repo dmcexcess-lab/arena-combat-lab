@@ -23,6 +23,12 @@ The room now has persistent spatial actors. Patrons arrive from the exterior roa
 
 Fireplace, lamps and rain remain ambient. Patron/staff translation is driven by stateful routes rather than looping position animation; walk cycles, serving arms and mugs are local animations with reduced-motion support.
 
+## Contract pacing
+
+Contracts now unfold on a long-form real-time clock at normal speed. Threat is also a commitment tier: Threat 1 targets about 5–10 minutes, Threat 2 about 10–20 minutes, Threat 3 about 25–45 minutes, Threat 4 about 1–2 hours, and Threat 6 about 2–4 hours. Branching, combat, retreat and death can move an individual run outside its target band.
+
+Expedition reports, combat rounds and route decisions are paced simulation events rather than events fired every browser repaint. Offline progress uses the same 0.25-second simulation quantum, and the existing ×1/×4/×12 expedition speeds remain authoritative.
+
 ## Core game
 
 The Slice 15 simulation is unchanged: persistent autonomous heroes, permanent death, preparation, five contract types, concurrent expeditions, crafting, merchants, recruitment, facilities, equipment durability, 8-hour offline progress and the persistent Chronicle.

@@ -6,6 +6,18 @@ assert.deepStrictEqual(ids,['briar_farm_wolves','greymill_rats','ashroad_caravan
 assert.equal(new Set(ids).size,ids.length);
 assert.deepStrictEqual(ids.map(id=>C.CONTRACTS[id].threat),[1,2,3,4,6]);
 assert.equal(C.CONTRACT,C.CONTRACTS.greymill_rats);
+assert.deepStrictEqual(ids.map(id=>C.CONTRACTS[id].paceSeconds),[15,35,75,180,480]);
+assert.deepStrictEqual(ids.map(id=>C.CONTRACTS[id].durationHint),['5–10 min','10–20 min','25–45 min','1–2 hr','2–4 hr']);
+for(let i=1;i<ids.length;i++)assert.ok(C.contractActionInterval(C.CONTRACTS[ids[i]])>C.contractActionInterval(C.CONTRACTS[ids[i-1]]));
+
+// Contract state only advances when its real-time pacing interval matures.
+const pacing=new C.Expedition({hero:C.makePreset('prepared'),seed:1,contract:C.CONTRACTS.briar_farm_wolves});
+pacing.tick(14);
+assert.equal(pacing.areasExplored.length,0);
+pacing.tick(1);
+assert.ok(pacing.areasExplored.length>0);
+const paceSave=C.Expedition.fromSnapshot(pacing.snapshot());
+assert.equal(paceSave.actionClock,pacing.actionClock);
 
 // Catalog validation: every route is closed over the contract graph and can reach resolution.
 function reachable(contract){

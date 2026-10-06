@@ -56,8 +56,10 @@ function loadGame(){
   }catch(_){newGame();}
 }
 function fmtTime(s){
-  s=Math.floor(s);
-  return Math.floor(s/60)+':'+String(s%60).padStart(2,'0');
+  s=Math.max(0,Math.floor(s));
+  const h=Math.floor(s/3600),m=Math.floor((s%3600)/60),sec=s%60;
+  if(h)return h+':'+String(m).padStart(2,'0')+':'+String(sec).padStart(2,'0');
+  return m+':'+String(sec).padStart(2,'0');
 }
 function fmtPrepTime(m){
   m=Math.round(m);
@@ -664,8 +666,8 @@ function renderContractBoard(){
   $('selectedContractThreat').textContent='Threat '+selectedContract.threat;
   $('selectedContractObjective').textContent=selectedContract.objective;
   $('selectedContractRisk').textContent=h
-    ? C.threatAssessment(h,selectedContract)+' for '+h.name+' · '+selectedContract.kind+' · income ×'+selectedContract.incomeMult.toFixed(2)
-    : selectedContract.kind+' · income ×'+selectedContract.incomeMult.toFixed(2)+' · select a living hero for risk assessment';
+    ? C.threatAssessment(h,selectedContract)+' for '+h.name+' · '+selectedContract.kind+' · '+selectedContract.durationHint+' at ×1 · income ×'+selectedContract.incomeMult.toFixed(2)
+    : selectedContract.kind+' · '+selectedContract.durationHint+' at ×1 · income ×'+selectedContract.incomeMult.toFixed(2)+' · select a living hero for risk assessment';
 
   $('contractBoard').innerHTML=C.CONTRACT_ORDER.map(function(id){
     const c=C.CONTRACTS[id];
@@ -673,7 +675,7 @@ function renderContractBoard(){
     const mats=c.materialProfile.map(function(mat){return C.MATERIAL_NAMES[mat]||mat;}).join(' · ');
     return '<button class="board-contract '+(id===roster.selectedContractId?'selected':'')+'" data-contract="'+id+'">'+
       '<div><strong>'+c.name+'</strong><span>Threat '+c.threat+'</span></div>'+
-      '<em>'+c.kind+' · '+assessment+'</em>'+
+      '<em>'+c.kind+' · '+c.durationHint+' at ×1 · '+assessment+'</em>'+
       '<p>'+c.brief+'</p>'+
       '<small>Objectives: '+c.subObjectives.join(' · ')+'</small>'+
       '<small>Income ×'+c.incomeMult.toFixed(2)+' · '+mats+'</small></button>';
@@ -1026,7 +1028,7 @@ document.querySelectorAll('[data-speed]').forEach(function(b){
 $('step').addEventListener('click',function(){
   const entry=focusedEntry();
   if(entry&&entry.expedition.state==='deployed'){
-    entry.expedition.tick(1);
+    entry.expedition.tick(0.25);
     const settledCount=settleResolved();
     if(settledCount)selectAvailableHero();
     renderAll();saveGame();
@@ -1051,7 +1053,7 @@ window.addEventListener('pagehide',function(){saveGame();});
 setInterval(function(){
   if(document.hidden)return;
   roster.tickTavern(0.25);
-  expeditions.tickAll();
+  expeditions.tickAll(0.25);
   const settledCount=settleResolved();
   if(settledCount)selectAvailableHero();
   renderVisibleScreen();

@@ -7,7 +7,7 @@ function manualAdvance(roster,manager,seconds){
   const steps=Math.floor(seconds/C.OFFLINE_QUANTUM_SECONDS);
   for(let i=0;i<steps;i++){
     roster.tickTavern(C.OFFLINE_QUANTUM_SECONDS);
-    manager.tickAll();
+    manager.tickAll(C.OFFLINE_QUANTUM_SECONDS);
     C.settleResolvedExpeditions(roster,manager);
   }
 }

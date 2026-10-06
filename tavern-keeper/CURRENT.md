@@ -1,10 +1,10 @@
 # CURRENT — Tavern Keeper
 
 ## Current operation
-Major Change 2 — Spatial Tavern Simulation
+Major Change 3 — Long-form Contract Pacing
 
 ## Status
-Implemented on top of the animated tavern shell. Gameplay/economy/combat rules remain unchanged; the room itself now has persistent spatial actor simulation.
+Implemented on top of the spatial tavern simulation. Contract resolution now runs on a long-form real-time clock while preserving the existing autonomous route/combat/decision model.
 
 ## Default experience
 - The app now opens directly into a live animated tavern room instead of a long dashboard.
@@ -35,6 +35,20 @@ Implemented on top of the animated tavern shell. Gameplay/economy/combat rules r
 - The newest tavern service event appears as an ambient room status line.
 - Patron/staff translation is state-driven with `requestAnimationFrame`; CSS animation is limited to fire, lamps, rain, walking limbs, serving arms and mugs.
 - `prefers-reduced-motion` disables continuous animation.
+
+## Contract pacing
+- Normal-speed target bands are threat-scaled:
+  - Threat 1: 5–10 minutes
+  - Threat 2: 10–20 minutes
+  - Threat 3: 25–45 minutes
+  - Threat 4: 1–2 hours
+  - Threat 6: 2–4 hours
+- These are target bands, not fixed countdowns. Route branches, combat length, retreat and death remain simulation-driven.
+- Contract actions now mature on per-contract pacing intervals instead of once per 250 ms browser loop.
+- Expedition need/preparation decay is normalized for the longer clock so multi-hour jobs are meaningful without instantly exhausting heroes.
+- Reward accumulation is normalized per paced expedition action so longer wall-clock contracts do not inflate payouts merely because they take longer.
+- ×1/×4/×12 speed controls and offline catch-up use the same pacing model.
+- Expedition snapshots persist the pacing clock; existing saves migrate without schema-reset behavior.
 
 ## Rendering / phone behavior
 - The underlying simulation continues globally regardless of which screen is open.
@@ -76,4 +90,4 @@ node tests/test_scene_ui.js
 - Offline progression remains capped at 8 hours.
 
 ## NEXT OPERATION
-Playtest the spatial tavern on phone/desktop, especially patron entry/exit flow, outside queue spacing, staff travel and door readability. Keep gameplay economy/combat unchanged unless separately requested.
+Playtest the long-form contract clock alongside the spatial tavern on phone/desktop. Verify the five duration bands at ×1, offline continuation, ×4/×12 acceleration, report cadence, patron entry/exit flow, outside queue spacing, staff travel and door readability. Keep combat/economy rules unchanged unless separately requested.

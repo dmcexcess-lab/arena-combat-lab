@@ -121,7 +121,7 @@
 
   const CONTRACTS = {
     briar_farm_wolves:{
-      id:'briar_farm_wolves',name:'Wolves at Briar Farm',threat:1,kind:'Hunt',
+      id:'briar_farm_wolves',name:'Wolves at Briar Farm',threat:1,kind:'Hunt',paceSeconds:15,durationHint:'5–10 min',
       objective:'Drive the wolf pack away from Briar Farm.',brief:'A short rural hunt with modest danger and dependable herbs.',
       incomeMult:0.82,materialProfile:['medicinal_herb','scrap_iron'],start:'farm_gate',subObjectives:['Pick up the pack trail','Cull up to 5 wolves','Clear the wolf den'],objectiveRules:{quarryEnemy:'wolf',killTarget:5,trailLocation:'sheep_pens',lairLocation:'den'},
       locations:{
@@ -134,7 +134,7 @@
       }
     },
     greymill_rats:{
-      id:'greymill_rats',name:'Rats Below Greymill',threat:2,kind:'Extermination',
+      id:'greymill_rats',name:'Rats Below Greymill',threat:2,kind:'Extermination',paceSeconds:35,durationHint:'10–20 min',
       objective:'Clear the infestation beneath Greymill.',brief:'A branching cellar infestation with useful alchemical salvage.',
       incomeMult:1,materialProfile:['rat_tail','medicinal_herb','scrap_iron','strange_gland'],start:'entrance',subObjectives:['Reach the infestation','Cull up to 8 vermin','Destroy the main nest'],objectiveRules:{verminEnemies:['giant_rat','dire_rat'],killTarget:8,infestationLocation:'cellar',nestLocation:'nest'},
       locations:{
@@ -148,7 +148,7 @@
       }
     },
     ashroad_caravan:{
-      id:'ashroad_caravan',name:'Ashroad Caravan',threat:3,kind:'Escort',
+      id:'ashroad_caravan',name:'Ashroad Caravan',threat:3,kind:'Escort',paceSeconds:75,durationHint:'25–45 min',
       objective:'Break the ambushes and get the caravan through Ashroad.',brief:'A longer escort through repeated human ambushes and a risky ravine shortcut.',
       incomeMult:1.28,materialProfile:['scrap_iron','medicinal_herb'],start:'west_marker',subObjectives:['Survive the first ambush','Get the caravan across the bridge','Reach the last ridge','Preserve caravan integrity'],objectiveRules:{startingIntegrity:100,checkpointLocations:['first_ambush','old_bridge','last_ridge']},
       locations:{
@@ -162,7 +162,7 @@
       }
     },
     blackroot_mine:{
-      id:'blackroot_mine',name:'Blackroot Mine',threat:4,kind:'Delve',
+      id:'blackroot_mine',name:'Blackroot Mine',threat:4,kind:'Delve',paceSeconds:180,durationHint:'1–2 hr',
       objective:'Find the missing miners and break the infestation in Blackroot Mine.',brief:'A deep underground contract with dangerous optional chambers and rare glands.',
       incomeMult:1.58,materialProfile:['strange_gland','scrap_iron','medicinal_herb'],start:'mine_mouth',subObjectives:['Survey deep mine chambers','Find the missing miners','Rescue as many miners as possible'],objectiveRules:{discoveryLocations:['fungus_cave','collapsed_lift','brood_chamber'],rescueLocation:'miner_gallery',rescueMax:3},
       locations:{
@@ -177,7 +177,7 @@
       }
     },
     wren_bridge_troll:{
-      id:'wren_bridge_troll',name:'The Wren Bridge Troll',threat:6,kind:'Boss Hunt',
+      id:'wren_bridge_troll',name:'The Wren Bridge Troll',threat:6,kind:'Boss Hunt',paceSeconds:480,durationHint:'2–4 hr',
       objective:'Open Wren Bridge by killing the troll that has claimed it.',brief:'A short, brutal boss contract with a dangerous lair detour and the highest income potential.',
       incomeMult:2.08,materialProfile:['strange_gland','scrap_iron'],start:'roadblock',subObjectives:['Reach Wren Bridge','Wound the bridge troll','Kill the bridge troll'],objectiveRules:{approachLocation:'bridge_approach',bossLocation:'bridge',bossEnemy:'troll'},
       locations:{
@@ -191,6 +191,13 @@
   };
   const CONTRACT_ORDER=['briar_farm_wolves','greymill_rats','ashroad_caravan','blackroot_mine','wren_bridge_troll'];
   const CONTRACT=CONTRACTS.greymill_rats;
+  const EXPEDITION_NEED_TIME_SCALE=1/20;
+  function contractActionInterval(contract=CONTRACT){
+    const explicit=Number(contract?.paceSeconds);
+    if(Number.isFinite(explicit)&&explicit>0)return explicit;
+    const fallback={1:15,2:35,3:75,4:180,5:300,6:480};
+    return fallback[Math.max(1,Math.round(Number(contract?.threat)||2))]||35;
+  }
 
   const ENEMIES = {
     giant_rat:{id:'giant_rat',name:'Giant Rat',hp:15,damage:[3,7],accuracy:0.67,defense:0,xp:1,danger:0.18},
@@ -499,7 +506,7 @@
       this.enemiesDefeated=0; this.areasExplored=[]; this.objectiveProgress=0; this.materials={}; this.log=[]; this.decisionDebug=[]; this.injuriesSuffered=0;
       this.objectiveScore=0; this.objectiveMax=100; this.objectiveBonusGold=0; this.objectiveEvents=[]; this.objectiveAwards={};
       this.objectiveState=this.makeObjectiveState();
-      this.currentCombat=null; this.retreatReason=null; this.lastDecision=null; this.gearOutcome=null; this._entered=false; this._resolution=null;
+      this.currentCombat=null; this.retreatReason=null; this.lastDecision=null; this.gearOutcome=null; this._entered=false; this._resolution=null; this.actionClock=0;
       this.addLog(`Deployed to ${contract.name}.`, 'system');
     }
     addLog(text,type='event',reasons=[]){ this.log.push({time:this.elapsed,text,type,reasons}); if(this.log.length>250)this.log.shift(); }
@@ -609,7 +616,7 @@
       if(afterCondition!==beforeCondition)this.addLog(`${EQUIPMENT[itemId].name} is now ${afterCondition.toLowerCase()} (${Math.round(after)}%).`,'gear');
       return before-after;
     }
-    bumpRate(amount,reason){ const before=this.goldRate; const scaled=amount*(this.contract.incomeMult||1); this.goldRate=clamp(this.goldRate+scaled,0,50); this.peakGoldRate=Math.max(this.peakGoldRate,this.goldRate); if(Math.abs(this.goldRate-before)>=0.009)this.addLog(`Performance ${before.toFixed(2)} → ${this.goldRate.toFixed(2)} gold/sec — ${reason}.`,'income'); }
+    bumpRate(amount,reason){ const before=this.goldRate; const scaled=amount*(this.contract.incomeMult||1); this.goldRate=clamp(this.goldRate+scaled,0,50); this.peakGoldRate=Math.max(this.peakGoldRate,this.goldRate); if(Math.abs(this.goldRate-before)>=0.009)this.addLog(`Performance ${before.toFixed(2)} → ${this.goldRate.toFixed(2)} reward rate — ${reason}.`,'income'); }
     updateNeeds(dt){
       const hungerMult=prepEffectRateMultiplier(this.hero,'hearty_meal','hungerRateMult');
       const fatigueMult=prepEffectRateMultiplier(this.hero,'good_sleep','fatigueRateMult');
@@ -779,9 +786,15 @@
     }
     tick(dt=1){
       if(this.state!=='deployed')return;
-      dt=clamp(dt,0.05,3);
-      this.elapsed+=dt; this.gold+=this.goldRate*dt; this.updateNeeds(dt);
+      dt=clamp(dt,0.05,900);
+      const interval=contractActionInterval(this.contract);
+      this.elapsed+=dt;
+      this.gold+=this.goldRate*(dt/interval);
+      this.updateNeeds(dt*EXPEDITION_NEED_TIME_SCALE);
       if(this.hero.health<=0){this.finish('death','fatal injuries');return;}
+      this.actionClock+=dt;
+      if(this.actionClock+1e-9<interval)return;
+      this.actionClock=Math.max(0,this.actionClock-interval);
       if(this.hero.fatigue>92 || this.hero.hunger>94 || this.hero.morale<12){
         const d=this.choose(['retreat','continue']);
         if(d.action==='retreat'&&this.canRetreat()){this.addLog(`${this.hero.name} decided to retreat.`,'decision',d.reasons);this.finish('retreat','condition collapse');return;}
@@ -805,14 +818,14 @@
       return {contractId:this.contract.id,contract:this.contract.name,threat:this.contract.threat,kind:this.contract.kind,outcome:this.state,reason:this.retreatReason,time:this.elapsed,enemiesDefeated:this.enemiesDefeated,areasExplored:this.areasExplored.length,totalAreas:Object.keys(this.contract.locations).length-1,objectiveProgress:Math.round(this.objectiveProgress),objectiveScore:Math.round(this.objectiveScore),objectiveMax:this.objectiveMax,objectiveBonusGold:Number(this.objectiveBonusGold.toFixed(2)),objectiveEvents:clone(this.objectiveEvents),objectiveState:clone(this.objectiveState),peakGoldRate:this.peakGoldRate,totalGold:this.gold,materials:clone(this.materials),heroAlive:this.hero.alive,health:this.hero.health,fatigue:this.hero.fatigue,hunger:this.hero.hunger,morale:this.hero.morale,injuries:clone(this.hero.injuries),moodlets:clone(this.hero.moodlets),gearDurability:clone(this.hero.gearDurability),gearOutcome:clone(this.gearOutcome),injuriesSuffered:this.injuriesSuffered,seed:this.seed};
     }
     snapshot(){
-      return {version:4,contractId:this.contract.id,seed:this.seed,rngState:this.rng.state,hero:clone(this.hero),state:this.state,locationId:this.locationId,elapsed:this.elapsed,goldRate:this.goldRate,peakGoldRate:this.peakGoldRate,gold:this.gold,enemiesDefeated:this.enemiesDefeated,areasExplored:clone(this.areasExplored),objectiveProgress:this.objectiveProgress,objectiveScore:this.objectiveScore,objectiveMax:this.objectiveMax,objectiveBonusGold:this.objectiveBonusGold,objectiveEvents:clone(this.objectiveEvents),objectiveAwards:clone(this.objectiveAwards),objectiveState:clone(this.objectiveState),materials:clone(this.materials),log:clone(this.log),decisionDebug:clone(this.decisionDebug),currentCombat:clone(this.currentCombat),retreatReason:this.retreatReason,lastDecision:clone(this.lastDecision),gearOutcome:clone(this.gearOutcome),entered:this._entered,resolution:clone(this._resolution),injuriesSuffered:this.injuriesSuffered};
+      return {version:5,contractId:this.contract.id,seed:this.seed,rngState:this.rng.state,hero:clone(this.hero),state:this.state,locationId:this.locationId,elapsed:this.elapsed,actionClock:this.actionClock,goldRate:this.goldRate,peakGoldRate:this.peakGoldRate,gold:this.gold,enemiesDefeated:this.enemiesDefeated,areasExplored:clone(this.areasExplored),objectiveProgress:this.objectiveProgress,objectiveScore:this.objectiveScore,objectiveMax:this.objectiveMax,objectiveBonusGold:this.objectiveBonusGold,objectiveEvents:clone(this.objectiveEvents),objectiveAwards:clone(this.objectiveAwards),objectiveState:clone(this.objectiveState),materials:clone(this.materials),log:clone(this.log),decisionDebug:clone(this.decisionDebug),currentCombat:clone(this.currentCombat),retreatReason:this.retreatReason,lastDecision:clone(this.lastDecision),gearOutcome:clone(this.gearOutcome),entered:this._entered,resolution:clone(this._resolution),injuriesSuffered:this.injuriesSuffered};
     }
     static fromSnapshot(data,{contract=null,debug=false}={}){
       if(!data||!data.hero)throw new Error('invalid expedition snapshot');
       contract=contract||CONTRACTS[data.contractId]||CONTRACT;
       const e=new Expedition({hero:data.hero,seed:data.seed||1,contract,debug});
       e.rng.state=(data.rngState>>>0)||e.rng.state;
-      e.state=data.state||'deployed'; e.locationId=data.locationId||contract.start; e.elapsed=Number(data.elapsed)||0;
+      e.state=data.state||'deployed'; e.locationId=data.locationId||contract.start; e.elapsed=Number(data.elapsed)||0; e.actionClock=Math.max(0,Number(data.actionClock)||0);
       e.goldRate=Number(data.goldRate)||0; e.peakGoldRate=Number(data.peakGoldRate)||0; e.gold=Number(data.gold)||0;
       e.enemiesDefeated=Number(data.enemiesDefeated)||0; e.areasExplored=clone(data.areasExplored||[]); e.objectiveProgress=Number(data.objectiveProgress)||0;
       e.objectiveScore=data.objectiveScore==null?Math.min(95,Math.round(e.objectiveProgress)):Number(data.objectiveScore)||0;
@@ -823,7 +836,7 @@
       e.retreatReason=data.retreatReason||null; e.lastDecision=clone(data.lastDecision||null); e.gearOutcome=clone(data.gearOutcome||null); e._entered=!!data.entered; e._resolution=clone(data.resolution||null); e.injuriesSuffered=Number(data.injuriesSuffered)||0;
       return e;
     }
-    runToEnd(maxTicks=5000,dt=1){ let n=0;while(this.state==='deployed'&&n++<maxTicks)this.tick(dt);return this.summary(); }
+    runToEnd(maxTicks=5000,dt=1){ const step=Math.max(Number(dt)||1,contractActionInterval(this.contract));let n=0;while(this.state==='deployed'&&n++<maxTicks)this.tick(step);return this.summary(); }
   }
 
   class ExpeditionManager {
@@ -865,11 +878,12 @@
       if(!e||![0,1,4,12].includes(n))return false;
       e.speed=n; return true;
     }
-    tickAll(){
+    tickAll(dt=1){
+      dt=clamp(dt,0.05,3);
       const resolved=[];
       for(const e of this.entries){
         if(e.expedition.state!=='deployed'||e.speed<=0)continue;
-        for(let i=0;i<e.speed&&e.expedition.state==='deployed';i++)e.expedition.tick(1);
+        for(let i=0;i<e.speed&&e.expedition.state==='deployed';i++)e.expedition.tick(dt);
         if(e.expedition.state!=='deployed')resolved.push(e.id);
       }
       return resolved;
@@ -1849,7 +1863,7 @@
     settlements.push(...settleResolvedExpeditions(roster,manager));
     for(let i=0;i<steps;i++){
       tavernGold+=roster.tickTavern(quantum);
-      manager.tickAll();
+      manager.tickAll(quantum);
       settlements.push(...settleResolvedExpeditions(roster,manager));
     }
     const progress=[];
@@ -1900,5 +1914,5 @@
     };
   }
 
-  return {RNG,EQUIPMENT,MAX_DURABILITY,isDurableItem,normalizeDurability,durabilityMultiplier,durabilityCondition,repairQuote,CRAFT_RECIPES,INJURY_TYPES,PREP_EFFECTS,PREPARATION_ACTIONS,normalizeFacilityLevels,preparationFacilityLevel,facilityActionMinutes,CONTRACT,CONTRACTS,CONTRACT_ORDER,ENEMIES,MATERIAL_NAMES,PATRON_TYPES,MERCHANT_GOODS,merchantQuality,MerchantSystem,APPLICANT_TRAITS,applicantQuality,RecruitmentSystem,CHRONICLE_RECORD_LABELS,Chronicle,isLegendaryHero,heroTemplate,normalizeCareer,rankFromXp,applyCareerProgress,starterRoster,deriveMoodlets,totalInjurySeverity,addInjury,reduceWorstInjury,removeWorstInjury,readinessScore,threatAssessment,PreparationState,TavernEconomy,TavernRoster,Expedition,ExpeditionManager,OFFLINE_MAX_SECONDS,OFFLINE_QUANTUM_SECONDS,settleResolvedExpeditions,advanceOffline,makePreset};
+  return {RNG,EQUIPMENT,MAX_DURABILITY,isDurableItem,normalizeDurability,durabilityMultiplier,durabilityCondition,repairQuote,CRAFT_RECIPES,INJURY_TYPES,PREP_EFFECTS,PREPARATION_ACTIONS,normalizeFacilityLevels,preparationFacilityLevel,facilityActionMinutes,CONTRACT,CONTRACTS,CONTRACT_ORDER,contractActionInterval,EXPEDITION_NEED_TIME_SCALE,ENEMIES,MATERIAL_NAMES,PATRON_TYPES,MERCHANT_GOODS,merchantQuality,MerchantSystem,APPLICANT_TRAITS,applicantQuality,RecruitmentSystem,CHRONICLE_RECORD_LABELS,Chronicle,isLegendaryHero,heroTemplate,normalizeCareer,rankFromXp,applyCareerProgress,starterRoster,deriveMoodlets,totalInjurySeverity,addInjury,reduceWorstInjury,removeWorstInjury,readinessScore,threatAssessment,PreparationState,TavernEconomy,TavernRoster,Expedition,ExpeditionManager,OFFLINE_MAX_SECONDS,OFFLINE_QUANTUM_SECONDS,settleResolvedExpeditions,advanceOffline,makePreset};
 });
