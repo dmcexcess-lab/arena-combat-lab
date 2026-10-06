@@ -3,12 +3,12 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-  <title>Tavern Keeper — Slice 6</title>
+  <title>Tavern Keeper — Slice 7</title>
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
 <header>
-  <div><h1>Tavern Keeper</h1><p>Slice 6 — Merchants &amp; Procurement</p></div>
+  <div><h1>Tavern Keeper</h1><p>Slice 7 — Contract Board &amp; Threat Ladder</p></div>
   <div class="top-stats">
     <div><span>Tavern funds</span><strong id="funds">0.0g</strong></div>
     <div><span>Tavern g/s</span><strong id="tavernGps">0.00</strong></div>
@@ -78,6 +78,12 @@
     <div id="craftLog" class="craft-log"></div>
   </section>
 
+  <section class="panel contract-board-panel">
+    <div class="section-title"><h2>Contract Board</h2><span class="status">ANY HERO MAY DEPLOY</span></div>
+    <p class="contract-board-note">Threat is advisory. Failed contracts still pay for performance already achieved.</p>
+    <div id="contractBoard" class="contract-board"></div>
+  </section>
+
   <aside class="panel roster-panel">
     <div class="section-title"><h2>Hero Roster</h2><span id="rosterCount" class="status">0 alive</span></div>
     <div id="heroRoster" class="hero-roster"></div>
@@ -121,7 +127,7 @@
     </div>
     <small class="loadout-note">Equip crafted/stored gear and give consumables from Workshop &amp; Stash.</small>
 
-    <div class="contract-card"><div><h3>Rats Below Greymill</h3><span class="threat">Threat 2</span></div><p>Clear the infestation beneath Greymill.</p><small>Any living hero may deploy. Threat remains advisory.</small></div>
+    <div class="contract-card selected-contract"><div><h3 id="selectedContractName">—</h3><span id="selectedContractThreat" class="threat">Threat —</span></div><p id="selectedContractObjective">Select a contract from the board.</p><small id="selectedContractRisk">Threat is advisory.</small></div>
     <label>Seed <input id="seed" type="number" value="42" min="1"></label>
     <button id="deploy" class="primary">Deploy Selected Hero</button>
 

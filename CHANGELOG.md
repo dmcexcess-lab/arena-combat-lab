@@ -2,6 +2,17 @@
 
 Current truth: `PROJECT_CONTEXT.md` · Future: `ROADMAP.md`
 
+## 2026-10-05 — Tavern Keeper Slice 7: Contract Board & Threat Ladder
+- Replaced the single hard-coded Greymill contract with an authoritative data-driven five-contract catalog spanning Threat 1, 2, 3, 4 and 6.
+- Added Wolves at Briar Farm (Hunt), Ashroad Caravan (Escort), Blackroot Mine (Delve) and The Wren Bridge Troll (Boss Hunt) while retaining Rats Below Greymill (Extermination).
+- Added Wolf, Bandit, Road Raider, Cave Crawler, Cave Stalker and Bridge Troll enemy definitions used by the new contracts.
+- Contracts now define their own route graph, optional-risk branches, enemy composition, material profile and performance-income multiplier.
+- Higher-threat contracts raise potential performance gold/sec through the existing performance-pay mechanic rather than a separate payout system.
+- Added a persistent Contract Board selection and hero-relative risk display; every living hero remains deployable to every contract.
+- Active expedition saves now persist contract ID so refresh/resume cannot silently fall back to Greymill; old expedition saves still migrate to Greymill.
+- Settlement keys now include contract ID to prevent cross-contract payout collisions.
+- Added test_contracts.js and wired it into the Pages CI gate.
+
 ## 2026-10-05 — Tavern Keeper Slice 6: Merchants & Procurement
 - Added persistent timed merchant visits driven by the live tavern clock, with deterministic arrival/departure, finite rotating offers and visit history.
 - Added merchant quality derived from tavern Seating, Service, Kitchen and Bar development; better taverns unlock higher-quality stock pools.

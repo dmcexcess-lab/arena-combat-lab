@@ -220,6 +220,37 @@ function renderCrafting(){
   });
 }
 
+function renderContractBoard(){
+  const h=selected();
+  const selectedContract=roster.getContract();
+  $('selectedContractName').textContent=selectedContract.name;
+  $('selectedContractThreat').textContent='Threat '+selectedContract.threat;
+  $('selectedContractObjective').textContent=selectedContract.objective;
+  $('selectedContractRisk').textContent=h
+    ? C.threatAssessment(h,selectedContract)+' for '+h.name+' · '+selectedContract.kind+' · income ×'+selectedContract.incomeMult.toFixed(2)
+    : selectedContract.kind+' · income ×'+selectedContract.incomeMult.toFixed(2)+' · select a living hero for risk assessment';
+
+  $('contractBoard').innerHTML=C.CONTRACT_ORDER.map(function(id){
+    const c=C.CONTRACTS[id];
+    const assessment=h?C.threatAssessment(h,c):'No hero selected';
+    const mats=c.materialProfile.map(function(mat){return C.MATERIAL_NAMES[mat]||mat;}).join(' · ');
+    return '<button class="board-contract '+(id===roster.selectedContractId?'selected':'')+'" data-contract="'+id+'" '+(expeditionLocked()?'disabled':'')+'>'+
+      '<div><strong>'+c.name+'</strong><span>Threat '+c.threat+'</span></div>'+
+      '<em>'+c.kind+' · '+assessment+'</em>'+
+      '<p>'+c.brief+'</p>'+
+      '<small>Income ×'+c.incomeMult.toFixed(2)+' · '+mats+'</small></button>';
+  }).join('');
+
+  document.querySelectorAll('[data-contract]').forEach(function(btn){
+    btn.addEventListener('click',function(){
+      if(expeditionLocked())return;
+      roster.selectContract(btn.dataset.contract);
+      renderAll();
+      saveGame();
+    });
+  });
+}
+
 function renderRoster(){
   const heroes=roster.aliveHeroes();
   $('rosterCount').textContent=heroes.length+' alive';
@@ -287,7 +318,7 @@ function renderHome(){
   }
 
   C.deriveMoodlets(h);
-  $('risk').textContent=C.threatAssessment(h);
+  $('risk').textContent=C.threatAssessment(h,roster.getContract());
   $('homeHealth').textContent=Math.round(h.health)+'/'+h.maxHealth;
   $('homeHunger').textContent=Math.round(h.hunger);
   $('homeFatigue').textContent=Math.round(h.fatigue);
@@ -343,7 +374,7 @@ function renderExpedition(){
   }
   const h=exp.hero;
   const loc=exp.contract.locations[exp.locationId];
-  $('activeHeroBanner').textContent=h.name+' · career rank '+h.career.rank+' · seed '+exp.seed;
+  $('activeHeroBanner').textContent=h.name+' · '+exp.contract.name+' · Threat '+exp.contract.threat+' · career rank '+h.career.rank+' · seed '+exp.seed;
   $('status').textContent=exp.state.toUpperCase();
   $('hp').textContent=Math.round(h.health)+'/'+h.maxHealth;
   $('gps').textContent=exp.goldRate.toFixed(2);
@@ -417,7 +448,7 @@ function closeReport(){
   renderAll();
   saveGame();
 }
-function renderAll(){renderEconomy();renderMerchants();renderCrafting();renderRoster();renderHome();renderHistoryLog();renderExpedition();}
+function renderAll(){renderEconomy();renderMerchants();renderCrafting();renderContractBoard();renderRoster();renderHome();renderHistoryLog();renderExpedition();}
 
 loadGame();
 renderPrepActions();

@@ -27,6 +27,11 @@ Operational checklist for humans + AIs. Keep compact; add only behaviors whose r
 - Purchases spend exact shared gold, decrement finite merchant stock and add to the authoritative shared material/item inventories; insufficient funds and sold-out purchases are atomic failures.
 - Quality 3 can surface Steel Sword / Chain Mail while lower-quality visits cannot; purchased gear uses the same inventory-to-hero equip path as crafted gear.
 - Merchant state/purchase history round-trip through persistence, Slice 5 saves migrate to a future visit, and the merchant clock advances through TavernRoster.tickTavern.
+- Slice 7 contract board: authoritative contract order is Threat 1/2/3/4/6 and every contract graph has valid locations/enemies/materials plus a reachable resolution and at least one optional-risk branch.
+- Every living roster hero can start every contract regardless of hero-relative risk; threat assessment is advisory only and selected contract persists with TavernRoster.
+- Equal hero/seed/contract inputs remain deterministic; active expedition snapshot/restore preserves contract ID and old snapshots without contract ID migrate to Greymill.
+- Every contract has at least one successful seeded run for a strong prepared hero and at least one non-success run with positive partial performance gold for an overmatched hero.
+- Contract income multipliers rise with threat, loot profiles produce differentiated material tendencies, and settlement keys include contract ID.
 
 ### Arena
 - Main scene instantiates without script/runtime errors.

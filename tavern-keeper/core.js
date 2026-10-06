@@ -66,26 +66,88 @@
     physician:{id:'physician',name:'Physician',cost:12,minutes:90,description:'Expensive treatment: major healing and removes the worst injury.',apply(h){h.health=clamp(h.health+38,0,h.maxHealth);removeWorstInjury(h);setPrepEffect(h,'patched_up');}}
   };
 
-  const CONTRACT = {
-    id:'greymill_rats',
-    name:'Rats Below Greymill',
-    threat:2,
-    objective:'Clear the infestation beneath Greymill.',
-    start:'entrance',
-    locations:{
-      entrance:{id:'entrance',name:'Mill Entrance',progress:8,next:['cellar'],encounter:null,materials:[['scrap_iron',0.35]]},
-      cellar:{id:'cellar',name:'Storage Cellar',progress:18,next:['pantry','flooded'],encounter:{enemy:'giant_rat',count:[2,3]},materials:[['rat_tail',0.6],['medicinal_herb',0.25]]},
-      pantry:{id:'pantry',name:'Collapsed Pantry',progress:16,next:['nest'],optional:true,risk:0.35,reward:0.8,encounter:{enemy:'giant_rat',count:[1,2]},materials:[['medicinal_herb',0.7],['scrap_iron',0.45]]},
-      flooded:{id:'flooded',name:'Flooded Passage',progress:14,next:['nest'],optional:true,risk:0.2,reward:0.45,encounter:null,materials:[['medicinal_herb',0.35]]},
-      nest:{id:'nest',name:'Rat Nest',progress:28,next:['old_shaft','resolution'],encounter:{enemy:'dire_rat',count:[2,3]},materials:[['rat_tail',0.9],['strange_gland',0.25]]},
-      old_shaft:{id:'old_shaft',name:'Old Smuggler Shaft',progress:16,next:['resolution'],optional:true,risk:0.85,reward:1.4,encounter:{enemy:'dire_rat',count:[2,4]},materials:[['strange_gland',0.7],['scrap_iron',0.8]]},
-      resolution:{id:'resolution',name:'Cleared Mill',progress:0,next:[],encounter:null,materials:[]}
+  const CONTRACTS = {
+    briar_farm_wolves:{
+      id:'briar_farm_wolves',name:'Wolves at Briar Farm',threat:1,kind:'Hunt',
+      objective:'Drive the wolf pack away from Briar Farm.',brief:'A short rural hunt with modest danger and dependable herbs.',
+      incomeMult:0.82,materialProfile:['medicinal_herb','scrap_iron'],start:'farm_gate',
+      locations:{
+        farm_gate:{id:'farm_gate',name:'Farm Gate',progress:10,next:['sheep_pens'],encounter:null,materials:[['medicinal_herb',0.45]]},
+        sheep_pens:{id:'sheep_pens',name:'Sheep Pens',progress:20,next:['orchard','tree_line'],encounter:{enemy:'wolf',count:[1,2]},materials:[['medicinal_herb',0.45],['scrap_iron',0.2]]},
+        orchard:{id:'orchard',name:'Old Orchard',progress:18,next:['den'],optional:true,risk:0.25,reward:0.65,encounter:{enemy:'wolf',count:[1,2]},materials:[['medicinal_herb',0.8]]},
+        tree_line:{id:'tree_line',name:'Tree Line',progress:16,next:['den'],encounter:null,materials:[['medicinal_herb',0.35]]},
+        den:{id:'den',name:'Wolf Den',progress:30,next:['resolution'],encounter:{enemy:'wolf',count:[2,3]},materials:[['medicinal_herb',0.6],['scrap_iron',0.25]]},
+        resolution:{id:'resolution',name:'Farm Secured',progress:0,next:[],encounter:null,materials:[]}
+      }
+    },
+    greymill_rats:{
+      id:'greymill_rats',name:'Rats Below Greymill',threat:2,kind:'Extermination',
+      objective:'Clear the infestation beneath Greymill.',brief:'A branching cellar infestation with useful alchemical salvage.',
+      incomeMult:1,materialProfile:['rat_tail','medicinal_herb','scrap_iron','strange_gland'],start:'entrance',
+      locations:{
+        entrance:{id:'entrance',name:'Mill Entrance',progress:8,next:['cellar'],encounter:null,materials:[['scrap_iron',0.35]]},
+        cellar:{id:'cellar',name:'Storage Cellar',progress:18,next:['pantry','flooded'],encounter:{enemy:'giant_rat',count:[2,3]},materials:[['rat_tail',0.6],['medicinal_herb',0.25]]},
+        pantry:{id:'pantry',name:'Collapsed Pantry',progress:16,next:['nest'],optional:true,risk:0.35,reward:0.8,encounter:{enemy:'giant_rat',count:[1,2]},materials:[['medicinal_herb',0.7],['scrap_iron',0.45]]},
+        flooded:{id:'flooded',name:'Flooded Passage',progress:14,next:['nest'],optional:true,risk:0.2,reward:0.45,encounter:null,materials:[['medicinal_herb',0.35]]},
+        nest:{id:'nest',name:'Rat Nest',progress:28,next:['old_shaft','resolution'],encounter:{enemy:'dire_rat',count:[2,3]},materials:[['rat_tail',0.9],['strange_gland',0.25]]},
+        old_shaft:{id:'old_shaft',name:'Old Smuggler Shaft',progress:16,next:['resolution'],optional:true,risk:0.85,reward:1.4,encounter:{enemy:'dire_rat',count:[2,4]},materials:[['strange_gland',0.7],['scrap_iron',0.8]]},
+        resolution:{id:'resolution',name:'Cleared Mill',progress:0,next:[],encounter:null,materials:[]}
+      }
+    },
+    ashroad_caravan:{
+      id:'ashroad_caravan',name:'Ashroad Caravan',threat:3,kind:'Escort',
+      objective:'Break the ambushes and get the caravan through Ashroad.',brief:'A longer escort through repeated human ambushes and a risky ravine shortcut.',
+      incomeMult:1.28,materialProfile:['scrap_iron','medicinal_herb'],start:'west_marker',
+      locations:{
+        west_marker:{id:'west_marker',name:'West Mile Marker',progress:8,next:['first_ambush'],encounter:null,materials:[['medicinal_herb',0.3]]},
+        first_ambush:{id:'first_ambush',name:'Burned Cart Ambush',progress:18,next:['ravine','wagon_circle'],encounter:{enemy:'bandit',count:[2,3]},materials:[['scrap_iron',0.65],['medicinal_herb',0.25]]},
+        ravine:{id:'ravine',name:'Ravine Shortcut',progress:20,next:['old_bridge'],optional:true,risk:0.7,reward:1.15,encounter:{enemy:'raider',count:[1,2]},materials:[['scrap_iron',0.75]]},
+        wagon_circle:{id:'wagon_circle',name:'Wagon Circle',progress:16,next:['old_bridge'],encounter:{enemy:'bandit',count:[2,3]},materials:[['medicinal_herb',0.4],['scrap_iron',0.5]]},
+        old_bridge:{id:'old_bridge',name:'Old Stone Bridge',progress:24,next:['last_ridge'],encounter:{enemy:'bandit',count:[2,4]},materials:[['scrap_iron',0.75]]},
+        last_ridge:{id:'last_ridge',name:'Last Ridge',progress:20,next:['resolution'],encounter:{enemy:'raider',count:[1,2]},materials:[['scrap_iron',0.7],['medicinal_herb',0.35]]},
+        resolution:{id:'resolution',name:'Caravan Through',progress:0,next:[],encounter:null,materials:[]}
+      }
+    },
+    blackroot_mine:{
+      id:'blackroot_mine',name:'Blackroot Mine',threat:4,kind:'Delve',
+      objective:'Find the missing miners and break the infestation in Blackroot Mine.',brief:'A deep underground contract with dangerous optional chambers and rare glands.',
+      incomeMult:1.58,materialProfile:['strange_gland','scrap_iron','medicinal_herb'],start:'mine_mouth',
+      locations:{
+        mine_mouth:{id:'mine_mouth',name:'Mine Mouth',progress:8,next:['timber_gallery'],encounter:null,materials:[['scrap_iron',0.45]]},
+        timber_gallery:{id:'timber_gallery',name:'Timber Gallery',progress:16,next:['fungus_cave','lower_tunnel'],encounter:{enemy:'cave_crawler',count:[2,3]},materials:[['medicinal_herb',0.45],['scrap_iron',0.5]]},
+        fungus_cave:{id:'fungus_cave',name:'Fungus Cave',progress:18,next:['collapsed_lift'],optional:true,risk:0.72,reward:1.25,encounter:{enemy:'cave_stalker',count:[1,2]},materials:[['strange_gland',0.75],['medicinal_herb',0.75]]},
+        lower_tunnel:{id:'lower_tunnel',name:'Lower Tunnel',progress:16,next:['collapsed_lift'],encounter:{enemy:'cave_crawler',count:[2,4]},materials:[['scrap_iron',0.65]]},
+        collapsed_lift:{id:'collapsed_lift',name:'Collapsed Lift',progress:20,next:['brood_chamber','miner_gallery'],encounter:{enemy:'cave_stalker',count:[1,2]},materials:[['strange_gland',0.45],['scrap_iron',0.55]]},
+        brood_chamber:{id:'brood_chamber',name:'Brood Chamber',progress:18,next:['miner_gallery'],optional:true,risk:0.95,reward:1.55,encounter:{enemy:'cave_stalker',count:[2,3]},materials:[['strange_gland',0.9]]},
+        miner_gallery:{id:'miner_gallery',name:'Missing Miners',progress:24,next:['resolution'],encounter:{enemy:'cave_crawler',count:[3,4]},materials:[['medicinal_herb',0.5],['scrap_iron',0.8]]},
+        resolution:{id:'resolution',name:'Miners Recovered',progress:0,next:[],encounter:null,materials:[]}
+      }
+    },
+    wren_bridge_troll:{
+      id:'wren_bridge_troll',name:'The Wren Bridge Troll',threat:6,kind:'Boss Hunt',
+      objective:'Open Wren Bridge by killing the troll that has claimed it.',brief:'A short, brutal boss contract with a dangerous lair detour and the highest income potential.',
+      incomeMult:2.08,materialProfile:['strange_gland','scrap_iron'],start:'roadblock',
+      locations:{
+        roadblock:{id:'roadblock',name:'Abandoned Roadblock',progress:10,next:['bridge_approach'],encounter:null,materials:[['scrap_iron',0.65]]},
+        bridge_approach:{id:'bridge_approach',name:'Bridge Approach',progress:18,next:['troll_lair','bridge'],encounter:{enemy:'raider',count:[1,2]},materials:[['scrap_iron',0.6]]},
+        troll_lair:{id:'troll_lair',name:'Troll Lair',progress:22,next:['bridge'],optional:true,risk:1.0,reward:1.8,encounter:{enemy:'troll',count:[1,1]},materials:[['strange_gland',0.95],['scrap_iron',0.8]]},
+        bridge:{id:'bridge',name:'Wren Bridge',progress:42,next:['resolution'],encounter:{enemy:'troll',count:[1,1]},materials:[['strange_gland',0.85],['scrap_iron',0.7]]},
+        resolution:{id:'resolution',name:'Bridge Open',progress:0,next:[],encounter:null,materials:[]}
+      }
     }
   };
+  const CONTRACT_ORDER=['briar_farm_wolves','greymill_rats','ashroad_caravan','blackroot_mine','wren_bridge_troll'];
+  const CONTRACT=CONTRACTS.greymill_rats;
 
   const ENEMIES = {
     giant_rat:{id:'giant_rat',name:'Giant Rat',hp:15,damage:[3,7],accuracy:0.67,defense:0,xp:1,danger:0.18},
-    dire_rat:{id:'dire_rat',name:'Dire Rat',hp:25,damage:[5,10],accuracy:0.72,defense:1,xp:2,danger:0.35}
+    dire_rat:{id:'dire_rat',name:'Dire Rat',hp:25,damage:[5,10],accuracy:0.72,defense:1,xp:2,danger:0.35},
+    wolf:{id:'wolf',name:'Wolf',hp:20,damage:[4,8],accuracy:0.69,defense:0,xp:1,danger:0.24},
+    bandit:{id:'bandit',name:'Bandit',hp:28,damage:[5,9],accuracy:0.71,defense:1,xp:2,danger:0.32},
+    raider:{id:'raider',name:'Road Raider',hp:38,damage:[6,11],accuracy:0.74,defense:2,xp:3,danger:0.46},
+    cave_crawler:{id:'cave_crawler',name:'Cave Crawler',hp:31,damage:[5,10],accuracy:0.72,defense:1,xp:2,danger:0.38},
+    cave_stalker:{id:'cave_stalker',name:'Cave Stalker',hp:43,damage:[7,13],accuracy:0.76,defense:2,xp:3,danger:0.56},
+    troll:{id:'troll',name:'Bridge Troll',hp:82,damage:[10,17],accuracy:0.69,defense:3,xp:6,danger:0.82}
   };
 
   const MATERIAL_NAMES={rat_tail:'Rat Tail',medicinal_herb:'Medicinal Herb',scrap_iron:'Scrap Iron',strange_gland:'Strange Gland'};
@@ -327,7 +389,7 @@
       deriveMoodlets(this.hero);
     }
     settle(expedition){
-      const key=`${expedition.seed}:${expedition.elapsed}:${expedition.state}`;
+      const key=`${expedition.contract.id}:${expedition.seed}:${expedition.elapsed}:${expedition.state}`;
       if(this.settledExpeditions.has(key))return{ok:false,reason:'already settled',banked:0};
       this.settledExpeditions.add(key);
       const banked=expedition.gold;
@@ -346,14 +408,14 @@
     constructor({hero=heroTemplate(),seed=1,contract=CONTRACT,debug=false}={}){
       this.rng=new RNG(seed); this.seed=seed; this.hero=heroTemplate(hero); this.contract=contract; this.debug=debug;
       deriveMoodlets(this.hero);
-      this.state='deployed'; this.locationId=contract.start; this.elapsed=0; this.goldRate=0.05; this.peakGoldRate=this.goldRate; this.gold=0;
+      this.state='deployed'; this.locationId=contract.start; this.elapsed=0; this.goldRate=0.04+contract.threat*0.005; this.peakGoldRate=this.goldRate; this.gold=0;
       this.enemiesDefeated=0; this.areasExplored=[]; this.objectiveProgress=0; this.materials={}; this.log=[]; this.decisionDebug=[]; this.injuriesSuffered=0;
       this.currentCombat=null; this.retreatReason=null; this.lastDecision=null; this._entered=false; this._resolution=null;
       this.addLog(`Deployed to ${contract.name}.`, 'system');
     }
     addLog(text,type='event',reasons=[]){ this.log.push({time:this.elapsed,text,type,reasons}); if(this.log.length>250)this.log.shift(); }
     addMaterial(id,count=1){ this.materials[id]=(this.materials[id]||0)+count; }
-    bumpRate(amount,reason){ const before=this.goldRate; this.goldRate=clamp(this.goldRate+amount,0,50); this.peakGoldRate=Math.max(this.peakGoldRate,this.goldRate); if(Math.abs(this.goldRate-before)>=0.009)this.addLog(`Performance ${before.toFixed(2)} → ${this.goldRate.toFixed(2)} gold/sec — ${reason}.`,'income'); }
+    bumpRate(amount,reason){ const before=this.goldRate; const scaled=amount*(this.contract.incomeMult||1); this.goldRate=clamp(this.goldRate+scaled,0,50); this.peakGoldRate=Math.max(this.peakGoldRate,this.goldRate); if(Math.abs(this.goldRate-before)>=0.009)this.addLog(`Performance ${before.toFixed(2)} → ${this.goldRate.toFixed(2)} gold/sec — ${reason}.`,'income'); }
     updateNeeds(dt){
       const hungerMult=effectActive(this.hero,'hearty_meal')?PREP_EFFECTS.hearty_meal.hungerRateMult:1;
       const fatigueMult=effectActive(this.hero,'good_sleep')?PREP_EFFECTS.good_sleep.fatigueRateMult:1;
@@ -539,13 +601,14 @@
       this._resolution={kind,reason,finalRate,summary:this.summary()};
     }
     summary(){
-      return {contract:this.contract.name,outcome:this.state,reason:this.retreatReason,time:this.elapsed,enemiesDefeated:this.enemiesDefeated,areasExplored:this.areasExplored.length,totalAreas:Object.keys(this.contract.locations).length-1,objectiveProgress:Math.round(this.objectiveProgress),peakGoldRate:this.peakGoldRate,totalGold:this.gold,materials:clone(this.materials),heroAlive:this.hero.alive,health:this.hero.health,fatigue:this.hero.fatigue,hunger:this.hero.hunger,morale:this.hero.morale,injuries:clone(this.hero.injuries),moodlets:clone(this.hero.moodlets),injuriesSuffered:this.injuriesSuffered,seed:this.seed};
+      return {contractId:this.contract.id,contract:this.contract.name,threat:this.contract.threat,kind:this.contract.kind,outcome:this.state,reason:this.retreatReason,time:this.elapsed,enemiesDefeated:this.enemiesDefeated,areasExplored:this.areasExplored.length,totalAreas:Object.keys(this.contract.locations).length-1,objectiveProgress:Math.round(this.objectiveProgress),peakGoldRate:this.peakGoldRate,totalGold:this.gold,materials:clone(this.materials),heroAlive:this.hero.alive,health:this.hero.health,fatigue:this.hero.fatigue,hunger:this.hero.hunger,morale:this.hero.morale,injuries:clone(this.hero.injuries),moodlets:clone(this.hero.moodlets),injuriesSuffered:this.injuriesSuffered,seed:this.seed};
     }
     snapshot(){
-      return {version:1,seed:this.seed,rngState:this.rng.state,hero:clone(this.hero),state:this.state,locationId:this.locationId,elapsed:this.elapsed,goldRate:this.goldRate,peakGoldRate:this.peakGoldRate,gold:this.gold,enemiesDefeated:this.enemiesDefeated,areasExplored:clone(this.areasExplored),objectiveProgress:this.objectiveProgress,materials:clone(this.materials),log:clone(this.log),decisionDebug:clone(this.decisionDebug),currentCombat:clone(this.currentCombat),retreatReason:this.retreatReason,lastDecision:clone(this.lastDecision),entered:this._entered,resolution:clone(this._resolution),injuriesSuffered:this.injuriesSuffered};
+      return {version:2,contractId:this.contract.id,seed:this.seed,rngState:this.rng.state,hero:clone(this.hero),state:this.state,locationId:this.locationId,elapsed:this.elapsed,goldRate:this.goldRate,peakGoldRate:this.peakGoldRate,gold:this.gold,enemiesDefeated:this.enemiesDefeated,areasExplored:clone(this.areasExplored),objectiveProgress:this.objectiveProgress,materials:clone(this.materials),log:clone(this.log),decisionDebug:clone(this.decisionDebug),currentCombat:clone(this.currentCombat),retreatReason:this.retreatReason,lastDecision:clone(this.lastDecision),entered:this._entered,resolution:clone(this._resolution),injuriesSuffered:this.injuriesSuffered};
     }
-    static fromSnapshot(data,{contract=CONTRACT,debug=false}={}){
+    static fromSnapshot(data,{contract=null,debug=false}={}){
       if(!data||!data.hero)throw new Error('invalid expedition snapshot');
+      contract=contract||CONTRACTS[data.contractId]||CONTRACT;
       const e=new Expedition({hero:data.hero,seed:data.seed||1,contract,debug});
       e.rng.state=(data.rngState>>>0)||e.rng.state;
       e.state=data.state||'deployed'; e.locationId=data.locationId||contract.start; e.elapsed=Number(data.elapsed)||0;
@@ -831,12 +894,13 @@
   }
 
   class TavernRoster {
-    constructor({heroes=starterRoster(),fallen=[],funds=30,materials={},inventory={},craftHistory=[],purchaseHistory=[],prepMinutes=0,selectedHeroId=null,history=[],settledKeys=[],tavern=null,merchants=null}={}){
+    constructor({heroes=starterRoster(),fallen=[],funds=30,materials={},inventory={},craftHistory=[],purchaseHistory=[],prepMinutes=0,selectedHeroId=null,selectedContractId='greymill_rats',history=[],settledKeys=[],tavern=null,merchants=null}={}){
       this.heroes=heroes.map(h=>heroTemplate(h)).filter(h=>h.alive);
       this.fallen=clone(fallen||[]);
       this.funds=Number(funds)||0; this.materials=clone(materials||{}); this.inventory=clone(inventory||{}); this.craftHistory=clone(craftHistory||[]); this.purchaseHistory=clone(purchaseHistory||[]); this.prepMinutes=Number(prepMinutes)||0;
       this.history=clone(history||[]); this.settledExpeditions=new Set(settledKeys||[]);
       this.selectedHeroId=selectedHeroId&&this.heroes.some(h=>h.id===selectedHeroId)?selectedHeroId:(this.heroes[0]?.id||null);
+      this.selectedContractId=CONTRACTS[selectedContractId]?selectedContractId:'greymill_rats';
       this.tavern=TavernEconomy.fromSnapshot(tavern);
       this.merchants=MerchantSystem.fromSnapshot(merchants);
     }
@@ -918,6 +982,8 @@
     }
     getHero(id=this.selectedHeroId){ return this.heroes.find(h=>h.id===id)||null; }
     selectHero(id){ if(this.heroes.some(h=>h.id===id)){this.selectedHeroId=id;return true;}return false; }
+    selectContract(id){ if(CONTRACTS[id]){this.selectedContractId=id;return true;}return false; }
+    getContract(id=this.selectedContractId){ return CONTRACTS[id]||CONTRACT; }
     syncPreparation(heroId,prep){
       const idx=this.heroes.findIndex(h=>h.id===heroId); if(idx<0)return;
       this.heroes[idx]=heroTemplate(prep.hero); this.funds=prep.funds; this.materials=clone(prep.materials); this.prepMinutes=prep.prepMinutes;
@@ -935,16 +1001,17 @@
       const h=this.getHero(heroId); if(!h)return false;
       const prep=new PreparationState({hero:h,funds:this.funds,materials:this.materials,prepMinutes:this.prepMinutes}); prep.setLoadout(weaponId,armorId); this.syncPreparation(heroId,prep); return true;
     }
-    startExpedition(heroId=this.selectedHeroId,seed=1){
+    startExpedition(heroId=this.selectedHeroId,seed=1,contractId=this.selectedContractId){
       const h=this.getHero(heroId); if(!h||!h.alive)return null;
-      return new Expedition({hero:h,seed});
+      const contract=this.getContract(contractId);
+      return new Expedition({hero:h,seed,contract});
     }
     settle(heroId,expedition){
       const hero=this.getHero(heroId);
       if(!hero)return{ok:false,reason:'hero unavailable',banked:0};
       if(expedition.state==='deployed')return{ok:false,reason:'expedition still active',banked:0};
       if(expedition.hero.id!==heroId)return{ok:false,reason:'hero mismatch',banked:0};
-      const key=`${heroId}:${expedition.seed}:${expedition.elapsed}:${expedition.state}`;
+      const key=`${heroId}:${expedition.contract.id}:${expedition.seed}:${expedition.elapsed}:${expedition.state}`;
       if(this.settledExpeditions.has(key))return{ok:false,reason:'already settled',banked:0};
       this.settledExpeditions.add(key);
       this.funds+=expedition.gold;
@@ -962,7 +1029,7 @@
       return{ok:true,banked:expedition.gold,heroAlive:updated.alive,record};
     }
     snapshot(){
-      return{version:6,heroes:clone(this.heroes),fallen:clone(this.fallen),funds:this.funds,materials:clone(this.materials),inventory:clone(this.inventory),craftHistory:clone(this.craftHistory),purchaseHistory:clone(this.purchaseHistory),prepMinutes:this.prepMinutes,selectedHeroId:this.selectedHeroId,history:clone(this.history),settledKeys:Array.from(this.settledExpeditions),tavern:this.tavern.snapshot(),merchants:this.merchants.snapshot()};
+      return{version:7,heroes:clone(this.heroes),fallen:clone(this.fallen),funds:this.funds,materials:clone(this.materials),inventory:clone(this.inventory),craftHistory:clone(this.craftHistory),purchaseHistory:clone(this.purchaseHistory),prepMinutes:this.prepMinutes,selectedHeroId:this.selectedHeroId,selectedContractId:this.selectedContractId,history:clone(this.history),settledKeys:Array.from(this.settledExpeditions),tavern:this.tavern.snapshot(),merchants:this.merchants.snapshot()};
     }
     serialize(){ return JSON.stringify(this.snapshot()); }
     static fromSnapshot(data){
@@ -972,5 +1039,5 @@
     static deserialize(text){ return TavernRoster.fromSnapshot(JSON.parse(text)); }
   }
 
-  return {RNG,EQUIPMENT,CRAFT_RECIPES,INJURY_TYPES,PREP_EFFECTS,PREPARATION_ACTIONS,CONTRACT,ENEMIES,MATERIAL_NAMES,PATRON_TYPES,MERCHANT_GOODS,merchantQuality,MerchantSystem,heroTemplate,normalizeCareer,rankFromXp,applyCareerProgress,starterRoster,deriveMoodlets,totalInjurySeverity,addInjury,reduceWorstInjury,removeWorstInjury,readinessScore,threatAssessment,PreparationState,TavernEconomy,TavernRoster,Expedition,makePreset};
+  return {RNG,EQUIPMENT,CRAFT_RECIPES,INJURY_TYPES,PREP_EFFECTS,PREPARATION_ACTIONS,CONTRACT,CONTRACTS,CONTRACT_ORDER,ENEMIES,MATERIAL_NAMES,PATRON_TYPES,MERCHANT_GOODS,merchantQuality,MerchantSystem,heroTemplate,normalizeCareer,rankFromXp,applyCareerProgress,starterRoster,deriveMoodlets,totalInjurySeverity,addInjury,reduceWorstInjury,removeWorstInjury,readinessScore,threatAssessment,PreparationState,TavernEconomy,TavernRoster,Expedition,makePreset};
 });

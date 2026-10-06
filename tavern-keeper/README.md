@@ -1,6 +1,6 @@
-# Tavern Keeper — Slice 6: Merchants & Procurement
+# Tavern Keeper — Slice 7: Contract Board & Threat Ladder
 
-A standalone browser prototype combining autonomous hero contracts, tavern management, crafting, and now timed visiting merchants that provide a second explicit acquisition path.
+A standalone browser prototype combining a persistent tavern with autonomous heroes who can now be sent into a real ladder of mini-RPG contracts.
 
 ## Run
 
@@ -14,7 +14,7 @@ python3 -m http.server 8000
 
 Then open `http://localhost:8000`.
 
-The browser build auto-saves roster, active expedition, tavern economy, crafting state, merchant visit state and purchase history to localStorage.
+The browser build auto-saves roster, selected contract, active expedition/contract ID, tavern economy, crafting and merchant state to localStorage.
 
 ## Tests
 
@@ -25,47 +25,58 @@ node tests/test_roster.js
 node tests/test_tavern.js
 node tests/test_crafting.js
 node tests/test_merchants.js
+node tests/test_contracts.js
 ```
 
-## Slice 6
+## Slice 7
 
-- Merchants visit on a real timer tied to live tavern operation rather than existing as a permanent shop.
-- Every visit has finite rotating stock, finite quantities and a departure timer.
-- Tavern Seating, Service, Kitchen and Bar development determines merchant Quality 1–3.
-- Merchants can sell ordinary contract materials, baseline gear and limited Healing Potions.
-- Quality 3 unlocks merchant-only Steel Sword and Chain Mail procurement.
-- Crafted-only Scrap Spear, Plated Vest and Field Bandages remain exclusive to crafting.
-- Purchases spend the same shared tavern gold used everywhere else and deposit into the authoritative material/item stash.
-- Purchased equipment and consumables still must be assigned from shared stock to heroes; merchants do not directly equip characters.
-- Merchant visits, offer quantities, RNG state and purchase history persist through refresh.
-- Slice 5 saves migrate automatically with no active merchant and a scheduled first visit.
+- The single Greymill test contract is now an authoritative five-contract board.
+- Threat ladder: 1 Wolves at Briar Farm, 2 Rats Below Greymill, 3 Ashroad Caravan, 4 Blackroot Mine, 6 The Wren Bridge Troll.
+- Contracts differ in route graphs, optional-risk decisions, enemy mixes, material profiles and performance-income multipliers.
+- The board displays hero-relative risk but never gates deployment.
+- Any living hero may be sent to any contract, including obviously bad matchups.
+- Failure remains productive: gold earned before retreat/death and materials already recovered are retained.
+- Higher threat means higher potential performance-pay growth, not a guaranteed completion payout.
+- Selected contract persists with the tavern.
+- Mid-expedition saves persist the exact contract and resume deterministically.
+- Old saves and old expedition snapshots default safely to Greymill.
+- Settlement keys now include contract ID.
+
+## Contract types
+
+- **Hunt:** Wolves at Briar Farm — short, low-threat rural route with herb-heavy loot.
+- **Extermination:** Rats Below Greymill — branching cellar infestation and mixed crafting materials.
+- **Escort:** Ashroad Caravan — repeated ambushes with a risky shortcut and scrap-heavy loot.
+- **Delve:** Blackroot Mine — deep route, dangerous side chambers and rare-gland emphasis.
+- **Boss Hunt:** The Wren Bridge Troll — short brutal route, optional troll lair and highest income multiplier.
 
 ## Retained foundations
 
-- Slice 1: autonomous contracts, readable AI, combat, failure rewards and performance gold/sec.
-- Slice 2: needs/moodlets, injuries, preparation and treatment.
-- Slice 3: persistent multi-hero careers, progression and permanent-death archive.
-- Slice 4: patron service and stable tavern gold/sec.
-- Slice 5: recovered-material crafting and real shared inventory ownership.
+- Slice 1: autonomous AI/combat, readable decisions and performance gold/sec.
+- Slice 2: needs, injuries, preparation and treatment.
+- Slice 3: persistent careers, progression and permanent-death archive.
+- Slice 4: patron service and stable tavern income.
+- Slice 5: material crafting and real inventory ownership.
+- Slice 6: timed merchants and procurement.
 
 ## Architecture
 
 `core.js` remains the single gameplay authority.
 
-- `MerchantSystem` owns visit timing, merchant quality, finite stock generation and visit persistence.
-- `MERCHANT_GOODS` is the procurement catalog and explicitly excludes crafted-only items.
-- `TavernRoster.purchaseMerchantOffer()` is the authoritative purchase transaction into shared stash/inventory.
-- Existing `equipInventoryItem()` / `giveConsumable()` remain the only player-facing transfer path from stock to heroes.
-- `app.js` only renders merchant state and invokes authoritative transactions.
+- `CONTRACTS` / `CONTRACT_ORDER` own board content and ordering.
+- `Expedition` consumes a selected contract graph generically rather than containing contract-specific logic.
+- `TavernRoster.selectedContractId` persists board selection.
+- `Expedition.snapshot()` persists `contractId`; restore resolves it from the contract catalog.
+- `app.js` renders the board and invokes the existing authoritative deployment path.
 
 ## Known limitations
 
-- One contract testbed remains; the core multi-threat contract board is next.
-- No merchant haggling, reputation or special requests.
-- No durability/repair loop.
-- Fixed starter roster.
-- No offline progression.
+- Five authored contracts; no procedural contract generation.
+- Escort/rescue labels currently use the generic location/encounter simulation rather than separate escorted-NPC actors.
+- One active expedition at a time.
+- Fixed starter roster; recruitment is next.
+- No durability, offline progression, merchant reputation or crafting skill.
 
-## Next Operation (Slice 7)
+## Next Operation (Slice 8)
 
-Build **Contract Board & Threat Ladder**: multiple autonomous mini-RPG contracts with explicit threat levels, different route/objective structures and material profiles. Any living hero must remain deployable to any contract, and partial rewards must remain available on failure.
+Build **Recruitment & Applicants**: applicants generated through the tavern, explicit recruitment costs, varied stats/traits/condition/starting gear, applicant quality influenced by tavern development, and permanent-death replacement without turning heroes into interchangeable level-scaled units.

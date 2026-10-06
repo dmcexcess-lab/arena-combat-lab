@@ -1,26 +1,24 @@
 # CURRENT — Tavern Keeper
 
 ## Current slice
-Slice 6 — Merchants & Procurement
+Slice 7 — Contract Board & Threat Ladder
 
 ## Status
-Implemented as a standalone browser vertical slice on top of autonomous contracts, preparation/condition, persistent heroes, live tavern economy, and loot/crafting.
+Implemented as a standalone browser vertical slice on top of autonomous contracts, preparation/condition, persistent heroes, tavern economy, crafting, and merchants.
 
 ## Core rules implemented
-- `MerchantSystem` is persistent and advances on the same real-time tavern clock as patron service.
-- A new tavern schedules its first merchant shortly after opening; merchants remain for a finite visit, depart, then another visit is scheduled.
-- Merchant visit name, quality, offers, quantities, timers, RNG state and logs persist through browser refresh.
-- Merchant quality is derived from tavern development: Seating, Service, Kitchen and Bar levels determine Quality 1–3.
-- Merchant stock is finite, rotating, deterministic from merchant RNG and bounded by the merchant quality gate.
-- Merchants sell ordinary raw materials and ordinary equipment into the same shared stash/item inventory already used by crafting and hero loadouts.
-- Healing Potions may be bought from Quality 2+ merchants at a premium and in limited quantity.
-- Quality 3 merchants can surface merchant-only Steel Sword and Chain Mail.
-- Crafted-only Scrap Spear, Plated Vest and Field Bandages never appear in merchant stock.
-- Purchases spend shared tavern gold, decrement the exact visit offer, and record purchase history.
-- Purchased equipment/consumables use the existing shared-stock transfer rules; merchants do not bypass hero inventory ownership.
-- Failed purchases from insufficient funds, sold-out offers or absent merchants are atomic and do not mutate state.
-- Slice 5 saves without merchant state migrate to a valid future merchant visit.
-- Slice 1 autonomous contracts, Slice 2 preparation, Slice 3 persistent careers/death, Slice 4 tavern economy and Slice 5 crafting remain authoritative.
+- `CONTRACTS` is now the authoritative contract catalog; `CONTRACT_ORDER` is the board order.
+- Five contracts are live: Wolves at Briar Farm (Threat 1), Rats Below Greymill (Threat 2), Ashroad Caravan (Threat 3), Blackroot Mine (Threat 4), The Wren Bridge Troll (Threat 6).
+- Contracts are data-driven graph mini-RPGs with their own route, optional-risk branches, encounters, objective text, loot profile and performance-income multiplier.
+- New enemies support the ladder: Wolf, Bandit, Road Raider, Cave Crawler, Cave Stalker and Bridge Troll, alongside Giant Rat and Dire Rat.
+- Threat remains advisory only. Any living hero may deploy to any contract regardless of readiness/risk assessment.
+- Contract cards show the selected hero's relative risk, contract kind, threat, income multiplier and material emphasis.
+- Higher-threat contracts increase potential gold/sec by scaling the existing performance-pay gains; there is no separate guaranteed high-threat payout.
+- Failed/retreated/death outcomes retain gold earned while active and any materials already recovered.
+- TavernRoster persists `selectedContractId`; old Slice 6 saves default to Greymill.
+- Active Expedition snapshots persist `contractId`; old expedition snapshots without it restore as Greymill.
+- Settlement identity includes contract ID, hero ID, seed, elapsed time and outcome so different contracts cannot collide.
+- Slice 1 autonomous AI/combat, Slice 2 preparation, Slice 3 persistent heroes, Slice 4 tavern economy, Slice 5 crafting and Slice 6 merchants remain authoritative.
 
 ## Tests
 Run:
@@ -32,20 +30,22 @@ node tests/test_roster.js
 node tests/test_tavern.js
 node tests/test_crafting.js
 node tests/test_merchants.js
+node tests/test_contracts.js
 ```
 
 CI also syntax-checks `core.js` and `app.js`.
 
 ## Known limitations
 - Only one hero expedition may be active at a time.
-- There is still only one contract testbed despite the design requiring a contract board with threat levels.
-- Merchant archetypes are presentation-light; stock rotation/quality is systemic but haggling/reputation is not implemented.
-- Crafting remains four recipes with no craft skill tiers.
-- Equipment has no durability/repair loop yet.
-- Assigned gear remains with a dead hero rather than automatically returning to tavern stock.
-- Preparation-time minutes and live tavern seconds remain separate clocks.
+- Contract content is now a real ladder but remains five authored contracts rather than procedural contract generation.
+- Contract objective types are expressed through route/encounter structure; escort/rescue-specific NPC simulation is not yet separate.
+- Recruitment is still the fixed three-hero starter roster.
+- Crafting remains four recipes with no craft skill progression.
+- Merchants have no haggling/reputation.
+- Equipment has no durability/repair loop.
+- Assigned gear remains with a dead hero rather than automatically returning to the tavern.
+- Preparation minutes and live tavern seconds remain separate clocks.
 - Offline progression is not implemented.
-- Recruitment remains the fixed starter roster.
 
 ## NEXT OPERATION
-Slice 7 — Contract Board & Threat Ladder: replace the single Greymill test contract with a small authoritative contract catalog spanning multiple threat levels and mini-RPG structures, preserving the rule that any living hero may be sent and failed contracts still pay partial performance rewards.
+Slice 8 — Recruitment & Applicants: replace the fixed-only roster with tavern visitors/applicants who can be recruited for gold, generate varied stats/traits/starting condition and equipment, and scale applicant quality with tavern development while preserving permanent death and unrestricted contract deployment.
