@@ -121,7 +121,7 @@
 
   const CONTRACTS = {
     briar_farm_wolves:{
-      id:'briar_farm_wolves',name:'Wolves at Briar Farm',threat:1,kind:'Hunt',paceSeconds:15,durationHint:'5–10 min',
+      id:'briar_farm_wolves',name:'Wolves at Briar Farm',threat:1,kind:'Hunt',paceSeconds:30,durationSeconds:15*60,durationHint:'15 min',jobGps:1,
       objective:'Drive the wolf pack away from Briar Farm.',brief:'A short rural hunt with modest danger and dependable herbs.',
       incomeMult:0.82,materialProfile:['medicinal_herb','scrap_iron'],start:'farm_gate',subObjectives:['Pick up the pack trail','Cull up to 5 wolves','Clear the wolf den'],objectiveRules:{quarryEnemy:'wolf',killTarget:5,trailLocation:'sheep_pens',lairLocation:'den'},
       locations:{
@@ -134,7 +134,7 @@
       }
     },
     greymill_rats:{
-      id:'greymill_rats',name:'Rats Below Greymill',threat:2,kind:'Extermination',paceSeconds:35,durationHint:'10–20 min',
+      id:'greymill_rats',name:'Rats Below Greymill',threat:2,kind:'Extermination',paceSeconds:60,durationSeconds:30*60,durationHint:'30 min',jobGps:2,
       objective:'Clear the infestation beneath Greymill.',brief:'A branching cellar infestation with useful alchemical salvage.',
       incomeMult:1,materialProfile:['rat_tail','medicinal_herb','scrap_iron','strange_gland'],start:'entrance',subObjectives:['Reach the infestation','Cull up to 8 vermin','Destroy the main nest'],objectiveRules:{verminEnemies:['giant_rat','dire_rat'],killTarget:8,infestationLocation:'cellar',nestLocation:'nest'},
       locations:{
@@ -148,7 +148,7 @@
       }
     },
     ashroad_caravan:{
-      id:'ashroad_caravan',name:'Ashroad Caravan',threat:3,kind:'Escort',paceSeconds:75,durationHint:'25–45 min',
+      id:'ashroad_caravan',name:'Ashroad Caravan',threat:3,kind:'Escort',paceSeconds:180,durationSeconds:90*60,durationHint:'1h 30m',jobGps:3,
       objective:'Break the ambushes and get the caravan through Ashroad.',brief:'A longer escort through repeated human ambushes and a risky ravine shortcut.',
       incomeMult:1.28,materialProfile:['scrap_iron','medicinal_herb'],start:'west_marker',subObjectives:['Survive the first ambush','Get the caravan across the bridge','Reach the last ridge','Preserve caravan integrity'],objectiveRules:{startingIntegrity:100,checkpointLocations:['first_ambush','old_bridge','last_ridge']},
       locations:{
@@ -162,7 +162,7 @@
       }
     },
     blackroot_mine:{
-      id:'blackroot_mine',name:'Blackroot Mine',threat:4,kind:'Delve',paceSeconds:180,durationHint:'1–2 hr',
+      id:'blackroot_mine',name:'Blackroot Mine',threat:4,kind:'Delve',paceSeconds:480,durationSeconds:4*60*60,durationHint:'4 hr',jobGps:5,
       objective:'Find the missing miners and break the infestation in Blackroot Mine.',brief:'A deep underground contract with dangerous optional chambers and rare glands.',
       incomeMult:1.58,materialProfile:['strange_gland','scrap_iron','medicinal_herb'],start:'mine_mouth',subObjectives:['Survey deep mine chambers','Find the missing miners','Rescue as many miners as possible'],objectiveRules:{discoveryLocations:['fungus_cave','collapsed_lift','brood_chamber'],rescueLocation:'miner_gallery',rescueMax:3},
       locations:{
@@ -177,7 +177,7 @@
       }
     },
     wren_bridge_troll:{
-      id:'wren_bridge_troll',name:'The Wren Bridge Troll',threat:6,kind:'Boss Hunt',paceSeconds:480,durationHint:'2–4 hr',
+      id:'wren_bridge_troll',name:'The Wren Bridge Troll',threat:6,kind:'Boss Hunt',paceSeconds:960,durationSeconds:8*60*60,durationHint:'8 hr',jobGps:8,
       objective:'Open Wren Bridge by killing the troll that has claimed it.',brief:'A short, brutal boss contract with a dangerous lair detour and the highest income potential.',
       incomeMult:2.08,materialProfile:['strange_gland','scrap_iron'],start:'roadblock',subObjectives:['Reach Wren Bridge','Wound the bridge troll','Kill the bridge troll'],objectiveRules:{approachLocation:'bridge_approach',bossLocation:'bridge',bossEnemy:'troll'},
       locations:{
@@ -501,11 +501,11 @@
     constructor({hero=heroTemplate(),seed=1,contract=CONTRACT,debug=false}={}){
       this.rng=new RNG(seed); this.seed=seed; this.hero=heroTemplate(hero); this.contract=contract; this.debug=debug;
       deriveMoodlets(this.hero);
-      this.state='deployed'; this.locationId=contract.start; this.elapsed=0; this.goldRate=0.04+contract.threat*0.005; this.peakGoldRate=this.goldRate; this.gold=0;
+      this.state='deployed'; this.locationId=contract.start; this.elapsed=0; this.goldRate=Math.max(0,Number(contract.jobGps)||1); this.peakGoldRate=this.goldRate; this.gold=0;
       this.enemiesDefeated=0; this.areasExplored=[]; this.objectiveProgress=0; this.materials={}; this.log=[]; this.decisionDebug=[]; this.injuriesSuffered=0;
       this.objectiveScore=0; this.objectiveMax=100; this.objectiveBonusGold=0; this.objectiveEvents=[]; this.objectiveAwards={};
       this.objectiveState=this.makeObjectiveState();
-      this.currentCombat=null; this.retreatReason=null; this.lastDecision=null; this.gearOutcome=null; this._entered=false; this._resolution=null; this.actionClock=0;
+      this.currentCombat=null; this.retreatReason=null; this.lastDecision=null; this.gearOutcome=null; this._entered=false; this._resolution=null; this.actionClock=0; this.missionComplete=false;
       this.addLog(`Deployed to ${contract.name}.`, 'system');
     }
     addLog(text,type='event',reasons=[]){ this.log.push({time:this.elapsed,text,type,reasons}); if(this.log.length>250)this.log.shift(); }
@@ -769,8 +769,14 @@
     }
     chooseNext(){
       const loc=this.contract.locations[this.locationId];
-      if(loc.id==='resolution'){ this.finish('success','primary objective completed'); return; }
-      if(loc.next.length===0){this.finish('success','contract route completed');return;}
+      if(loc.id==='resolution'){
+        if(!this.missionComplete){this.missionComplete=true;this.addLog(`${this.hero.name} completed the objective and started the return journey.`,'result');}
+        return;
+      }
+      if(loc.next.length===0){
+        if(!this.missionComplete){this.missionComplete=true;this.addLog(`${this.hero.name} completed the route and started the return journey.`,'result');}
+        return;
+      }
       if(loc.next.length===1){ this.locationId=loc.next[0];this._entered=false;return; }
       const nexts=loc.next.map(id=>this.contract.locations[id]);
       const optional=nexts.find(n=>n.optional);
@@ -787,12 +793,21 @@
       if(this.state!=='deployed')return;
       dt=clamp(dt,0.05,900);
       const interval=contractActionInterval(this.contract);
-      this.elapsed+=dt;
+      const duration=Math.max(interval,Number(this.contract.durationSeconds)||interval*30);
+      const remaining=Math.max(0,duration-this.elapsed);
+      const applied=Math.min(dt,remaining);
+      this.elapsed+=applied;
+      this.gold+=this.goldRate*applied;
       if(this.hero.health<=0){this.finish('death','fatal injuries');return;}
-      this.actionClock+=dt;
+      if(this.elapsed+1e-9>=duration){
+        this.elapsed=duration;
+        this.finish(this.missionComplete?'success':'failure',this.missionComplete?'returned from completed contract':'contract window expired before the objective was completed');
+        return;
+      }
+      if(this.missionComplete)return;
+      this.actionClock+=applied;
       if(this.actionClock+1e-9<interval)return;
       this.actionClock=Math.max(0,this.actionClock-interval);
-      this.gold+=this.goldRate;
       this.updateNeeds(1);
       if(this.hero.fatigue>92 || this.hero.hunger>94 || this.hero.morale<12){
         const d=this.choose(['retreat','continue']);
@@ -814,17 +829,17 @@
       this._resolution={kind,reason,finalRate,summary:this.summary()};
     }
     summary(){
-      return {contractId:this.contract.id,contract:this.contract.name,threat:this.contract.threat,kind:this.contract.kind,outcome:this.state,reason:this.retreatReason,time:this.elapsed,enemiesDefeated:this.enemiesDefeated,areasExplored:this.areasExplored.length,totalAreas:Object.keys(this.contract.locations).length-1,objectiveProgress:Math.round(this.objectiveProgress),objectiveScore:Math.round(this.objectiveScore),objectiveMax:this.objectiveMax,objectiveBonusGold:Number(this.objectiveBonusGold.toFixed(2)),objectiveEvents:clone(this.objectiveEvents),objectiveState:clone(this.objectiveState),peakGoldRate:this.peakGoldRate,totalGold:this.gold,materials:clone(this.materials),heroAlive:this.hero.alive,health:this.hero.health,fatigue:this.hero.fatigue,hunger:this.hero.hunger,morale:this.hero.morale,injuries:clone(this.hero.injuries),moodlets:clone(this.hero.moodlets),gearDurability:clone(this.hero.gearDurability),gearOutcome:clone(this.gearOutcome),injuriesSuffered:this.injuriesSuffered,seed:this.seed};
+      return {contractId:this.contract.id,contract:this.contract.name,threat:this.contract.threat,kind:this.contract.kind,jobGps:this.contract.jobGps||0,durationSeconds:this.contract.durationSeconds||0,outcome:this.state,reason:this.retreatReason,time:this.elapsed,enemiesDefeated:this.enemiesDefeated,areasExplored:this.areasExplored.length,totalAreas:Object.keys(this.contract.locations).length-1,objectiveProgress:Math.round(this.objectiveProgress),objectiveScore:Math.round(this.objectiveScore),objectiveMax:this.objectiveMax,objectiveBonusGold:Number(this.objectiveBonusGold.toFixed(2)),objectiveEvents:clone(this.objectiveEvents),objectiveState:clone(this.objectiveState),peakGoldRate:this.peakGoldRate,totalGold:this.gold,materials:clone(this.materials),heroAlive:this.hero.alive,health:this.hero.health,fatigue:this.hero.fatigue,hunger:this.hero.hunger,morale:this.hero.morale,injuries:clone(this.hero.injuries),moodlets:clone(this.hero.moodlets),gearDurability:clone(this.hero.gearDurability),gearOutcome:clone(this.gearOutcome),injuriesSuffered:this.injuriesSuffered,seed:this.seed};
     }
     snapshot(){
-      return {version:5,contractId:this.contract.id,seed:this.seed,rngState:this.rng.state,hero:clone(this.hero),state:this.state,locationId:this.locationId,elapsed:this.elapsed,actionClock:this.actionClock,goldRate:this.goldRate,peakGoldRate:this.peakGoldRate,gold:this.gold,enemiesDefeated:this.enemiesDefeated,areasExplored:clone(this.areasExplored),objectiveProgress:this.objectiveProgress,objectiveScore:this.objectiveScore,objectiveMax:this.objectiveMax,objectiveBonusGold:this.objectiveBonusGold,objectiveEvents:clone(this.objectiveEvents),objectiveAwards:clone(this.objectiveAwards),objectiveState:clone(this.objectiveState),materials:clone(this.materials),log:clone(this.log),decisionDebug:clone(this.decisionDebug),currentCombat:clone(this.currentCombat),retreatReason:this.retreatReason,lastDecision:clone(this.lastDecision),gearOutcome:clone(this.gearOutcome),entered:this._entered,resolution:clone(this._resolution),injuriesSuffered:this.injuriesSuffered};
+      return {version:6,contractId:this.contract.id,seed:this.seed,rngState:this.rng.state,hero:clone(this.hero),state:this.state,locationId:this.locationId,elapsed:this.elapsed,actionClock:this.actionClock,missionComplete:this.missionComplete,goldRate:this.goldRate,peakGoldRate:this.peakGoldRate,gold:this.gold,enemiesDefeated:this.enemiesDefeated,areasExplored:clone(this.areasExplored),objectiveProgress:this.objectiveProgress,objectiveScore:this.objectiveScore,objectiveMax:this.objectiveMax,objectiveBonusGold:this.objectiveBonusGold,objectiveEvents:clone(this.objectiveEvents),objectiveAwards:clone(this.objectiveAwards),objectiveState:clone(this.objectiveState),materials:clone(this.materials),log:clone(this.log),decisionDebug:clone(this.decisionDebug),currentCombat:clone(this.currentCombat),retreatReason:this.retreatReason,lastDecision:clone(this.lastDecision),gearOutcome:clone(this.gearOutcome),entered:this._entered,resolution:clone(this._resolution),injuriesSuffered:this.injuriesSuffered};
     }
     static fromSnapshot(data,{contract=null,debug=false}={}){
       if(!data||!data.hero)throw new Error('invalid expedition snapshot');
       contract=contract||CONTRACTS[data.contractId]||CONTRACT;
       const e=new Expedition({hero:data.hero,seed:data.seed||1,contract,debug});
       e.rng.state=(data.rngState>>>0)||e.rng.state;
-      e.state=data.state||'deployed'; e.locationId=data.locationId||contract.start; e.elapsed=Number(data.elapsed)||0; e.actionClock=Math.max(0,Number(data.actionClock)||0);
+      e.state=data.state||'deployed'; e.locationId=data.locationId||contract.start; e.elapsed=Number(data.elapsed)||0; e.actionClock=Math.max(0,Number(data.actionClock)||0); e.missionComplete=!!data.missionComplete;
       e.goldRate=Number(data.goldRate)||0; e.peakGoldRate=Number(data.peakGoldRate)||0; e.gold=Number(data.gold)||0;
       e.enemiesDefeated=Number(data.enemiesDefeated)||0; e.areasExplored=clone(data.areasExplored||[]); e.objectiveProgress=Number(data.objectiveProgress)||0;
       e.objectiveScore=data.objectiveScore==null?Math.min(95,Math.round(e.objectiveProgress)):Number(data.objectiveScore)||0;
@@ -846,15 +861,7 @@
         if(!raw||!raw.expedition)continue;
         const expedition=raw.expedition instanceof Expedition?raw.expedition:Expedition.fromSnapshot(raw.expedition,{debug:true});
         const id=raw.id||('exp_'+this.nextId++);
-        const speed=[0,1,4,12].includes(Number(raw.speed))?Number(raw.speed):1;
-        this.entries.push({
-          id,
-          heroId:raw.heroId||expedition.hero.id,
-          speed,
-          settled:!!raw.settled,
-          settlement:clone(raw.settlement||null),
-          expedition
-        });
+        this.entries.push({id,heroId:raw.heroId||expedition.hero.id,settled:!!raw.settled,settlement:clone(raw.settlement||null),expedition});
         const numeric=Number(String(id).replace(/\D/g,''));
         if(Number.isFinite(numeric))this.nextId=Math.max(this.nextId,numeric+1);
       }
@@ -864,45 +871,25 @@
     select(id){ if(this.entries.some(e=>e.id===id)){this.selectedId=id;return true;}return false; }
     activeEntries(){ return this.entries.filter(e=>e.expedition.state==='deployed'); }
     hasHero(heroId){ return this.entries.some(e=>e.heroId===heroId&&!e.settled); }
-    deploy({hero,seed=1,contract=CONTRACT,speed=1}={}){
+    deploy({hero,seed=1,contract=CONTRACT}={}){
       if(!hero||!hero.alive)return{ok:false,reason:'hero unavailable'};
       if(this.hasHero(hero.id))return{ok:false,reason:'hero already deployed'};
       const expedition=new Expedition({hero,seed,contract,debug:true});
-      const entry={id:'exp_'+this.nextId++,heroId:hero.id,speed:[0,1,4,12].includes(Number(speed))?Number(speed):1,settled:false,settlement:null,expedition};
-      this.entries.push(entry); this.selectedId=entry.id;
-      return{ok:true,entry};
-    }
-    setSpeed(id,speed){
-      const e=this.get(id),n=Number(speed);
-      if(!e||![0,1,4,12].includes(n))return false;
-      e.speed=n; return true;
+      const entry={id:'exp_'+this.nextId++,heroId:hero.id,settled:false,settlement:null,expedition};
+      this.entries.push(entry); this.selectedId=entry.id; return{ok:true,entry};
     }
     tickAll(dt=1){
-      dt=clamp(dt,0.05,3);
-      const resolved=[];
+      dt=clamp(dt,0.05,3); const resolved=[];
       for(const e of this.entries){
-        if(e.expedition.state!=='deployed'||e.speed<=0)continue;
-        for(let i=0;i<e.speed&&e.expedition.state==='deployed';i++)e.expedition.tick(dt);
+        if(e.expedition.state!=='deployed')continue;
+        e.expedition.tick(dt);
         if(e.expedition.state!=='deployed')resolved.push(e.id);
       }
       return resolved;
     }
-    markSettled(id,settlement){
-      const e=this.get(id); if(!e)return false;
-      e.settled=true; e.settlement=clone(settlement||null); return true;
-    }
-    close(id){
-      const i=this.entries.findIndex(e=>e.id===id);
-      if(i<0)return false;
-      const e=this.entries[i];
-      if(e.expedition.state==='deployed'||!e.settled)return false;
-      this.entries.splice(i,1);
-      if(this.selectedId===id)this.selectedId=this.entries[i]?.id||this.entries[i-1]?.id||null;
-      return true;
-    }
-    snapshot(){
-      return {version:1,nextId:this.nextId,selectedId:this.selectedId,entries:this.entries.map(e=>({id:e.id,heroId:e.heroId,speed:e.speed,settled:e.settled,settlement:clone(e.settlement),expedition:e.expedition.snapshot()}))};
-    }
+    markSettled(id,settlement){const e=this.get(id);if(!e)return false;e.settled=true;e.settlement=clone(settlement||null);return true;}
+    close(id){const i=this.entries.findIndex(e=>e.id===id);if(i<0)return false;const e=this.entries[i];if(e.expedition.state==='deployed'||!e.settled)return false;this.entries.splice(i,1);if(this.selectedId===id)this.selectedId=this.entries[i]?.id||this.entries[i-1]?.id||null;return true;}
+    snapshot(){return {version:2,nextId:this.nextId,selectedId:this.selectedId,entries:this.entries.map(e=>({id:e.id,heroId:e.heroId,settled:e.settled,settlement:clone(e.settlement),expedition:e.expedition.snapshot()}))};}
     static fromSnapshot(data){ return new ExpeditionManager(data||{}); }
   }
 
@@ -913,7 +900,7 @@
     if(name==='unprepared')return heroTemplate({id:'tomas',name:'Tomas Reed',stats:{might:4,finesse:4,endurance:4,wits:4,resolve:4},health:78,hunger:82,fatigue:80,morale:32,traits:['Cautious'],equipment:{weapon:'wood_axe',armor:null},supplies:{healing_potion:0}});
     return heroTemplate();
   }
-  function starterRoster(){ return [makePreset('prepared'),makePreset('ranged'),makePreset('reckless')]; }
+  function starterRoster(){ return [makePreset('prepared')]; }
 
   const PATRON_TYPES = {
     laborer:{id:'laborer',name:'Laborer',foodChance:0.9,drinkChance:0.72,foodSpend:1.35,drinkSpend:0.8,stay:7},
@@ -1388,7 +1375,7 @@
   }
 
   class TavernRoster {
-    constructor({heroes=starterRoster(),fallen=[],funds=30,materials={},inventory={},inventoryDurability={},craftHistory=[],purchaseHistory=[],recruitmentHistory=[],repairHistory=[],prepMinutes=0,selectedHeroId=null,selectedContractId='greymill_rats',history=[],settledKeys=[],tavern=null,merchants=null,recruitment=null,chronicle=null}={}){
+    constructor({heroes=starterRoster(),fallen=[],funds=30,materials={},inventory={},inventoryDurability={},craftHistory=[],purchaseHistory=[],recruitmentHistory=[],repairHistory=[],prepMinutes=0,selectedHeroId=null,selectedContractId='briar_farm_wolves',history=[],settledKeys=[],tavern=null,merchants=null,recruitment=null,chronicle=null}={}){
       this.heroes=heroes.map(h=>heroTemplate(h)).filter(h=>h.alive);
       this.fallen=clone(fallen||[]);
       this.funds=Number(funds)||0; this.materials=clone(materials||{}); this.inventory=clone(inventory||{}); this.inventoryDurability={}; this.craftHistory=clone(craftHistory||[]); this.purchaseHistory=clone(purchaseHistory||[]); this.recruitmentHistory=clone(recruitmentHistory||[]); this.repairHistory=clone(repairHistory||[]); this.prepMinutes=Number(prepMinutes)||0;
@@ -1402,10 +1389,11 @@
       }
       this.history=clone(history||[]); this.settledExpeditions=new Set(settledKeys||[]);
       this.selectedHeroId=selectedHeroId&&this.heroes.some(h=>h.id===selectedHeroId)?selectedHeroId:(this.heroes[0]?.id||null);
-      this.selectedContractId=CONTRACTS[selectedContractId]?selectedContractId:'greymill_rats';
+      this.selectedContractId=CONTRACTS[selectedContractId]?selectedContractId:'briar_farm_wolves';
       this.tavern=TavernEconomy.fromSnapshot(tavern);
       this.merchants=MerchantSystem.fromSnapshot(merchants);
       this.recruitment=RecruitmentSystem.fromSnapshot(recruitment);
+      if(!this.availableContractIds().includes(this.selectedContractId))this.selectedContractId=this.availableContractIds()[0];
       this.chronicle=chronicle?Chronicle.fromSnapshot(chronicle):new Chronicle();
       if(!chronicle)this.migrateLegacyChronicle();
       this.rebuildChronicleRecords(false);
@@ -1685,8 +1673,23 @@
     }
     getHero(id=this.selectedHeroId){ return this.heroes.find(h=>h.id===id)||null; }
     selectHero(id){ if(this.heroes.some(h=>h.id===id)){this.selectedHeroId=id;return true;}return false; }
-    selectContract(id){ if(CONTRACTS[id]){this.selectedContractId=id;return true;}return false; }
-    getContract(id=this.selectedContractId){ return CONTRACTS[id]||CONTRACT; }
+    tavernLevel(){
+      const f=this.tavern.facilityLevels();
+      const improvement=(f.kitchen-1)+(f.bar-1)+(f.lodging-1)+(f.infirmary-1)+(f.workshop-1)+(this.tavern.serviceLevel-1)+Math.floor(Math.max(0,this.tavern.seats-2)/2);
+      return clamp(1+Math.floor(improvement/4),1,5);
+    }
+    tavernReputation(){
+      const successes=this.history.filter(x=>x.outcome==='success').length;
+      return Math.max(0,Math.floor(this.tavern.served/10)+Math.floor(this.tavern.totalRevenue/100)+successes*10);
+    }
+    reputationTier(){const rep=this.tavernReputation();return rep>=300?5:rep>=140?4:rep>=60?3:rep>=20?2:1;}
+    jobBoardTier(){ return Math.min(this.tavernLevel(),this.reputationTier()); }
+    availableContractIds(){
+      const tier=this.jobBoardTier(),count=[2,3,4,4,5][tier-1],maxThreat=[2,3,4,4,6][tier-1];
+      return CONTRACT_ORDER.filter(id=>CONTRACTS[id].threat<=maxThreat).slice(0,count);
+    }
+    selectContract(id){ if(this.availableContractIds().includes(id)){this.selectedContractId=id;return true;}return false; }
+    getContract(id=this.selectedContractId){const available=this.availableContractIds(),safe=available.includes(id)?id:available[0];return CONTRACTS[safe]||CONTRACTS.briar_farm_wolves; }
     syncPreparation(heroId,prep){
       const idx=this.heroes.findIndex(h=>h.id===heroId); if(idx<0)return;
       this.heroes[idx]=heroTemplate(prep.hero); this.funds=prep.funds; this.materials=clone(prep.materials); this.prepMinutes=prep.prepMinutes;
@@ -1850,7 +1853,6 @@
         heroName:entry.expedition.hero.name,
         contract:entry.expedition.contract.name,
         state:entry.expedition.state,
-        speed:entry.speed,
         elapsed:entry.expedition.elapsed,
         gold:entry.expedition.gold,
         objectiveScore:entry.expedition.objectiveScore||0,
@@ -1875,7 +1877,6 @@
         heroId:start.heroId,
         heroName:start.heroName,
         contract:start.contract,
-        speed:start.speed,
         paused:start.speed===0&&start.state==='deployed',
         startState:start.state,
         endState:exp.state,
