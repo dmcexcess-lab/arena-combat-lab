@@ -3,12 +3,12 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-  <title>Tavern Keeper — Slice 12</title>
+  <title>Tavern Keeper — Slice 13</title>
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
 <header>
-  <div><h1>Tavern Keeper</h1><p>Slice 12 — Tavern Facilities &amp; Preparation Depth</p></div>
+  <div><h1>Tavern Keeper</h1><p>Slice 13 — Offline Progression &amp; Return Summary</p></div>
   <div class="top-stats">
     <div><span>Tavern funds</span><strong id="funds">0.0g</strong></div>
     <div><span>Tavern g/s</span><strong id="tavernGps">0.00</strong></div>
@@ -18,6 +18,11 @@
 </header>
 
 <main>
+  <section id="offlineReturn" class="panel offline-return hidden">
+    <div class="section-title"><h2>While You Were Away</h2><span id="offlineDuration" class="status">0m</span></div>
+    <div id="offlineSummary"></div>
+    <button id="closeOfflineSummary">Dismiss Return Summary</button>
+  </section>
   <section class="panel economy-panel">
     <div class="section-title"><h2>Tavern Floor</h2><span id="serviceStatus" class="status">OPEN</span></div>
     <div class="economy-metrics">

@@ -1565,5 +1565,131 @@
     static deserialize(text){ return TavernRoster.fromSnapshot(JSON.parse(text)); }
   }
 
-  return {RNG,EQUIPMENT,MAX_DURABILITY,isDurableItem,normalizeDurability,durabilityMultiplier,durabilityCondition,repairQuote,CRAFT_RECIPES,INJURY_TYPES,PREP_EFFECTS,PREPARATION_ACTIONS,normalizeFacilityLevels,preparationFacilityLevel,facilityActionMinutes,CONTRACT,CONTRACTS,CONTRACT_ORDER,ENEMIES,MATERIAL_NAMES,PATRON_TYPES,MERCHANT_GOODS,merchantQuality,MerchantSystem,APPLICANT_TRAITS,applicantQuality,RecruitmentSystem,heroTemplate,normalizeCareer,rankFromXp,applyCareerProgress,starterRoster,deriveMoodlets,totalInjurySeverity,addInjury,reduceWorstInjury,removeWorstInjury,readinessScore,threatAssessment,PreparationState,TavernEconomy,TavernRoster,Expedition,ExpeditionManager,makePreset};
+
+  const OFFLINE_MAX_SECONDS=8*60*60;
+  const OFFLINE_QUANTUM_SECONDS=0.25;
+
+  function settlementSummary(entry,result){
+    const exp=entry.expedition,s=exp.summary();
+    return {
+      id:entry.id,
+      heroId:entry.heroId,
+      heroName:exp.hero.name,
+      contractId:exp.contract.id,
+      contract:exp.contract.name,
+      outcome:exp.state,
+      reason:exp.retreatReason,
+      banked:Number(result.banked||0),
+      heroAlive:!!result.heroAlive,
+      objectiveScore:Number(s.objectiveScore||0),
+      objectiveBonusGold:Number(s.objectiveBonusGold||0),
+      materials:clone(s.materials||{}),
+      gearOutcome:clone(result.gearOutcome||s.gearOutcome||null),
+      record:clone(result.record||null)
+    };
+  }
+
+  function settleResolvedExpeditions(roster,manager){
+    const settled=[];
+    if(!roster||!manager)return settled;
+    for(const entry of manager.entries){
+      if(entry.expedition.state==='deployed'||entry.settled)continue;
+      const hero=roster.getHero(entry.heroId);
+      if(!hero){
+        entry.settled=true;
+        entry.settlement={ok:false,reason:'hero unavailable',banked:0};
+        continue;
+      }
+      const result=roster.settle(entry.heroId,entry.expedition,entry.id);
+      if(result.ok){
+        manager.markSettled(entry.id,result);
+        settled.push(settlementSummary(entry,result));
+      }
+    }
+    return settled;
+  }
+
+  function advanceOffline(roster,manager,seconds,options={}){
+    const requested=Math.max(0,Number(seconds)||0);
+    const maxSeconds=Math.max(0,Number(options.maxSeconds??OFFLINE_MAX_SECONDS)||0);
+    const quantum=OFFLINE_QUANTUM_SECONDS;
+    const bounded=Math.min(requested,maxSeconds);
+    const steps=Math.max(0,Math.floor((bounded+1e-9)/quantum));
+    const appliedSeconds=steps*quantum;
+    const before={
+      funds:roster.funds,
+      served:roster.tavern.served,
+      lost:roster.tavern.lost,
+      merchantVisits:roster.merchants.visitIndex,
+      applicantVisits:roster.recruitment.visitIndex,
+      entries:new Map(manager.entries.map(entry=>[entry.id,{
+        id:entry.id,
+        heroId:entry.heroId,
+        heroName:entry.expedition.hero.name,
+        contract:entry.expedition.contract.name,
+        state:entry.expedition.state,
+        speed:entry.speed,
+        elapsed:entry.expedition.elapsed,
+        gold:entry.expedition.gold,
+        objectiveScore:entry.expedition.objectiveScore||0,
+        health:entry.expedition.hero.health
+      }]))
+    };
+    let tavernGold=0;
+    const settlements=[];
+    settlements.push(...settleResolvedExpeditions(roster,manager));
+    for(let i=0;i<steps;i++){
+      tavernGold+=roster.tickTavern(quantum);
+      manager.tickAll();
+      settlements.push(...settleResolvedExpeditions(roster,manager));
+    }
+    const progress=[];
+    for(const [id,start] of before.entries){
+      const entry=manager.get(id);
+      if(!entry)continue;
+      const exp=entry.expedition;
+      progress.push({
+        id,
+        heroId:start.heroId,
+        heroName:start.heroName,
+        contract:start.contract,
+        speed:start.speed,
+        paused:start.speed===0&&start.state==='deployed',
+        startState:start.state,
+        endState:exp.state,
+        simulatedSeconds:Math.max(0,exp.elapsed-start.elapsed),
+        goldGained:Number((exp.gold-start.gold).toFixed(4)),
+        scoreBefore:Math.round(start.objectiveScore),
+        scoreAfter:Math.round(exp.objectiveScore||0),
+        scoreGained:Math.round((exp.objectiveScore||0)-start.objectiveScore),
+        healthBefore:Number(start.health),
+        healthAfter:Number(exp.hero.health)
+      });
+    }
+    const expeditionGold=settlements.reduce((n,x)=>n+x.banked,0);
+    return {
+      requestedSeconds:requested,
+      appliedSeconds,
+      maxSeconds,
+      capped:requested>maxSeconds,
+      cappedSeconds:Math.max(0,requested-maxSeconds),
+      quantum,
+      steps,
+      tavernGold:Number(tavernGold.toFixed(4)),
+      expeditionGold:Number(expeditionGold.toFixed(4)),
+      totalFundsGained:Number((roster.funds-before.funds).toFixed(4)),
+      patronsServed:roster.tavern.served-before.served,
+      patronsLost:roster.tavern.lost-before.lost,
+      merchantVisits:roster.merchants.visitIndex-before.merchantVisits,
+      applicantVisits:roster.recruitment.visitIndex-before.applicantVisits,
+      settlements,
+      deaths:settlements.filter(x=>!x.heroAlive),
+      progress,
+      activeStarted:Array.from(before.entries.values()).filter(x=>x.state==='deployed').length,
+      activeRemaining:manager.activeEntries().length,
+      pausedRemaining:manager.activeEntries().filter(x=>x.speed===0).length
+    };
+  }
+
+  return {RNG,EQUIPMENT,MAX_DURABILITY,isDurableItem,normalizeDurability,durabilityMultiplier,durabilityCondition,repairQuote,CRAFT_RECIPES,INJURY_TYPES,PREP_EFFECTS,PREPARATION_ACTIONS,normalizeFacilityLevels,preparationFacilityLevel,facilityActionMinutes,CONTRACT,CONTRACTS,CONTRACT_ORDER,ENEMIES,MATERIAL_NAMES,PATRON_TYPES,MERCHANT_GOODS,merchantQuality,MerchantSystem,APPLICANT_TRAITS,applicantQuality,RecruitmentSystem,heroTemplate,normalizeCareer,rankFromXp,applyCareerProgress,starterRoster,deriveMoodlets,totalInjurySeverity,addInjury,reduceWorstInjury,removeWorstInjury,readinessScore,threatAssessment,PreparationState,TavernEconomy,TavernRoster,Expedition,ExpeditionManager,OFFLINE_MAX_SECONDS,OFFLINE_QUANTUM_SECONDS,settleResolvedExpeditions,advanceOffline,makePreset};
 });

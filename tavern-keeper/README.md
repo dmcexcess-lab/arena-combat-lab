@@ -1,22 +1,26 @@
-# Tavern Keeper — Slice 12: Tavern Facilities & Preparation Depth
+# Tavern Keeper — Slice 13: Offline Progression & Return Summary
 
-Tavern upgrades now directly change how well heroes can be prepared for autonomous contracts.
+Tavern Keeper now behaves like an idle game when the browser is closed or suspended.
 
-## Slice 12
+## Slice 13
 
-- **Kitchen:** stronger/faster meals; better Hearty Meal expedition buffs.
-- **Commons / Bar:** stronger morale recovery; developed commons grant Good Company.
-- **Lodging:** stronger/faster naps and full rest; better Good Sleep buffs.
-- **Infirmary:** stronger/faster healing and increasingly effective injury treatment.
-- **Workshop:** cheaper/faster repairs, lower major-repair Scrap Iron at higher levels, and faster crafting.
-- All five hero-facing facilities use Levels 1–6 and permanent shared-tavern upgrades.
-- Level 1 preserves the previous preparation/repair/crafting behavior.
-- Preparation and crafting buttons display authoritative adjusted times rather than duplicated UI estimates.
-- Save migration preserves Kitchen/Bar and defaults newly introduced facilities to Level 1.
+- Saves persist a wall-clock checkpoint.
+- On reload/resume, up to 8 hours of elapsed time are simulated.
+- Catch-up uses the exact same 0.25-second simulation order as live play.
+- Tavern patrons continue being served and earning gold.
+- Merchants and applicants continue arriving/departing.
+- Every expedition keeps its own saved Pause/1×/4×/12× speed.
+- Paused expeditions stay paused offline.
+- Active expeditions continue normal autonomous AI, objectives, combat, durability, injury and death simulation.
+- Offline resolutions use the same settlement path as live resolutions.
+- Permanent death, gear loss/recovery, career progress, materials and performance payouts all remain real.
+- Mobile/browser hidden state stops the live timer and uses one catch-up on resume, preventing duplicate progress.
+- A `While You Were Away` report explains income, visitors, expedition outcomes and ongoing progress.
+- Old saves without a timestamp start checkpointing from their first Slice 13 load; unknown historical time is not invented.
 
-## Why it matters
+## Offline cap
 
-A richer tavern now produces measurably better-prepared heroes. Two otherwise identical heroes given the same preparation sequence in Level 1 versus developed facilities leave with different condition, buff quality, readiness and resource/time cost.
+Catch-up is capped at **8 hours per absence**. The return report tells you when the cap was reached and how much additional wall-clock time was intentionally ignored.
 
 ## Run
 
@@ -37,8 +41,9 @@ node tests/test_durability.js
 node tests/test_concurrency.js
 node tests/test_objectives.js
 node tests/test_facilities.js
+node tests/test_offline.js
 ```
 
-## Next Operation (Slice 13)
+## Next Operation (Slice 14)
 
-Build **Offline Progression & Return Summary**: safely advance tavern service and active expeditions across a bounded closed-browser interval and show exactly what happened on return.
+Build **Chronicle & Tavern Legacy**: preserve and surface the stories created by hero careers, objective feats, deaths, recruitment origins, records and tavern milestones.

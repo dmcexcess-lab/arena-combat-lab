@@ -2,6 +2,17 @@
 
 Current truth: `PROJECT_CONTEXT.md` · Future: `ROADMAP.md`
 
+## 2026-10-05 — Tavern Keeper Slice 13: Offline Progression & Return Summary
+- Added wall-clock save checkpoints and browser save version 4.
+- Added authoritative offline catch-up capped at 8 hours using the exact same 0.25-second tavern and expedition tick order as live play.
+- Preserved per-expedition Pause/1×/4×/12× speed offline; manually paused heroes do not advance.
+- Centralized resolved-expedition settlement in core so online and offline gold/material/career/death/durability outcomes share one path.
+- Tavern patrons, merchants and applicants continue advancing while the browser is closed or suspended.
+- Added mobile/browser visibility handling: hidden pages checkpoint and stop live ticking; visible resume performs one catch-up, preventing double-counted background timer time.
+- Added a While You Were Away report for tavern income, expedition payouts/results, patron/visitor activity, active progress, paused runs and 8-hour cap truncation.
+- Legacy saves without a checkpoint do not receive speculative retroactive progress.
+- Added test_offline.js; staged regression proves offline state is identical to the equivalent sequence of live 0.25-second ticks.
+
 ## 2026-10-05 — Tavern Keeper Slice 12: Tavern Facilities & Preparation Depth
 - Added permanent Lodging, Infirmary and Workshop levels to the tavern alongside existing Kitchen and Bar/Commons progression.
 - Kitchen levels strengthen meal hunger/morale recovery, shorten meal preparation and increase Hearty Meal buff duration/potency.

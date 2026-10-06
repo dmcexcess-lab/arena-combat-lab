@@ -56,6 +56,11 @@ Operational checklist for humans + AIs. Keep compact; add only behaviors whose r
 - Identical heroes receive stronger/faster meal, morale, rest and treatment results in developed facilities; scaled prep buffs materially alter readiness and live expedition hunger/fatigue/combat/retreat behavior.
 - Workshop level lowers authoritative repair gold/time and high-level scrap requirements, and shortens crafting time without changing recipes, materials or outputs.
 - Preparation/crafting quotes match execution values so UI cannot drift from the authoritative facility formulas.
+- Slice 13 offline: catch-up uses the same 0.25-second tavern→expedition→settlement order as live play and produces identical roster/manager snapshots for equal elapsed time.
+- Offline catch-up is capped at 8 hours; negative/backward-clock deltas do not rewind state; legacy saves without checkpoints receive no speculative retroactive progress.
+- Expedition speed remains per-entry offline: paused runs stay paused while 1×/4×/12× runs advance independently and settle through the normal gold/material/career/death/durability path.
+- Tavern patron service, merchant visits and applicant visits advance offline and are itemized separately from expedition payouts in the return summary.
+- Hidden browser pages checkpoint and stop live ticking; resume catch-up is the only authority for hidden elapsed time, preventing duplicate background progress.
 
 ### Arena
 - Main scene instantiates without script/runtime errors.

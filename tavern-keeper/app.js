@@ -4,18 +4,29 @@ const C=window.TavernKeeperCore;
 const $=id=>document.getElementById(id);
 const SAVE_KEY='tavernKeeper.slice3.v1';
 
-let roster=null,expeditions=null,renderedLogs={},saveClock=0;
+let roster=null,expeditions=null,renderedLogs={},saveClock=0,offlineReturn=null,lastCheckpointMs=Date.now();
 
 function newGame(){
   roster=new C.TavernRoster({funds:30});
   expeditions=new C.ExpeditionManager();
   renderedLogs={};
+  offlineReturn=null;
+  lastCheckpointMs=Date.now();
 }
 function saveGame(){
   try{
-    localStorage.setItem(SAVE_KEY,JSON.stringify({version:3,roster:roster.snapshot(),expeditions:expeditions.snapshot()}));
+    const now=Date.now();
+    localStorage.setItem(SAVE_KEY,JSON.stringify({version:4,savedAtMs:now,roster:roster.snapshot(),expeditions:expeditions.snapshot()}));
+    lastCheckpointMs=now;
     $('saveState').textContent='Saved';
   }catch(_){$('saveState').textContent='Unavailable';}
+}
+function applyOfflineGap(seconds){
+  const summary=C.advanceOffline(roster,expeditions,seconds);
+  const noteworthy=summary.appliedSeconds>=5||summary.settlements.length>0||summary.deaths.length>0;
+  offlineReturn=noteworthy?summary:null;
+  if(summary.settlements.length)selectAvailableHero();
+  return summary;
 }
 function loadGame(){
   try{
@@ -32,7 +43,15 @@ function loadGame(){
         entries:[{id:legacyId,heroId:data.activeHeroId||data.expedition.hero?.id,speed:1,settled:!!data.settled,settlement:null,expedition:data.expedition}]
       });
     }else expeditions=new C.ExpeditionManager();
-    settleResolved();
+    const savedAt=Number(data.savedAtMs);
+    if(Number.isFinite(savedAt)&&savedAt>0){
+      lastCheckpointMs=savedAt;
+      applyOfflineGap(Math.max(0,(Date.now()-savedAt)/1000));
+    }else{
+      C.settleResolvedExpeditions(roster,expeditions);
+      lastCheckpointMs=Date.now();
+      offlineReturn=null;
+    }
   }catch(_){newGame();}
 }
 function fmtTime(s){
@@ -42,6 +61,13 @@ function fmtTime(s){
 function fmtPrepTime(m){
   m=Math.round(m);
   return m<60?m+'m':Math.floor(m/60)+'h '+(m%60)+'m';
+}
+function fmtAwayTime(s){
+  s=Math.max(0,Math.floor(s));
+  const h=Math.floor(s/3600),m=Math.floor((s%3600)/60),sec=s%60;
+  if(h)return h+'h '+m+'m';
+  if(m)return m+'m '+sec+'s';
+  return sec+'s';
 }
 function injuryText(hero){
   if(!hero||!hero.injuries||!hero.injuries.length)return 'None';
@@ -84,16 +110,7 @@ function expeditionLocked(heroId){
   return !!(id&&expeditions&&expeditions.hasHero(id));
 }
 function settleResolved(){
-  if(!expeditions)return 0;
-  let count=0;
-  for(const entry of expeditions.entries){
-    if(entry.expedition.state==='deployed'||entry.settled)continue;
-    const hero=roster.getHero(entry.heroId);
-    if(!hero){entry.settled=true;continue;}
-    const settlement=roster.settle(entry.heroId,entry.expedition,entry.id);
-    if(settlement.ok){expeditions.markSettled(entry.id,settlement);count++;}
-  }
-  return count;
+  return C.settleResolvedExpeditions(roster,expeditions).length;
 }
 function selectAvailableHero(){
   const current=selected();
@@ -107,6 +124,40 @@ function patronOrder(p){
   if(p.food)parts.push('food');
   if(p.drink)parts.push('drink');
   return parts.join(' + ');
+}
+
+function renderOfflineReturn(){
+  const panel=$('offlineReturn');
+  if(!offlineReturn){
+    panel.classList.add('hidden');
+    $('offlineSummary').innerHTML='';
+    return;
+  }
+  const r=offlineReturn;
+  panel.classList.remove('hidden');
+  $('offlineDuration').textContent=fmtAwayTime(r.appliedSeconds)+(r.capped?' · 8h cap':'');
+  const capNote=r.capped?'<p class="offline-cap">Offline catch-up is capped at 8 hours. '+fmtAwayTime(r.cappedSeconds)+' beyond the cap was not simulated.</p>':'';
+  const resolved=r.settlements.map(function(x){
+    const mats=Object.entries(x.materials||{}).map(function(kv){return kv[1]+' '+(C.MATERIAL_NAMES[kv[0]]||kv[0]);}).join(', ')||'no materials';
+    const gear=x.gearOutcome?(' · gear: '+(x.gearOutcome.recovered||[]).length+' recovered / '+(x.gearOutcome.lost||[]).length+' lost'):'';
+    return '<div class="offline-resolution '+x.outcome+'"><div><strong>'+x.heroName+' — '+x.contract+'</strong><span>'+x.outcome.toUpperCase()+'</span></div>'+
+      '<small>+'+x.banked.toFixed(1)+'g · objective '+Math.round(x.objectiveScore)+'/100 · '+mats+gear+'</small></div>';
+  }).join('')||'<p class="empty">No expedition resolved while you were away.</p>';
+  const progress=r.progress.filter(function(p){return p.endState==='deployed';}).map(function(p){
+    if(p.paused)return '<div><strong>'+p.heroName+' — '+p.contract+'</strong><span>Paused; no offline progress.</span></div>';
+    return '<div><strong>'+p.heroName+' — '+p.contract+'</strong><span>+'+p.scoreGained+' score · +'+p.goldGained.toFixed(1)+'g · '+fmtAwayTime(p.simulatedSeconds)+' simulated</span></div>';
+  }).join('')||'<p class="empty">No expedition remains active.</p>';
+  $('offlineSummary').innerHTML=capNote+
+    '<div class="offline-metrics">'+
+      '<div><span>Tavern income</span><strong>+'+r.tavernGold.toFixed(1)+'g</strong></div>'+
+      '<div><span>Expedition payouts</span><strong>+'+r.expeditionGold.toFixed(1)+'g</strong></div>'+
+      '<div><span>Patrons served</span><strong>'+r.patronsServed+'</strong></div>'+
+      '<div><span>Visitors</span><strong>'+r.merchantVisits+' merchants · '+r.applicantVisits+' applicants</strong></div>'+
+      '<div><span>Resolved</span><strong>'+r.settlements.length+'</strong></div>'+
+      '<div><span>Still active</span><strong>'+r.activeRemaining+(r.pausedRemaining?' · '+r.pausedRemaining+' paused':'')+'</strong></div>'+
+    '</div>'+
+    '<h3>Expedition Results</h3><div class="offline-results">'+resolved+'</div>'+
+    '<h3>Still in the Field</h3><div class="offline-progress">'+progress+'</div>';
 }
 
 function renderEconomy(){
@@ -629,6 +680,8 @@ function renderAll(){
 
 loadGame();
 renderAll();
+renderOfflineReturn();
+saveGame();
 
 $('repairWeapon').addEventListener('click',function(){const h=selected();if(h&&!expeditionLocked(h.id)){const r=roster.repairEquippedGear(h.id,'weapon');if(r.ok){renderAll();saveGame();}}});
 $('repairArmor').addEventListener('click',function(){const h=selected();if(h&&!expeditionLocked(h.id)){const r=roster.repairEquippedGear(h.id,'armor');if(r.ok){renderAll();saveGame();}}});
@@ -638,7 +691,8 @@ $('recruitApplicant').addEventListener('click',function(){
 });
 $('deploy').addEventListener('click',startExpedition);
 $('returnHome').addEventListener('click',closeReport);
-$('newTavern').addEventListener('click',function(){localStorage.removeItem(SAVE_KEY);newGame();$('summaryBody').innerHTML='<p>New tavern started.</p>';renderAll();saveGame();});
+$('newTavern').addEventListener('click',function(){localStorage.removeItem(SAVE_KEY);newGame();$('summaryBody').innerHTML='<p>New tavern started.</p>';renderAll();renderOfflineReturn();saveGame();});
+$('closeOfflineSummary').addEventListener('click',function(){offlineReturn=null;renderOfflineReturn();});
 document.querySelectorAll('[data-speed]').forEach(function(b){
   b.addEventListener('click',function(){
     const entry=focusedEntry();
@@ -655,7 +709,23 @@ $('step').addEventListener('click',function(){
   }
 });
 
+document.addEventListener('visibilitychange',function(){
+  if(document.hidden){
+    saveGame();
+    return;
+  }
+  const gap=Math.max(0,(Date.now()-lastCheckpointMs)/1000);
+  if(gap>=C.OFFLINE_QUANTUM_SECONDS){
+    applyOfflineGap(gap);
+    renderAll();
+    renderOfflineReturn();
+    saveGame();
+  }
+});
+window.addEventListener('pagehide',function(){saveGame();});
+
 setInterval(function(){
+  if(document.hidden)return;
   const earned=roster.tickTavern(0.25);
   expeditions.tickAll();
   const settledCount=settleResolved();
