@@ -676,6 +676,73 @@
     runToEnd(maxTicks=5000,dt=1){ let n=0;while(this.state==='deployed'&&n++<maxTicks)this.tick(dt);return this.summary(); }
   }
 
+  class ExpeditionManager {
+    constructor(data={}){
+      this.nextId=Math.max(1,Number(data.nextId)||1);
+      this.entries=[];
+      for(const raw of data.entries||[]){
+        if(!raw||!raw.expedition)continue;
+        const expedition=raw.expedition instanceof Expedition?raw.expedition:Expedition.fromSnapshot(raw.expedition,{debug:true});
+        const id=raw.id||('exp_'+this.nextId++);
+        const speed=[0,1,4,12].includes(Number(raw.speed))?Number(raw.speed):1;
+        this.entries.push({
+          id,
+          heroId:raw.heroId||expedition.hero.id,
+          speed,
+          settled:!!raw.settled,
+          settlement:clone(raw.settlement||null),
+          expedition
+        });
+        const numeric=Number(String(id).replace(/\D/g,''));
+        if(Number.isFinite(numeric))this.nextId=Math.max(this.nextId,numeric+1);
+      }
+      this.selectedId=data.selectedId&&this.entries.some(e=>e.id===data.selectedId)?data.selectedId:(this.entries[0]?.id||null);
+    }
+    get(id=this.selectedId){ return this.entries.find(e=>e.id===id)||null; }
+    select(id){ if(this.entries.some(e=>e.id===id)){this.selectedId=id;return true;}return false; }
+    activeEntries(){ return this.entries.filter(e=>e.expedition.state==='deployed'); }
+    hasHero(heroId){ return this.entries.some(e=>e.heroId===heroId&&!e.settled); }
+    deploy({hero,seed=1,contract=CONTRACT,speed=1}={}){
+      if(!hero||!hero.alive)return{ok:false,reason:'hero unavailable'};
+      if(this.hasHero(hero.id))return{ok:false,reason:'hero already deployed'};
+      const expedition=new Expedition({hero,seed,contract,debug:true});
+      const entry={id:'exp_'+this.nextId++,heroId:hero.id,speed:[0,1,4,12].includes(Number(speed))?Number(speed):1,settled:false,settlement:null,expedition};
+      this.entries.push(entry); this.selectedId=entry.id;
+      return{ok:true,entry};
+    }
+    setSpeed(id,speed){
+      const e=this.get(id),n=Number(speed);
+      if(!e||![0,1,4,12].includes(n))return false;
+      e.speed=n; return true;
+    }
+    tickAll(){
+      const resolved=[];
+      for(const e of this.entries){
+        if(e.expedition.state!=='deployed'||e.speed<=0)continue;
+        for(let i=0;i<e.speed&&e.expedition.state==='deployed';i++)e.expedition.tick(1);
+        if(e.expedition.state!=='deployed')resolved.push(e.id);
+      }
+      return resolved;
+    }
+    markSettled(id,settlement){
+      const e=this.get(id); if(!e)return false;
+      e.settled=true; e.settlement=clone(settlement||null); return true;
+    }
+    close(id){
+      const i=this.entries.findIndex(e=>e.id===id);
+      if(i<0)return false;
+      const e=this.entries[i];
+      if(e.expedition.state==='deployed'||!e.settled)return false;
+      this.entries.splice(i,1);
+      if(this.selectedId===id)this.selectedId=this.entries[i]?.id||this.entries[i-1]?.id||null;
+      return true;
+    }
+    snapshot(){
+      return {version:1,nextId:this.nextId,selectedId:this.selectedId,entries:this.entries.map(e=>({id:e.id,heroId:e.heroId,speed:e.speed,settled:e.settled,settlement:clone(e.settlement),expedition:e.expedition.snapshot()}))};
+    }
+    static fromSnapshot(data){ return new ExpeditionManager(data||{}); }
+  }
+
   function makePreset(name){
     if(name==='prepared')return heroTemplate({id:'edrin',name:'Edrin Vale',health:100,hunger:10,fatigue:8,morale:78,traits:['Cautious','Resourceful'],equipment:{weapon:'rusty_sword',armor:'padded_armor'},supplies:{healing_potion:1}});
     if(name==='ranged')return heroTemplate({id:'mara',name:'Mara Fen',stats:{might:4,finesse:8,endurance:5,wits:7,resolve:6},health:100,hunger:14,fatigue:10,morale:75,traits:['Cautious','Resourceful'],equipment:{weapon:'hunting_bow',armor:'leather_armor'},supplies:{healing_potion:1}});
@@ -1281,12 +1348,12 @@
       const contract=this.getContract(contractId);
       return new Expedition({hero:h,seed,contract});
     }
-    settle(heroId,expedition){
+    settle(heroId,expedition,settlementId=null){
       const hero=this.getHero(heroId);
       if(!hero)return{ok:false,reason:'hero unavailable',banked:0};
       if(expedition.state==='deployed')return{ok:false,reason:'expedition still active',banked:0};
       if(expedition.hero.id!==heroId)return{ok:false,reason:'hero mismatch',banked:0};
-      const key=`${heroId}:${expedition.contract.id}:${expedition.seed}:${expedition.elapsed}:${expedition.state}`;
+      const key=settlementId?('expedition:'+settlementId):`${heroId}:${expedition.contract.id}:${expedition.seed}:${expedition.elapsed}:${expedition.state}`;
       if(this.settledExpeditions.has(key))return{ok:false,reason:'already settled',banked:0};
       this.settledExpeditions.add(key);
       this.funds+=expedition.gold;
@@ -1320,5 +1387,5 @@
     static deserialize(text){ return TavernRoster.fromSnapshot(JSON.parse(text)); }
   }
 
-  return {RNG,EQUIPMENT,MAX_DURABILITY,isDurableItem,normalizeDurability,durabilityMultiplier,durabilityCondition,repairQuote,CRAFT_RECIPES,INJURY_TYPES,PREP_EFFECTS,PREPARATION_ACTIONS,CONTRACT,CONTRACTS,CONTRACT_ORDER,ENEMIES,MATERIAL_NAMES,PATRON_TYPES,MERCHANT_GOODS,merchantQuality,MerchantSystem,APPLICANT_TRAITS,applicantQuality,RecruitmentSystem,heroTemplate,normalizeCareer,rankFromXp,applyCareerProgress,starterRoster,deriveMoodlets,totalInjurySeverity,addInjury,reduceWorstInjury,removeWorstInjury,readinessScore,threatAssessment,PreparationState,TavernEconomy,TavernRoster,Expedition,makePreset};
+  return {RNG,EQUIPMENT,MAX_DURABILITY,isDurableItem,normalizeDurability,durabilityMultiplier,durabilityCondition,repairQuote,CRAFT_RECIPES,INJURY_TYPES,PREP_EFFECTS,PREPARATION_ACTIONS,CONTRACT,CONTRACTS,CONTRACT_ORDER,ENEMIES,MATERIAL_NAMES,PATRON_TYPES,MERCHANT_GOODS,merchantQuality,MerchantSystem,APPLICANT_TRAITS,applicantQuality,RecruitmentSystem,heroTemplate,normalizeCareer,rankFromXp,applyCareerProgress,starterRoster,deriveMoodlets,totalInjurySeverity,addInjury,reduceWorstInjury,removeWorstInjury,readinessScore,threatAssessment,PreparationState,TavernEconomy,TavernRoster,Expedition,ExpeditionManager,makePreset};
 });

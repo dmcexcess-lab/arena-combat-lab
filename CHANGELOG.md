@@ -2,6 +2,17 @@
 
 Current truth: `PROJECT_CONTEXT.md` · Future: `ROADMAP.md`
 
+## 2026-10-05 — Tavern Keeper Slice 10: Concurrent Expeditions & Hero Assignment
+- Added persistent `ExpeditionManager` support for multiple simultaneous hero contracts.
+- Each expedition now has an independent ID, hero assignment, simulation state, speed, RNG, income, condition, settlement state and report.
+- A hero cannot be deployed twice and remains assigned until the current expedition is settled.
+- Added per-expedition pause/1×/4×/12× speed while other expeditions continue at their own speeds.
+- Reworked the browser expedition panel into selectable expedition tabs; the focused run can be inspected without pausing others.
+- Tavern service, merchants, applicants, crafting and preparation/equipment work for non-deployed heroes continue while expeditions run.
+- Settlement now accepts persistent expedition IDs so identical repeat runs by the same hero/contract/seed cannot collide with prior payout keys.
+- Added migration from the Slice 9 single-expedition browser save shape into the multi-expedition manager.
+- Added test_concurrency.js and wired it into the deployment gate.
+
 ## 2026-10-05 — Tavern Keeper Slice 9: Equipment Durability & Maintenance
 - Added persistent per-copy durability for equipped and stored weapons/armor.
 - Serviceable gear retains full stats; Worn, Damaged and Broken tiers apply progressively stronger combat/readiness penalties.

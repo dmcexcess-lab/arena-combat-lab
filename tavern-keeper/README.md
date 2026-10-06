@@ -1,18 +1,20 @@
-# Tavern Keeper — Slice 9: Equipment Durability & Maintenance
+# Tavern Keeper — Slice 10: Concurrent Expeditions & Hero Assignment
 
-Equipment is now a persistent managed asset instead of a permanent stat label.
+Heroes can now be assigned to independent contracts simultaneously while the tavern continues operating.
 
-## Slice 9
+## Slice 10
 
-- Every durable weapon/armor copy has its own persistent condition.
-- Serviceable gear keeps full stats; Worn, Damaged and Broken gear progressively loses combat value.
-- Weapons wear through attacks and armor wears from landed enemy hits.
-- Equipped or stored gear can be repaired at the tavern using gold, time and Scrap Iron.
-- Crafting and merchant purchases create pristine copies.
-- Equipment swaps preserve the physical copy's condition.
-- Death before 50% contract progress loses equipped durable gear.
-- Death at/after 50% recovers equipped durable gear into tavern stock, but at no more than 35% condition.
-- Slice 8 saves migrate old gear to pristine condition.
+- Deploy multiple different living heroes at once.
+- One hero cannot occupy more than one unsettled expedition.
+- Every expedition has its own persistent contract, RNG state, condition, gold, progress, speed and outcome.
+- Pause/1×/4×/12× is per expedition rather than global.
+- Expedition tabs let you inspect and control one run while all other unpaused runs continue.
+- Non-deployed heroes remain available for tavern preparation, equipment, maintenance and new assignments.
+- Tavern patrons, merchants and applicants continue operating independently.
+- Each completed expedition settles into the correct hero career/Fallen state and shared tavern economy.
+- Persistent expedition IDs prevent payout collisions when a hero later repeats an identical deterministic contract and seed.
+- Completed reports can be closed individually without disturbing other expeditions.
+- Existing Slice 9 single-expedition saves migrate into the new manager.
 
 ## Run
 
@@ -30,8 +32,9 @@ node tests/test_merchants.js
 node tests/test_contracts.js
 node tests/test_recruitment.js
 node tests/test_durability.js
+node tests/test_concurrency.js
 ```
 
-## Next Operation (Slice 10)
+## Next Operation (Slice 11)
 
-Build **Concurrent Expeditions & Hero Assignment** so multiple heroes can be deployed independently while the tavern continues operating.
+Build **Objective Mechanics & Partial Contract Scoring** so Hunt, Extermination, Escort, Delve and Boss Hunt contracts differ mechanically instead of only through route/enemy data, with explicit sub-objectives and granular paid-failure results.

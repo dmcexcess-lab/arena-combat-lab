@@ -93,6 +93,7 @@ jobs:
           node tavern-keeper/tests/test_contracts.js
           node tavern-keeper/tests/test_recruitment.js
           node tavern-keeper/tests/test_durability.js
+          node tavern-keeper/tests/test_concurrency.js
 
       - name: Export Web builds and reject script errors
         shell: bash

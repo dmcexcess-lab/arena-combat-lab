@@ -3,12 +3,12 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-  <title>Tavern Keeper — Slice 9</title>
+  <title>Tavern Keeper — Slice 10</title>
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
 <header>
-  <div><h1>Tavern Keeper</h1><p>Slice 9 — Equipment Durability &amp; Maintenance</p></div>
+  <div><h1>Tavern Keeper</h1><p>Slice 10 — Concurrent Expeditions &amp; Hero Assignment</p></div>
   <div class="top-stats">
     <div><span>Tavern funds</span><strong id="funds">0.0g</strong></div>
     <div><span>Tavern g/s</span><strong id="tavernGps">0.00</strong></div>
@@ -151,7 +151,8 @@
   </section>
 
   <section class="panel expedition" id="expeditionPanel">
-    <div class="section-title"><h2>Expedition</h2><span id="status" class="status">READY</span></div>
+    <div class="section-title"><h2>Expeditions</h2><div class="expedition-head-meta"><span id="expeditionCount" class="status">0 ACTIVE · 0 TOTAL</span><span id="status" class="status">READY</span></div></div>
+    <div id="expeditionTabs" class="expedition-tabs"><p class="empty">No expeditions yet.</p></div>
     <div id="activeHeroBanner" class="active-hero-banner">No active expedition.</div>
     <div class="metrics">
       <div><span>HP</span><strong id="hp">—</strong></div><div><span>Hero gold/sec</span><strong id="gps">0.00</strong></div><div><span>Hero gold</span><strong id="gold">0</strong></div><div><span>Progress</span><strong id="progress">0%</strong></div>
@@ -160,7 +161,7 @@
     <div class="current"><div><span>Location</span><strong id="location">—</strong></div><div><span>Moodlets</span><strong id="moodlets">—</strong></div></div>
     <div class="current"><div><span>Injuries</span><strong id="fieldInjuries">None</strong></div><div><span>Potions</span><strong id="fieldPotions">—</strong></div></div><div class="current"><div><span>Weapon condition</span><strong id="fieldWeapon">—</strong></div><div><span>Armor condition</span><strong id="fieldArmor">—</strong></div></div>
     <div class="controls"><button data-speed="0">Pause hero</button><button data-speed="1" class="active">1×</button><button data-speed="4">4×</button><button data-speed="12">12×</button><button id="step">Step hero</button></div>
-    <p class="economy-note">Tavern service continues at real-time speed while the hero is deployed or paused.</p>
+    <p class="economy-note">Each expedition runs at its own speed. Tavern service, merchants and applicants continue in real time.</p>
     <h3>Event Feed</h3><div id="log" class="log"></div>
     <details><summary>Decision Debug</summary><pre id="debug"></pre></details>
   </section>
@@ -168,7 +169,7 @@
   <section class="panel summary" id="summaryPanel">
     <h2>Expedition Summary</h2>
     <div id="summaryBody"><p>Select a hero, prepare them, then deploy.</p></div>
-    <button id="returnHome" disabled>Close Expedition Report</button>
+    <button id="returnHome" disabled>Close Selected Report</button>
   </section>
 </main>
 <script src="core.js"></script><script src="app.js"></script>

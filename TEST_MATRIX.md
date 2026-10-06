@@ -42,6 +42,11 @@ Operational checklist for humans + AIs. Keep compact; add only behaviors whose r
 - Worn/Damaged/Broken condition materially reduces readiness/combat effectiveness; contract combat wears weapons on use and armor on landed hostile hits.
 - Equipped/stored repairs spend exact gold/time/Scrap Iron and restore only the targeted physical copy; failed repairs are atomic.
 - Death before 50% objective progress loses equipped durable gear; death at/after 50% recovers it into shared stock at damaged condition.
+- Slice 10 concurrency: multiple different heroes can run independent expeditions simultaneously, while duplicate deployment of the same unsettled hero is rejected.
+- Expedition pause/1×/4×/12× speed is per-entry; ticking one manager advances each active expedition according to its own speed without changing focus.
+- Mixed concurrent success/retreat/death outcomes settle independently into the correct hero career/fallen state and additive shared funds/materials.
+- Persistent expedition IDs make identical repeat hero/contract/seed runs settle separately while duplicate settlement of the same expedition ID remains blocked.
+- Multi-expedition manager state round-trips active/completed entries, focus, speed and settlement state; the old single-expedition snapshot can be wrapped without changing expedition state.
 
 ### Arena
 - Main scene instantiates without script/runtime errors.

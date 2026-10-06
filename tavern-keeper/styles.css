@@ -23,3 +23,7 @@
 
 .maintenance-actions{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-top:7px}.stock-card button+button{margin-top:5px}.event.gear{border-left-color:#b08a4f;background:#211b13}
 @media(max-width:560px){.maintenance-actions{grid-template-columns:1fr}}
+
+.expedition-head-meta{display:flex;gap:7px;flex-wrap:wrap;justify-content:flex-end}.expedition-tabs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px;margin-bottom:10px}.expedition-tab{display:flex;flex-direction:column;text-align:left;background:#18150f;min-height:68px}.expedition-tab>div{display:flex;justify-content:space-between;gap:7px}.expedition-tab span{font-size:10px;color:#d8b777}.expedition-tab small{color:#a99878;margin-top:5px}.expedition-tab.selected{border-color:#c18b48;background:#332719}.expedition-tab.success{border-color:#5f714a}.expedition-tab.death{border-color:#79463f}.expedition-tab.retreat{border-color:#786539}.roster-card.deployed{border-color:#725b3c;opacity:.72}
+@media(max-width:900px){.expedition-tabs{grid-template-columns:1fr 1fr}}
+@media(max-width:560px){.expedition-tabs{grid-template-columns:1fr}.expedition-head-meta{justify-content:flex-start}}
