@@ -61,6 +61,12 @@ Operational checklist for humans + AIs. Keep compact; add only behaviors whose r
 - Expedition speed remains per-entry offline: paused runs stay paused while 1×/4×/12× runs advance independently and settle through the normal gold/material/career/death/durability path.
 - Tavern patron service, merchant visits and applicant visits advance offline and are itemized separately from expedition payouts in the return summary.
 - Hidden browser pages checkpoint and stop live ticking; resume catch-up is the only authority for hidden elapsed time, preventing duplicate background progress.
+- Slice 14 Chronicle: fresh taverns record opening/founders; recruitment, settlements, major objective feats, advancement, deaths and upgrades append persistent domain events.
+- Chronicle record-holders update only on real improvements for contracts, successes, kills, career gold, rank, objective score and payout; fallen heroes remain eligible.
+- Legendary-hero status derives from career accomplishments and is emitted once when first achieved; living/fallen legends persist through save/load.
+- Tavern facility, patron, revenue and contract-count milestones are one-time and cannot duplicate on repeated checks/offline ticks.
+- Slice 13/older saves without Chronicle data reconstruct recruitment origins, prior contract entries, explicit death memorials and current records from existing ledgers.
+- Offline expedition settlement writes the same Chronicle events as live settlement; TavernRoster snapshot v11 round-trips Chronicle exactly.
 
 ### Arena
 - Main scene instantiates without script/runtime errors.

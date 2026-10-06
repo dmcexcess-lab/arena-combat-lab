@@ -1,27 +1,32 @@
 # CURRENT — Tavern Keeper
 
 ## Current slice
-Slice 13 — Offline Progression & Return Summary
+Slice 14 — Chronicle & Tavern Legacy
 
 ## Status
-Implemented as a standalone browser vertical slice on top of concurrent autonomous expeditions, objective scoring, facility-scaled preparation, persistent hero careers, crafting, merchants, recruitment and equipment durability.
+Implemented as a standalone browser vertical slice on top of offline concurrent autonomous expeditions, objective scoring, facility-scaled preparation, persistent hero careers, crafting, merchants, recruitment and equipment durability.
 
 ## Core rules implemented
-- Browser saves now include a wall-clock checkpoint (`savedAtMs`) in save version 4.
-- Closing/reloading the browser or resuming from a hidden/suspended page advances the simulation for the elapsed wall-clock interval.
-- Offline catch-up is capped at 8 hours. Time beyond the cap is reported but not simulated.
-- Catch-up uses the exact same authoritative 0.25-second live order: tavern tick → all expedition ticks at their saved personal speeds → core settlement.
-- Pause/1×/4×/12× remains per expedition offline. A manually paused hero stays paused.
-- Offline autonomous expeditions preserve the same RNG, objective, combat, injury, consumable, durability, retreat, success, failure and death rules as live play.
-- `settleResolvedExpeditions()` is now the shared core settlement path for both online and offline resolution.
-- Offline settlement preserves performance/objective gold, materials, career XP/traits/titles, permanent death/Fallen history and death gear recovery/loss.
-- Tavern patron service continues offline and adds real shared tavern income.
-- Merchant and applicant timers continue offline; visits may arrive and depart while away, with visit counts reported on return.
-- Hidden pages checkpoint immediately and the live interval stops while `document.hidden`; visible resume performs exactly one catch-up to avoid double-counting throttled background timers.
-- Legacy saves without a wall-clock checkpoint migrate safely but receive no guessed retroactive progress.
-- The `While You Were Away` panel reports simulated duration, cap truncation, tavern income, expedition payouts, patrons served, visitor counts, resolved expeditions/deaths and still-active/paused field progress.
-- Production cap benchmark: full 8-hour/115,200-quantum catch-up completed correctly in the staged JS runtime.
-- All Slice 1–12 systems remain authoritative.
+- `TavernRoster` owns the persistent Chronicle domain. Chronicle state is not reconstructed ad hoc by the browser UI.
+- Fresh taverns record an opening milestone and the founding roster.
+- Recruited heroes record applicant origin, quality and recruitment cost.
+- Every settled contract records hero, contract, outcome, objective score, payout and kills.
+- Major objective accomplishments produce dedicated feat entries: designated boss kill, full miner rescue and strong caravan escort.
+- Rank increases and newly earned titles produce career advancement entries.
+- A hero crossing the career-based legend threshold produces one permanent legend entry. Legend status derives from rank/successes/kills/titles, not random rarity.
+- Permanent death produces a Chronicle memorial while the existing Fallen roster remains authoritative.
+- Tavern upgrades are recorded. Facility Levels 3 and 6 create one-time milestones.
+- Patron-service milestones: 25 / 100 / 500 / 1000 served.
+- Tavern-revenue milestones: 100 / 500 / 2500 / 10000 gold service revenue.
+- Resolved-contract milestones: 10 / 25 / 50 / 100.
+- Persistent records track most contracts, most successes, most kills, most career gold, highest rank, best objective score and largest single-contract payout.
+- Fallen heroes remain eligible for records and legendary status.
+- Chronicle UI shows six long-term totals, record holders, living/fallen legends and the newest 80 ledger entries.
+- Chronicle retains up to 1,000 persistent event entries.
+- Slice 13 and older saves without Chronicle data reconstruct founders, applicant origins, prior contracts, explicit death memorials and record holders from existing persistent ledgers.
+- `TavernRoster` snapshot version 11 persists Chronicle state.
+- Offline settlements use the same settlement path, so contracts completed while away write identical Chronicle history.
+- All Slice 1–13 systems remain authoritative.
 
 ## Tests
 Run:
@@ -40,18 +45,19 @@ node tests/test_concurrency.js
 node tests/test_objectives.js
 node tests/test_facilities.js
 node tests/test_offline.js
+node tests/test_chronicle.js
 ```
 
 ## Known limitations
-- Offline progression is intentionally capped at 8 hours per absence.
-- Visitors that arrive and leave while offline are summarized by visit count; missed merchant stock/applicants are not retained as a historical shop queue.
+- Chronicle event retention is capped at the newest 1,000 entries; aggregate career, Fallen, record and milestone state persists independently.
+- Legacy migration can reconstruct what old saves recorded, but cannot recreate exact historical wall-clock ordering that was never previously stored.
+- Offline progression remains intentionally capped at 8 hours per absence.
 - The contract catalog remains five authored contracts rather than a rotating/generated board.
 - Concurrent expeditions remain solo-hero assignments; party contracts are not implemented.
 - Escort caravan/miner rescue use abstract objective state rather than independent NPC actors.
 - Applicants arrive one at a time with no negotiation/reputation layer.
 - Crafting remains four recipes with no craft skill progression.
 - Merchants have no haggling/reputation.
-- Preparation minutes and live tavern seconds remain separate clocks.
 
 ## NEXT OPERATION
-Slice 14 — Chronicle & Tavern Legacy: turn accumulated hero careers, objective accomplishments, deaths, contracts, recruitment origins and tavern milestones into a persistent readable chronicle with records/legends, so long-term idle play produces history rather than only larger numbers.
+Slice 15 — Balance, UX & Release Acceptance: treat the current systems as architecture-frozen, run broad seeded balance batches and phone/desktop interaction acceptance, fix pathological economy/readiness/contract/death/idle cases, improve onboarding/readability, and close the prototype as a coherent playable release without adding major new systems.

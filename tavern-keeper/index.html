@@ -3,12 +3,12 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-  <title>Tavern Keeper — Slice 13</title>
+  <title>Tavern Keeper — Slice 14</title>
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
 <header>
-  <div><h1>Tavern Keeper</h1><p>Slice 13 — Offline Progression &amp; Return Summary</p></div>
+  <div><h1>Tavern Keeper</h1><p>Slice 14 — Chronicle &amp; Tavern Legacy</p></div>
   <div class="top-stats">
     <div><span>Tavern funds</span><strong id="funds">0.0g</strong></div>
     <div><span>Tavern g/s</span><strong id="tavernGps">0.00</strong></div>
@@ -106,6 +106,31 @@
     <div class="section-title"><h2>Contract Board</h2><span class="status">ANY HERO MAY DEPLOY</span></div>
     <p class="contract-board-note">Threat is advisory. Failed contracts still pay for performance already achieved.</p>
     <div id="contractBoard" class="contract-board"></div>
+  </section>
+
+  <section class="panel chronicle-panel">
+    <div class="section-title"><h2>Tavern Chronicle</h2><span id="chronicleStatus" class="status">0 ENTRIES</span></div>
+    <p class="chronicle-note">Contracts, feats, recruits, deaths, records and tavern milestones become permanent history.</p>
+    <div class="legacy-metrics">
+      <div><span>Contracts</span><strong id="legacyContracts">0</strong></div>
+      <div><span>Successes</span><strong id="legacySuccesses">0</strong></div>
+      <div><span>Fallen</span><strong id="legacyFallen">0</strong></div>
+      <div><span>Legends</span><strong id="legacyLegends">0</strong></div>
+      <div><span>Patrons served</span><strong id="legacyPatrons">0</strong></div>
+      <div><span>Tavern revenue</span><strong id="legacyRevenue">0g</strong></div>
+    </div>
+    <div class="chronicle-layout">
+      <div>
+        <h3>Records</h3>
+        <div id="chronicleRecords" class="chronicle-records"></div>
+        <h3>Legends</h3>
+        <div id="chronicleLegends" class="chronicle-legends"></div>
+      </div>
+      <div>
+        <h3>The Ledger</h3>
+        <div id="chronicleLog" class="chronicle-log"></div>
+      </div>
+    </div>
   </section>
 
   <aside class="panel roster-panel">

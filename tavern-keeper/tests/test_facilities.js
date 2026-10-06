@@ -158,7 +158,7 @@ const persistent=new C.TavernRoster({
 });
 const loaded=C.TavernRoster.deserialize(persistent.serialize());
 assert.deepStrictEqual(loaded.snapshot(),persistent.snapshot());
-assert.equal(loaded.snapshot().version,10);
+assert.equal(loaded.snapshot().version,11);
 assert.equal(loaded.tavern.snapshot().version,2);
 
 // Slice 11/older tavern snapshots without new facility fields migrate all new facilities to level 1.

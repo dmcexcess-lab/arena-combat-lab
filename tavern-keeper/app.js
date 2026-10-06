@@ -533,6 +533,42 @@ function renderHome(){
   $('deploy').disabled=expeditionLocked(h.id)||!h.alive;
 }
 
+function renderChronicle(){
+  const c=roster.chronicleSummary();
+  $('chronicleStatus').textContent=c.entries.length+' ENTRIES · '+c.milestones.length+' MILESTONES';
+  $('legacyContracts').textContent=c.totals.contracts;
+  $('legacySuccesses').textContent=c.totals.successes;
+  $('legacyFallen').textContent=c.totals.deaths;
+  $('legacyLegends').textContent=c.legends.length;
+  $('legacyPatrons').textContent=c.totals.patrons;
+  $('legacyRevenue').textContent=c.totals.revenue.toFixed(1)+'g';
+
+  const order=['contracts','successes','kills','careerGold','rank','objectiveScore','payout'];
+  $('chronicleRecords').innerHTML=order.map(function(key){
+    const r=c.records[key];
+    if(!r)return '<div class="chronicle-record empty-record"><span>'+((C.CHRONICLE_RECORD_LABELS||{})[key]||key)+'</span><strong>—</strong><small>No record yet</small></div>';
+    const display=r.meta&&r.meta.displayValue!=null?r.meta.displayValue:String(r.value);
+    const contract=r.meta&&r.meta.contractName?' · '+r.meta.contractName:'';
+    return '<div class="chronicle-record"><span>'+r.label+'</span><strong>'+display+'</strong><small>'+(r.heroName||'Tavern')+contract+'</small></div>';
+  }).join('');
+
+  $('chronicleLegends').innerHTML=c.legends.length?c.legends.map(function(h){
+    return '<div class="legend-card '+(h.alive?'alive':'fallen')+'"><div><strong>'+h.name+'</strong><span>'+(h.alive?'LIVING':'FALLEN')+'</span></div>'+
+      '<small>Rank '+h.rank+' · '+h.contracts+' contracts · '+h.successes+' successes · '+h.kills+' kills</small>'+
+      '<em>'+h.origin+(h.titles.length?' · '+h.titles.join(' · '):'')+'</em></div>';
+  }).join(''):'<p class="empty">No hero has become a tavern legend yet.</p>';
+
+  const entries=c.entries.slice().reverse().slice(0,80);
+  $('chronicleLog').innerHTML=entries.length?entries.map(function(e){
+    const type=String(e.type||'event').replace(/_/g,' ');
+    return '<div class="chronicle-entry '+e.type+' '+(e.importance||'normal')+'">'+
+      '<div><time>T+'+fmtAwayTime(e.time||0)+'</time><span>'+type.toUpperCase()+'</span></div>'+
+      '<strong>'+e.title+'</strong>'+(e.text?'<p>'+e.text+'</p>':'')+
+      (e.heroName?'<small>'+e.heroName+(e.contractId?' · '+(C.CONTRACTS[e.contractId]?.name||e.contractId):'')+'</small>':'')+
+      '</div>';
+  }).join(''):'<p class="empty">The ledger is blank.</p>';
+}
+
 function renderHistoryLog(){
   $('prepLog').innerHTML=roster.history.slice(-6).reverse().map(function(e){
     const right=e.progress!=null?e.progress+'% · '+(e.kills||0)+' kills':(e.note||'');
@@ -675,7 +711,7 @@ function closeReport(){
 }
 function renderAll(){
   settleResolved();
-  renderEconomy();renderMerchants();renderApplicants();renderCrafting();renderContractBoard();renderRoster();renderHome();renderHistoryLog();renderExpedition();
+  renderEconomy();renderMerchants();renderApplicants();renderCrafting();renderContractBoard();renderChronicle();renderRoster();renderHome();renderHistoryLog();renderExpedition();
 }
 
 loadGame();
@@ -734,8 +770,8 @@ setInterval(function(){
   renderMerchants();
   renderApplicants();
   renderExpedition();
-  if(settledCount){renderCrafting();renderContractBoard();renderRoster();renderHome();renderHistoryLog();}
-  else if(earned>0)renderHome();
+  if(settledCount){renderCrafting();renderContractBoard();renderChronicle();renderRoster();renderHome();renderHistoryLog();}
+  else if(earned>0){renderHome();renderChronicle();}
   saveClock+=0.25;
   if(saveClock>=1){saveClock=0;saveGame();}
 },250);

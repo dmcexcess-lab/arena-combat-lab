@@ -1,26 +1,24 @@
-# Tavern Keeper — Slice 13: Offline Progression & Return Summary
+# Tavern Keeper — Slice 14: Chronicle & Tavern Legacy
 
-Tavern Keeper now behaves like an idle game when the browser is closed or suspended.
+The tavern now remembers what happened there.
 
-## Slice 13
+## Slice 14
 
-- Saves persist a wall-clock checkpoint.
-- On reload/resume, up to 8 hours of elapsed time are simulated.
-- Catch-up uses the exact same 0.25-second simulation order as live play.
-- Tavern patrons continue being served and earning gold.
-- Merchants and applicants continue arriving/departing.
-- Every expedition keeps its own saved Pause/1×/4×/12× speed.
-- Paused expeditions stay paused offline.
-- Active expeditions continue normal autonomous AI, objectives, combat, durability, injury and death simulation.
-- Offline resolutions use the same settlement path as live resolutions.
-- Permanent death, gear loss/recovery, career progress, materials and performance payouts all remain real.
-- Mobile/browser hidden state stops the live timer and uses one catch-up on resume, preventing duplicate progress.
-- A `While You Were Away` report explains income, visitors, expedition outcomes and ongoing progress.
-- Old saves without a timestamp start checkpointing from their first Slice 13 load; unknown historical time is not invented.
+- Founding heroes and recruited applicants have persistent origins.
+- Every resolved contract becomes a Chronicle entry.
+- Boss kills, full rescues and strong escorts become named feats.
+- Rank/title growth becomes visible career history.
+- Dead heroes receive permanent memorial entries.
+- Exceptional careers become living or fallen **Tavern Legends**.
+- Tavern upgrades and long-term patron/revenue/contract thresholds become milestones.
+- Seven persistent records track the strongest careers and individual expeditions.
+- Fallen heroes can retain records and legend status after death.
+- Old saves reconstruct as much Chronicle history as their existing ledgers support.
+- Offline-resolved contracts write the same Chronicle history as live contracts.
 
-## Offline cap
+## Records
 
-Catch-up is capped at **8 hours per absence**. The return report tells you when the cap was reached and how much additional wall-clock time was intentionally ignored.
+Most Contracts · Most Successes · Most Kills · Most Career Gold · Highest Rank · Best Objective Score · Largest Contract Payout
 
 ## Run
 
@@ -42,8 +40,9 @@ node tests/test_concurrency.js
 node tests/test_objectives.js
 node tests/test_facilities.js
 node tests/test_offline.js
+node tests/test_chronicle.js
 ```
 
-## Next Operation (Slice 14)
+## Next Operation (Slice 15)
 
-Build **Chronicle & Tavern Legacy**: preserve and surface the stories created by hero careers, objective feats, deaths, recruitment origins, records and tavern milestones.
+Run **Balance, UX & Release Acceptance** with architecture frozen: seeded balance batches, economy/readiness/pathology checks, mobile/desktop usability and final release closure rather than another large system expansion.

@@ -2,6 +2,18 @@
 
 Current truth: `PROJECT_CONTEXT.md` · Future: `ROADMAP.md`
 
+## 2026-10-05 — Tavern Keeper Slice 14: Chronicle & Tavern Legacy
+- Added a persistent Chronicle owned by TavernRoster, with up to 1,000 event entries, one-time milestones and record-holders.
+- Fresh taverns record the opening and founding roster; recruited heroes retain explicit applicant origin/quality/cost history.
+- Every settled contract adds a readable Chronicle result with outcome, objective score, payout and kills.
+- Major objective feats create dedicated entries for designated boss kills, full miner rescues and strong caravan escorts.
+- Rank/title advancement, first-time legend status and permanent deaths create career/legend/memorial entries.
+- Tavern upgrades create history; Level 3/6 facilities plus patron, service-revenue and resolved-contract thresholds create one-time milestones.
+- Added persistent records for most contracts, successes, kills, career gold, highest rank, best objective score and largest single-contract payout.
+- Fallen heroes remain eligible for records and legends.
+- Slice 13/older saves reconstruct founders, recruitment origins, contract history, death memorials and records from existing saved ledgers.
+- Added TavernRoster snapshot v11, Chronicle UI, and test_chronicle.js.
+
 ## 2026-10-05 — Tavern Keeper Slice 13: Offline Progression & Return Summary
 - Added wall-clock save checkpoints and browser save version 4.
 - Added authoritative offline catch-up capped at 8 hours using the exact same 0.25-second tavern and expedition tick order as live play.

@@ -1296,8 +1296,86 @@
     static fromSnapshot(data){ return new TavernEconomy(data||{}); }
   }
 
+
+  const CHRONICLE_RECORD_LABELS={
+    contracts:'Most Contracts',
+    successes:'Most Successes',
+    kills:'Most Kills',
+    careerGold:'Most Career Gold',
+    rank:'Highest Rank',
+    objectiveScore:'Best Objective Score',
+    payout:'Largest Contract Payout'
+  };
+
+  function isLegendaryHero(hero){
+    if(!hero)return false;
+    const c=normalizeCareer(hero.career);
+    return c.rank>=4||c.successes>=3||c.kills>=10||(hero.titles||[]).length>=2;
+  }
+
+  class Chronicle {
+    constructor(data={}){
+      this.version=1;
+      this.nextId=Math.max(1,Number(data.nextId)||1);
+      this.entries=clone(data.entries||[]);
+      this.milestones=clone(data.milestones||[]);
+      this.records=clone(data.records||{});
+      for(const e of this.entries){
+        const n=Number(String(e.id||'').replace(/\D/g,''));
+        if(Number.isFinite(n))this.nextId=Math.max(this.nextId,n+1);
+      }
+    }
+    add(type,title,text='',meta={},time=0,importance='normal'){
+      const entry={
+        id:'chron_'+this.nextId++,
+        type:String(type||'event'),
+        title:String(title||'Untitled event'),
+        text:String(text||''),
+        time:Math.max(0,Number(time)||0),
+        importance,
+        heroId:meta.heroId||null,
+        heroName:meta.heroName||null,
+        contractId:meta.contractId||null,
+        meta:clone(meta||{})
+      };
+      this.entries.push(entry);
+      if(this.entries.length>1000)this.entries=this.entries.slice(-1000);
+      return entry;
+    }
+    hasMilestone(key){ return this.milestones.some(m=>m.key===key); }
+    milestone(key,title,text='',meta={},time=0,importance='major'){
+      if(this.hasMilestone(key))return null;
+      const marker={key,title,time:Math.max(0,Number(time)||0),meta:clone(meta||{})};
+      this.milestones.push(marker);
+      return this.add('milestone',title,text,Object.assign({milestoneKey:key},meta),time,importance);
+    }
+    setRecord(key,value,hero=null,meta={},time=0,emit=true){
+      value=Number(value)||0;
+      const prior=this.records[key];
+      if(prior&&Number(prior.value)>=value)return null;
+      const record={
+        key,label:CHRONICLE_RECORD_LABELS[key]||key,
+        value,
+        heroId:hero?.id||meta.heroId||null,
+        heroName:hero?.name||meta.heroName||null,
+        time:Math.max(0,Number(time)||0),
+        meta:clone(meta||{})
+      };
+      this.records[key]=record;
+      if(emit&&value>0){
+        const who=record.heroName?record.heroName+' — ':'';
+        this.add('record','New Record: '+record.label,who+String(meta.displayValue??value),Object.assign({},meta,{recordKey:key,heroId:record.heroId,heroName:record.heroName,value}),time,'notable');
+      }
+      return record;
+    }
+    snapshot(){
+      return {version:1,nextId:this.nextId,entries:clone(this.entries),milestones:clone(this.milestones),records:clone(this.records)};
+    }
+    static fromSnapshot(data){ return new Chronicle(data||{}); }
+  }
+
   class TavernRoster {
-    constructor({heroes=starterRoster(),fallen=[],funds=30,materials={},inventory={},inventoryDurability={},craftHistory=[],purchaseHistory=[],recruitmentHistory=[],repairHistory=[],prepMinutes=0,selectedHeroId=null,selectedContractId='greymill_rats',history=[],settledKeys=[],tavern=null,merchants=null,recruitment=null}={}){
+    constructor({heroes=starterRoster(),fallen=[],funds=30,materials={},inventory={},inventoryDurability={},craftHistory=[],purchaseHistory=[],recruitmentHistory=[],repairHistory=[],prepMinutes=0,selectedHeroId=null,selectedContractId='greymill_rats',history=[],settledKeys=[],tavern=null,merchants=null,recruitment=null,chronicle=null}={}){
       this.heroes=heroes.map(h=>heroTemplate(h)).filter(h=>h.alive);
       this.fallen=clone(fallen||[]);
       this.funds=Number(funds)||0; this.materials=clone(materials||{}); this.inventory=clone(inventory||{}); this.inventoryDurability={}; this.craftHistory=clone(craftHistory||[]); this.purchaseHistory=clone(purchaseHistory||[]); this.recruitmentHistory=clone(recruitmentHistory||[]); this.repairHistory=clone(repairHistory||[]); this.prepMinutes=Number(prepMinutes)||0;
@@ -1315,6 +1393,61 @@
       this.tavern=TavernEconomy.fromSnapshot(tavern);
       this.merchants=MerchantSystem.fromSnapshot(merchants);
       this.recruitment=RecruitmentSystem.fromSnapshot(recruitment);
+      this.chronicle=chronicle?Chronicle.fromSnapshot(chronicle):new Chronicle();
+      if(!chronicle)this.migrateLegacyChronicle();
+      this.rebuildChronicleRecords(false);
+      this.checkTavernMilestones();
+    }
+    chronicleTime(){ return this.tavern.elapsed; }
+    allKnownHeroes(){
+      const out=[],seen=new Set();
+      for(const h of this.heroes){
+        if(h&&!seen.has(h.id)){seen.add(h.id);out.push(h);}
+      }
+      for(const f of this.fallen){
+        const h=f?.hero;
+        if(h&&!seen.has(h.id)){seen.add(h.id);out.push(h);}
+      }
+      return out;
+    }
+    migrateLegacyChronicle(){
+      const time=this.chronicleTime();
+      this.chronicle.milestone('tavern_opened','The Tavern Opened','The doors opened and the first contracts went on the board.',{},0,'major');
+      const known=this.allKnownHeroes();
+      for(const h of known){
+        if(!h.recruitment){
+          this.chronicle.add('founder',h.name+' joined the founding roster','A founding hero of the tavern.',{heroId:h.id,heroName:h.name,origin:'Founding hero'},0,'normal');
+        }
+      }
+      const recruitedIds=new Set();
+      for(const r of this.recruitmentHistory){
+        recruitedIds.add(r.heroId);
+        this.chronicle.add('recruitment',r.heroName+' was recruited','Joined from the applicant board for '+Number(r.cost||0).toFixed(0)+'g at quality '+(r.quality||1)+'.',{heroId:r.heroId,heroName:r.heroName,quality:r.quality||1,cost:r.cost||0,origin:'Applicant'},r.time||0,'normal');
+      }
+      for(const h of known){
+        if(h.recruitment&&!recruitedIds.has(h.id)){
+          this.chronicle.add('recruitment',h.name+' was recruited','Applicant origin reconstructed from the hero record (Quality '+(h.recruitment.quality||1)+').',{heroId:h.id,heroName:h.name,quality:h.recruitment.quality||1,cost:h.recruitment.cost||0,origin:'Applicant',legacy:true},0,'normal');
+        }
+      }
+      const deathIds=new Set();
+      for(const rec of this.history){
+        const title=rec.heroName+' — '+rec.contractName;
+        const text=String(rec.outcome||'resolved').toUpperCase()+' · score '+Math.round(rec.objectiveScore||rec.progress||0)+'/100 · '+Number(rec.gold||0).toFixed(1)+'g · '+Number(rec.kills||0)+' kills';
+        this.chronicle.add('contract',title,text,{heroId:rec.heroId,heroName:rec.heroName,contractId:rec.contractId,outcome:rec.outcome,objectiveScore:rec.objectiveScore||0,gold:rec.gold||0,kills:rec.kills||0,legacy:true},0,rec.outcome==='death'?'major':'normal');
+        if(rec.outcome==='death'){
+          deathIds.add(rec.heroId);
+          this.chronicle.add('death',rec.heroName+' Fell on '+rec.contractName,'Memorial reconstructed from the old contract ledger.',{heroId:rec.heroId,heroName:rec.heroName,contractId:rec.contractId,legacy:true},0,'major');
+        }
+      }
+      for(const f of this.fallen){
+        const h=f?.hero,rec=f?.deathRecord;
+        if(h&&!deathIds.has(h.id)){
+          this.chronicle.add('death',h.name+' Fell'+(rec?.contractName?' on '+rec.contractName:''),'Memorial reconstructed from the Fallen roster.',{heroId:h.id,heroName:h.name,contractId:rec?.contractId||null,legacy:true},0,'major');
+        }
+      }
+      if(this.history.length||this.recruitmentHistory.length||this.fallen.length){
+        this.chronicle.milestone('legacy_reconstructed','The Old Ledgers Were Bound','Earlier careers, recruits and fallen heroes were reconstructed from the tavern ledgers.',{legacy:true},time,'normal');
+      }
     }
     aliveHeroes(){ return this.heroes.filter(h=>h.alive); }
     tickTavern(seconds=1){
@@ -1322,7 +1455,59 @@
       this.merchants.tick(seconds,this.tavern);
       this.recruitment.tick(seconds,this.tavern);
       this.funds+=earned;
+      if(earned>0)this.checkTavernMilestones();
       return earned;
+    }
+    checkTavernMilestones(){
+      const time=this.chronicleTime();
+      for(const n of [25,100,500,1000]){
+        if(this.tavern.served>=n)this.chronicle.milestone('patrons_'+n,n+' Patrons Served','The tavern has served '+n+' patrons.',{value:n},time,n>=500?'major':'normal');
+      }
+      for(const n of [100,500,2500,10000]){
+        if(this.tavern.totalRevenue>=n)this.chronicle.milestone('revenue_'+n,n+'g Tavern Revenue','Lifetime tavern service revenue passed '+n+' gold.',{value:n},time,n>=2500?'major':'normal');
+      }
+      for(const n of [10,25,50,100]){
+        if(this.history.length>=n)this.chronicle.milestone('contracts_'+n,n+' Contracts Recorded','The tavern ledger now holds '+n+' resolved contracts.',{value:n},time,n>=50?'major':'normal');
+      }
+      return this.chronicle.milestones.length;
+    }
+    legendaryHeroes(){
+      return this.allKnownHeroes().filter(isLegendaryHero).map(h=>({
+        id:h.id,name:h.name,alive:!!h.alive,rank:h.career.rank,contracts:h.career.contracts,successes:h.career.successes,kills:h.career.kills,totalGold:Number(h.career.totalGold||0),titles:clone(h.titles||[]),origin:h.recruitment?('Applicant Q'+h.recruitment.quality):'Founding hero'
+      })).sort((a,b)=>b.rank-a.rank||b.contracts-a.contracts||b.kills-a.kills);
+    }
+    rebuildChronicleRecords(emit=true){
+      const time=this.chronicleTime();
+      for(const h of this.allKnownHeroes()){
+        const c=normalizeCareer(h.career);
+        this.chronicle.setRecord('contracts',c.contracts,h,{displayValue:c.contracts+' contracts'},time,emit);
+        this.chronicle.setRecord('successes',c.successes,h,{displayValue:c.successes+' successes'},time,emit);
+        this.chronicle.setRecord('kills',c.kills,h,{displayValue:c.kills+' kills'},time,emit);
+        this.chronicle.setRecord('careerGold',c.totalGold,h,{displayValue:Number(c.totalGold).toFixed(1)+'g'},time,emit);
+        this.chronicle.setRecord('rank',c.rank,h,{displayValue:'Rank '+c.rank},time,emit);
+      }
+      for(const rec of this.history){
+        const h=this.allKnownHeroes().find(x=>x.id===rec.heroId)||{id:rec.heroId,name:rec.heroName};
+        this.chronicle.setRecord('objectiveScore',rec.objectiveScore||0,h,{displayValue:Math.round(rec.objectiveScore||0)+'/100',contractId:rec.contractId,contractName:rec.contractName},time,emit);
+        this.chronicle.setRecord('payout',rec.gold||0,h,{displayValue:Number(rec.gold||0).toFixed(1)+'g',contractId:rec.contractId,contractName:rec.contractName},time,emit);
+      }
+      return clone(this.chronicle.records);
+    }
+    chronicleSummary(){
+      return {
+        entries:clone(this.chronicle.entries),
+        milestones:clone(this.chronicle.milestones),
+        records:clone(this.chronicle.records),
+        legends:this.legendaryHeroes(),
+        totals:{
+          contracts:this.history.length,
+          successes:this.history.filter(x=>x.outcome==='success').length,
+          deaths:this.fallen.length,
+          recruits:this.recruitmentHistory.length,
+          patrons:this.tavern.served,
+          revenue:Number(this.tavern.totalRevenue||0)
+        }
+      };
     }
     upgradeTavern(id){
       if(!this.tavern.canUpgrade(id))return{ok:false,reason:'maxed'};
@@ -1330,6 +1515,11 @@
       if(this.funds<cost)return{ok:false,reason:'insufficient funds',cost};
       this.funds-=cost;
       this.tavern.upgrade(id);
+      const value=id==='seats'?this.tavern.seats:this.tavern[id+'Level'];
+      const label=id==='bar'?'Commons':id[0].toUpperCase()+id.slice(1);
+      this.chronicle.add('upgrade',label+' Improved',id==='seats'?'Seating expanded to '+value+'.':label+' reached Level '+value+'.',{facility:id,value,cost},this.chronicleTime(),'normal');
+      if(id!=='seats'&&(value===3||value===6))this.chronicle.milestone('facility_'+id+'_'+value,label+' Level '+value,label+' became a defining part of the tavern.',{facility:id,value},this.chronicleTime(),value===6?'major':'notable');
+      this.checkTavernMilestones();
       return{ok:true,cost,projectedGoldRate:this.tavern.projectedGoldRate()};
     }
     recruitApplicant(){
@@ -1345,6 +1535,7 @@
       if(!this.selectedHeroId)this.selectedHeroId=hero.id;
       const event={heroId:hero.id,heroName:hero.name,quality:accepted.quality,cost:accepted.cost,time:this.recruitment.elapsed};
       this.recruitmentHistory.push(event); if(this.recruitmentHistory.length>50)this.recruitmentHistory=this.recruitmentHistory.slice(-50);
+      this.chronicle.add('recruitment',hero.name+' Joined the Tavern','Recruited as a Quality '+accepted.quality+' applicant for '+accepted.cost+'g.',{heroId:hero.id,heroName:hero.name,quality:accepted.quality,cost:accepted.cost,origin:'Applicant'},this.chronicleTime(),accepted.quality>=3?'notable':'normal');
       return{ok:true,hero:clone(hero),event};
     }
     purchaseMerchantOffer(offerKey,count=1){
@@ -1544,18 +1735,36 @@
         expedition.gearOutcome=clone(gearOutcome);
         record.gearOutcome=clone(gearOutcome);
       }
-      this.history.push({heroId:updated.id,heroName:updated.name,...clone(record)}); if(this.history.length>100)this.history=this.history.slice(-100);
+      const historyRecord={heroId:updated.id,heroName:updated.name,...clone(record)};
+      this.history.push(historyRecord); if(this.history.length>100)this.history=this.history.slice(-100);
+      const contractText=String(record.outcome).toUpperCase()+' · objective '+Math.round(record.objectiveScore||0)+'/100 · '+Number(record.gold||0).toFixed(1)+'g · '+record.kills+' kills';
+      this.chronicle.add('contract',updated.name+' — '+record.contractName,contractText,{heroId:updated.id,heroName:updated.name,contractId:record.contractId,outcome:record.outcome,objectiveScore:record.objectiveScore||0,gold:record.gold||0,kills:record.kills,number:record.number},this.chronicleTime(),record.outcome==='death'?'major':record.outcome==='success'?'notable':'normal');
+      const o=expedition.objectiveState||{};
+      if(expedition.contract.kind==='Boss Hunt'&&o.bossKilled)this.chronicle.add('feat',updated.name+' Slew the Bridge Troll','The designated bridge boss fell during '+record.contractName+'.',{heroId:updated.id,heroName:updated.name,contractId:record.contractId,feat:'boss_kill'},this.chronicleTime(),'major');
+      if(expedition.contract.kind==='Delve'&&o.minersRescued&&o.minersRescued>=o.rescueMax)this.chronicle.add('feat',updated.name+' Brought Everyone Home','All '+o.rescueMax+' missing miners were rescued.',{heroId:updated.id,heroName:updated.name,contractId:record.contractId,feat:'full_rescue'},this.chronicleTime(),'major');
+      if(expedition.contract.kind==='Escort'&&record.outcome==='success'&&(o.caravanIntegrity||0)>=75)this.chronicle.add('feat',updated.name+' Guarded the Caravan','The caravan arrived with '+Math.round(o.caravanIntegrity)+'% integrity.',{heroId:updated.id,heroName:updated.name,contractId:record.contractId,feat:'strong_escort'},this.chronicleTime(),'notable');
+      if(record.rankAfter>record.rankBefore||record.titlesEarned.length){
+        const gains=[];
+        if(record.rankAfter>record.rankBefore)gains.push('Rank '+record.rankAfter);
+        if(record.titlesEarned.length)gains.push('titles: '+record.titlesEarned.join(', '));
+        this.chronicle.add('career',updated.name+' Advanced',gains.join(' · '),{heroId:updated.id,heroName:updated.name,rankBefore:record.rankBefore,rankAfter:record.rankAfter,titlesEarned:clone(record.titlesEarned)},this.chronicleTime(),'notable');
+      }
+      const wasLegend=isLegendaryHero(hero),isLegend=isLegendaryHero(updated);
       const idx=this.heroes.findIndex(h=>h.id===heroId);
       if(updated.alive)this.heroes[idx]=updated;
       else{
         this.heroes.splice(idx,1);
         this.fallen.push({hero:clone(updated),deathRecord:clone(record),gearOutcome:clone(gearOutcome)}); if(this.fallen.length>50)this.fallen=this.fallen.slice(-50);
         if(this.selectedHeroId===heroId)this.selectedHeroId=this.heroes[0]?.id||null;
+        this.chronicle.add('death',updated.name+' Fell on '+record.contractName,'Rank '+updated.career.rank+' · '+updated.career.contracts+' contracts · '+updated.career.kills+' kills · objective '+Math.round(record.objectiveScore||0)+'/100.',{heroId:updated.id,heroName:updated.name,contractId:record.contractId,gearOutcome:clone(gearOutcome)},this.chronicleTime(),'major');
       }
+      if(!wasLegend&&isLegend)this.chronicle.add('legend',updated.name+' Became a Tavern Legend','Rank '+updated.career.rank+' · '+updated.career.successes+' successes · '+updated.career.kills+' kills.',{heroId:updated.id,heroName:updated.name},this.chronicleTime(),'major');
+      this.rebuildChronicleRecords(true);
+      this.checkTavernMilestones();
       return{ok:true,banked:expedition.gold,heroAlive:updated.alive,record,gearOutcome};
     }
     snapshot(){
-      return{version:10,heroes:clone(this.heroes),fallen:clone(this.fallen),funds:this.funds,materials:clone(this.materials),inventory:clone(this.inventory),inventoryDurability:clone(this.inventoryDurability),craftHistory:clone(this.craftHistory),purchaseHistory:clone(this.purchaseHistory),recruitmentHistory:clone(this.recruitmentHistory),repairHistory:clone(this.repairHistory),prepMinutes:this.prepMinutes,selectedHeroId:this.selectedHeroId,selectedContractId:this.selectedContractId,history:clone(this.history),settledKeys:Array.from(this.settledExpeditions),tavern:this.tavern.snapshot(),merchants:this.merchants.snapshot(),recruitment:this.recruitment.snapshot()};
+      return{version:11,heroes:clone(this.heroes),fallen:clone(this.fallen),funds:this.funds,materials:clone(this.materials),inventory:clone(this.inventory),inventoryDurability:clone(this.inventoryDurability),craftHistory:clone(this.craftHistory),purchaseHistory:clone(this.purchaseHistory),recruitmentHistory:clone(this.recruitmentHistory),repairHistory:clone(this.repairHistory),prepMinutes:this.prepMinutes,selectedHeroId:this.selectedHeroId,selectedContractId:this.selectedContractId,history:clone(this.history),settledKeys:Array.from(this.settledExpeditions),tavern:this.tavern.snapshot(),merchants:this.merchants.snapshot(),recruitment:this.recruitment.snapshot(),chronicle:this.chronicle.snapshot()};
     }
     serialize(){ return JSON.stringify(this.snapshot()); }
     static fromSnapshot(data){
@@ -1691,5 +1900,5 @@
     };
   }
 
-  return {RNG,EQUIPMENT,MAX_DURABILITY,isDurableItem,normalizeDurability,durabilityMultiplier,durabilityCondition,repairQuote,CRAFT_RECIPES,INJURY_TYPES,PREP_EFFECTS,PREPARATION_ACTIONS,normalizeFacilityLevels,preparationFacilityLevel,facilityActionMinutes,CONTRACT,CONTRACTS,CONTRACT_ORDER,ENEMIES,MATERIAL_NAMES,PATRON_TYPES,MERCHANT_GOODS,merchantQuality,MerchantSystem,APPLICANT_TRAITS,applicantQuality,RecruitmentSystem,heroTemplate,normalizeCareer,rankFromXp,applyCareerProgress,starterRoster,deriveMoodlets,totalInjurySeverity,addInjury,reduceWorstInjury,removeWorstInjury,readinessScore,threatAssessment,PreparationState,TavernEconomy,TavernRoster,Expedition,ExpeditionManager,OFFLINE_MAX_SECONDS,OFFLINE_QUANTUM_SECONDS,settleResolvedExpeditions,advanceOffline,makePreset};
+  return {RNG,EQUIPMENT,MAX_DURABILITY,isDurableItem,normalizeDurability,durabilityMultiplier,durabilityCondition,repairQuote,CRAFT_RECIPES,INJURY_TYPES,PREP_EFFECTS,PREPARATION_ACTIONS,normalizeFacilityLevels,preparationFacilityLevel,facilityActionMinutes,CONTRACT,CONTRACTS,CONTRACT_ORDER,ENEMIES,MATERIAL_NAMES,PATRON_TYPES,MERCHANT_GOODS,merchantQuality,MerchantSystem,APPLICANT_TRAITS,applicantQuality,RecruitmentSystem,CHRONICLE_RECORD_LABELS,Chronicle,isLegendaryHero,heroTemplate,normalizeCareer,rankFromXp,applyCareerProgress,starterRoster,deriveMoodlets,totalInjurySeverity,addInjury,reduceWorstInjury,removeWorstInjury,readinessScore,threatAssessment,PreparationState,TavernEconomy,TavernRoster,Expedition,ExpeditionManager,OFFLINE_MAX_SECONDS,OFFLINE_QUANTUM_SECONDS,settleResolvedExpeditions,advanceOffline,makePreset};
 });
