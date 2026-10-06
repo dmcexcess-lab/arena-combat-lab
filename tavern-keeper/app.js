@@ -111,6 +111,68 @@ function renderEconomy(){
   });
 }
 
+function renderCrafting(){
+  const materialIds=Object.keys(C.MATERIAL_NAMES);
+  $('materialStash').innerHTML=materialIds.map(function(id){
+    return '<div><span>'+C.MATERIAL_NAMES[id]+'</span><strong>'+roster.materialCount(id)+'</strong></div>';
+  }).join('');
+
+  const stockIds=Object.keys(roster.inventory).filter(function(id){return roster.itemCount(id)>0&&C.EQUIPMENT[id];});
+  if(stockIds.length){
+    $('itemStock').innerHTML=stockIds.map(function(id){
+      const item=C.EQUIPMENT[id],count=roster.itemCount(id);
+      let stat='';
+      if(item.slot==='weapon')stat='Damage '+item.damage;
+      else if(item.slot==='armor')stat='Defense '+item.defense;
+      else if(item.kind==='potion')stat='Heal '+item.heal;
+      else if(item.kind==='bandage')stat='Heal '+item.heal+' · treats injury';
+      const h=selected();
+      let action='';
+      if(item.slot==='weapon'||item.slot==='armor'){
+        action='<button data-equip="'+id+'" '+(!h||expeditionLocked()?'disabled':'')+'>Equip</button>';
+      }else if(item.slot==='consumable'){
+        action='<button data-give="'+id+'" '+(!h||expeditionLocked()?'disabled':'')+'>Give</button>';
+      }
+      return '<div class="stock-card"><div><strong>'+item.name+'</strong><span>×'+count+'</span></div><small>'+stat+'</small>'+action+'</div>';
+    }).join('');
+  }else{
+    $('itemStock').innerHTML='<p class="empty">No stored items yet.</p>';
+  }
+
+  $('recipeList').innerHTML=Object.values(C.CRAFT_RECIPES).map(function(r){
+    const mats=Object.entries(r.materials).map(function(kv){
+      const have=roster.materialCount(kv[0]);
+      return '<span class="'+(have>=kv[1]?'ok':'short')+'">'+C.MATERIAL_NAMES[kv[0]]+' '+have+'/'+kv[1]+'</span>';
+    }).join('');
+    return '<div class="recipe-card"><div><strong>'+r.name+'</strong><span>'+r.category+'</span></div><p>'+r.description+'</p><div class="recipe-mats">'+mats+'</div><small>'+r.minutes+' prep min · makes '+r.outputCount+'</small><button data-craft="'+r.id+'" '+(!roster.canCraft(r.id)?'disabled':'')+'>Craft</button></div>';
+  }).join('');
+
+  $('craftLog').innerHTML=roster.craftHistory.length?roster.craftHistory.slice().reverse().slice(0,6).map(function(e){
+    return '<div><strong>'+e.name+'</strong><span>made '+e.made+' · '+e.minutes+'m</span></div>';
+  }).join(''):'<p class="empty">No crafting yet.</p>';
+
+  document.querySelectorAll('[data-craft]').forEach(function(btn){
+    btn.addEventListener('click',function(){
+      const r=roster.craft(btn.dataset.craft);
+      if(r.ok){renderAll();saveGame();}
+    });
+  });
+  document.querySelectorAll('[data-equip]').forEach(function(btn){
+    btn.addEventListener('click',function(){
+      const h=selected(); if(!h)return;
+      const r=roster.equipInventoryItem(h.id,btn.dataset.equip);
+      if(r.ok){renderAll();saveGame();}
+    });
+  });
+  document.querySelectorAll('[data-give]').forEach(function(btn){
+    btn.addEventListener('click',function(){
+      const h=selected(); if(!h)return;
+      const r=roster.giveConsumable(h.id,btn.dataset.give,1);
+      if(r.ok){renderAll();saveGame();}
+    });
+  });
+}
+
 function renderRoster(){
   const heroes=roster.aliveHeroes();
   $('rosterCount').textContent=heroes.length+' alive';
@@ -165,7 +227,7 @@ function renderHome(){
   if(!h){
     $('risk').textContent='—';
     $('heroCard').innerHTML='<p class="empty">No living hero selected.</p>';
-    ['homeHealth','homeHunger','homeFatigue','homeMorale','careerRank','careerXp','careerContracts','careerSuccesses','potions'].forEach(function(id){$(id).textContent='—';});
+    ['homeHealth','homeHunger','homeFatigue','homeMorale','careerRank','careerXp','careerContracts','careerSuccesses','potions','bandages','currentWeapon','currentArmor'].forEach(function(id){$(id).textContent='—';});
     ['homeHealthBar','homeHungerBar','homeFatigueBar','homeMoraleBar'].forEach(function(id){setBar(id,0);});
     $('homeMoodlets').innerHTML=chipList([]);
     $('injuries').innerHTML=chipList([]);
@@ -196,8 +258,9 @@ function renderHome(){
   $('skills').innerHTML=chipList(['Melee '+h.career.skills.melee.toFixed(1),'Ranged '+h.career.skills.ranged.toFixed(1),'Survival '+h.career.skills.survival.toFixed(1)]);
   $('titles').innerHTML=chipList(h.titles,'No titles yet');
   $('potions').textContent=h.supplies.healing_potion||0;
-  $('weapon').value=h.equipment.weapon||'wood_axe';
-  $('armor').value=h.equipment.armor||'';
+  $('bandages').textContent=h.supplies.field_bandage||0;
+  $('currentWeapon').textContent=(C.EQUIPMENT[h.equipment.weapon]||C.EQUIPMENT.wood_axe).name;
+  $('currentArmor').textContent=h.equipment.armor?(C.EQUIPMENT[h.equipment.armor]?.name||h.equipment.armor):'None';
   $('heroCard').innerHTML='<div><strong>'+h.name+'</strong><span>Rank '+h.career.rank+'</span></div>'+
     '<p>'+Object.entries(h.stats).map(function(kv){return kv[0][0].toUpperCase()+kv[0].slice(1)+' '+kv[1];}).join(' · ')+'</p>'+
     '<small>'+h.traits.join(' · ')+' · Readiness '+C.readinessScore(h).toFixed(0)+'</small>';
@@ -216,8 +279,6 @@ function renderHome(){
 
   document.querySelectorAll('[data-prep]').forEach(function(btn){btn.disabled=expeditionLocked()||!roster.canPrepare(h.id,btn.dataset.prep);});
   $('deploy').disabled=expeditionLocked()||!h.alive;
-  $('weapon').disabled=expeditionLocked();
-  $('armor').disabled=expeditionLocked();
 }
 
 function renderHistoryLog(){
@@ -291,7 +352,6 @@ function settleAndRender(){
 function startExpedition(){
   const h=selected();
   if(!h||expeditionLocked())return;
-  roster.setLoadout(h.id,$('weapon').value,$('armor').value||null);
   exp=roster.startExpedition(h.id,+$('seed').value||1);
   if(!exp)return;
   activeHeroId=h.id; renderedLogs=0; settled=false;
@@ -310,15 +370,13 @@ function closeReport(){
   renderAll();
   saveGame();
 }
-function renderAll(){renderEconomy();renderRoster();renderHome();renderHistoryLog();renderExpedition();}
+function renderAll(){renderEconomy();renderCrafting();renderRoster();renderHome();renderHistoryLog();renderExpedition();}
 
 loadGame();
 renderPrepActions();
 renderAll();
 if(exp&&exp.state!=='deployed')settleAndRender();
 
-$('weapon').addEventListener('change',function(){const h=selected();if(h&&!expeditionLocked()){roster.setLoadout(h.id,$('weapon').value,$('armor').value||null);renderAll();saveGame();}});
-$('armor').addEventListener('change',function(){const h=selected();if(h&&!expeditionLocked()){roster.setLoadout(h.id,$('weapon').value,$('armor').value||null);renderAll();saveGame();}});
 $('deploy').addEventListener('click',startExpedition);
 $('returnHome').addEventListener('click',closeReport);
 $('newTavern').addEventListener('click',function(){localStorage.removeItem(SAVE_KEY);newGame();$('summaryBody').innerHTML='<p>New tavern started.</p>';renderAll();saveGame();});

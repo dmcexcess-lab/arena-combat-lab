@@ -17,6 +17,11 @@ Operational checklist for humans + AIs. Keep compact; add only behaviors whose r
 - Seating and service upgrades improve throughput; kitchen/bar upgrades improve patron value; upgrade costs come from shared tavern funds and insufficient funds cannot mutate state.
 - Tavern economy round-trips with roster persistence, old Slice 3 saves without tavern state migrate to a valid default tavern, and patron income continues even with no living heroes.
 - Tavern revenue and expedition revenue remain additive but mechanically distinct.
+- Slice 5 crafting: recipes consume exact material quantities atomically, advance preparation time and create the correct shared stock output; failed crafts do not mutate state.
+- Stored weapons/armor must transfer from tavern inventory to a hero; replaced equipment returns to stock and crafted equipment changes real readiness/combat stats.
+- Crafted Healing Potions and Field Bandages transfer from stock into capped hero supplies; autonomous Field Bandage use heals and reduces lingering injury in the real combat simulation.
+- Expedition loot settles into the same raw-material stash consumed by recipes; crafting stock/history round-trip through persistence and Slice 4 saves migrate with empty crafting fields.
+- Direct buy_potion preparation is absent pending the merchant slice; no invisible merchant substitute may reappear.
 
 ### Arena
 - Main scene instantiates without script/runtime errors.

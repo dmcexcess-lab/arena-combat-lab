@@ -27,8 +27,8 @@ const doc=aidState.apply('physician'); assert.equal(doc.ok,true); assert.equal(C
 // Insufficient funds cannot mutate condition or time.
 const broke=new C.PreparationState({hero:C.makePreset('unprepared'),funds:0}); const brokeBefore=broke.snapshot(); const denied=broke.apply('hearty_meal'); assert.equal(denied.ok,false); assert.deepStrictEqual(broke.snapshot(),brokeBefore);
 
-// Potion purchase respects a small supply cap and costs funds.
-const potHero=C.makePreset('reckless'); const potState=new C.PreparationState({hero:potHero,funds:30}); assert.equal(potState.hero.supplies.healing_potion,0); assert.equal(potState.apply('buy_potion').ok,true); assert.equal(potState.hero.supplies.healing_potion,1); assert.equal(potState.apply('buy_potion').ok,true); assert.equal(potState.hero.supplies.healing_potion,2); assert.equal(potState.apply('buy_potion').ok,false);
+// Direct invisible potion purchasing is retired in Slice 5; potions come from crafting stock until merchants exist.
+const potHero=C.makePreset('reckless'); const potState=new C.PreparationState({hero:potHero,funds:30}); assert.equal(potState.hero.supplies.healing_potion,0); assert.equal(potState.apply('buy_potion').ok,false); assert.equal(potState.hero.supplies.healing_potion,0);
 
 // Surviving expedition condition and injuries carry home; expedition gold/materials bank once.
 let survivor=null;

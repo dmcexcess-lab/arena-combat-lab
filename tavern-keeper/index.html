@@ -3,12 +3,12 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-  <title>Tavern Keeper — Slice 4</title>
+  <title>Tavern Keeper — Slice 5</title>
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
 <header>
-  <div><h1>Tavern Keeper</h1><p>Slice 4 — Tavern Economy</p></div>
+  <div><h1>Tavern Keeper</h1><p>Slice 5 — Loot &amp; Crafting</p></div>
   <div class="top-stats">
     <div><span>Tavern funds</span><strong id="funds">0.0g</strong></div>
     <div><span>Tavern g/s</span><strong id="tavernGps">0.00</strong></div>
@@ -48,6 +48,23 @@
     <div id="tavernUpgrades" class="upgrade-grid"></div>
   </section>
 
+  <section class="panel crafting-panel">
+    <div class="section-title"><h2>Workshop &amp; Stash</h2><span class="status">CRAFTING</span></div>
+    <div class="craft-layout">
+      <div>
+        <h3>Recovered Materials</h3>
+        <div id="materialStash" class="stash-grid"></div>
+        <h3>Crafted / Stored Items</h3>
+        <div id="itemStock" class="stock-list"></div>
+      </div>
+      <div>
+        <h3>Recipes</h3>
+        <div id="recipeList" class="recipe-list"></div>
+      </div>
+    </div>
+    <div id="craftLog" class="craft-log"></div>
+  </section>
+
   <aside class="panel roster-panel">
     <div class="section-title"><h2>Hero Roster</h2><span id="rosterCount" class="status">0 alive</span></div>
     <div id="heroRoster" class="hero-roster"></div>
@@ -83,11 +100,13 @@
     <div id="prepActions" class="prep-actions"></div>
 
     <h3>Loadout</h3>
-    <div class="grid-2">
-      <label>Weapon<select id="weapon"><option value="rusty_sword">Rusty Sword</option><option value="hunting_bow">Hunting Bow</option><option value="wood_axe">Wood Axe</option></select></label>
-      <label>Armor<select id="armor"><option value="padded_armor">Padded Armor</option><option value="leather_armor">Leather Armor</option><option value="">None</option></select></label>
+    <div class="loadout-grid">
+      <div><span>Weapon</span><strong id="currentWeapon">—</strong></div>
+      <div><span>Armor</span><strong id="currentArmor">—</strong></div>
+      <div><span>Healing potions</span><strong id="potions">0</strong></div>
+      <div><span>Field bandages</span><strong id="bandages">0</strong></div>
     </div>
-    <div class="supply-row"><span>Healing potions</span><strong id="potions">0</strong></div>
+    <small class="loadout-note">Equip crafted/stored gear and give consumables from Workshop &amp; Stash.</small>
 
     <div class="contract-card"><div><h3>Rats Below Greymill</h3><span class="threat">Threat 2</span></div><p>Clear the infestation beneath Greymill.</p><small>Any living hero may deploy. Threat remains advisory.</small></div>
     <label>Seed <input id="seed" type="number" value="42" min="1"></label>

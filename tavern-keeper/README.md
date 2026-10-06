@@ -1,6 +1,6 @@
-# Tavern Keeper — Slice 4: Tavern Economy
+# Tavern Keeper — Slice 5: Loot & Crafting
 
-A standalone browser prototype combining autonomous hero contracts with a persistent tavern that now earns its own stable income by actually serving patrons.
+A standalone browser prototype where autonomous heroes bring materials back to a persistent tavern, and those materials now become real equipment and supplies through crafting.
 
 ## Run
 
@@ -14,7 +14,7 @@ python3 -m http.server 8000
 
 Then open `http://localhost:8000`.
 
-The browser build auto-saves roster, fallen heroes, active expedition state and the live tavern economy to localStorage.
+The browser build auto-saves the roster, active expedition, tavern economy, raw-material stash, crafted/stored item inventory and craft history to localStorage.
 
 ## Tests
 
@@ -23,47 +23,51 @@ node tests/test_core.js
 node tests/test_preparation.js
 node tests/test_roster.js
 node tests/test_tavern.js
+node tests/test_crafting.js
 ```
 
-## Slice 4
+## Slice 5
 
-- Patron arrivals are simulated instead of paying a flat passive rate.
-- Patrons take seats, queue when full, order food/drink, wait for service, pay and linger before leaving.
-- Tavern income is constrained by arrival rate, seating and service capacity.
-- Projected tavern gold/sec describes the current steady-state service configuration; rolling gold/sec shows recent realized sales.
-- Seating upgrades add seats; Service upgrades increase throughput; Kitchen and Bar upgrades increase order value.
-- Patron overflow can walk away when both seats and queue are saturated.
-- Patron revenue deposits into the same shared funds used for hero preparation and tavern upgrades.
-- Hero expedition income remains independently performance-driven, so stable home income and risky field income are visible as different systems.
-- The tavern keeps serving in real time while a contract runs or the hero simulation is paused.
-- Tavern RNG, active patrons, queue, upgrade levels, revenue and counters persist through browser refresh.
+- Recovered contract loot feeds a visible shared raw-material stash.
+- Four compact recipes are authoritative in `CRAFT_RECIPES`: Scrap Spear, Plated Vest, Healing Potion and Field Bandages.
+- Recipes consume exact materials and preparation time; insufficient materials fail without partial consumption.
+- Crafted outputs enter shared tavern item stock.
+- Stored weapons/armor must be transferred to a hero to equip them; the replaced item returns to stock.
+- The old free weapon/armor dropdown is gone from the player flow.
+- Crafted consumables must be handed from stock to a hero and obey carrying caps.
+- Field Bandages are autonomously used by wounded heroes and can reduce lingering injury.
+- Scrap Spear / Plated Vest use the live combat equipment catalog, so crafting changes actual readiness and combat.
+- Direct invisible potion purchasing is retired. Merchant purchasing arrives in Slice 6 instead of being faked now.
+- Craft stock/history migrate and persist with the existing Slice 3/4 browser save.
 
 ## Retained foundations
 
-- Slice 1: autonomous contract AI, combat, readable decisions, threat ratings, partial rewards and performance gold/sec.
-- Slice 2: persistent health/hunger/fatigue/morale, injuries, meals/rest/treatment and preparation tradeoffs.
-- Slice 3: multiple persistent heroes, XP/rank/skills, traits/titles, career history, permanent-death archive and deterministic mid-expedition resume.
+- Slice 1: autonomous contracts, readable AI, combat, partial rewards and performance gold/sec.
+- Slice 2: needs/moodlets, injuries, tavern preparation and treatment.
+- Slice 3: persistent multi-hero careers, progression, death archive and deterministic resume.
+- Slice 4: live patron service economy and stable tavern income.
 
 ## Architecture
 
-`core.js` remains the authoritative domain layer.
+`core.js` remains the single gameplay authority.
 
-- `Expedition` owns autonomous contract state.
-- `PreparationState` owns one-hero tavern preparation.
-- `TavernRoster` owns living/fallen heroes plus shared resources and settlement.
-- `TavernEconomy` owns patrons, seats, service flow, food/drink revenue and tavern upgrades.
-- `app.js` owns browser rendering, timers and localStorage only.
+- `EQUIPMENT` defines live gear/consumable mechanics.
+- `CRAFT_RECIPES` defines crafting inputs/outputs.
+- `Expedition` owns autonomous field behavior.
+- `PreparationState` owns hero preparation.
+- `TavernEconomy` owns patron service/income.
+- `TavernRoster` owns heroes, shared funds/materials, crafted item stock, crafting, settlement and persistence.
+- `app.js` renders those systems and localStorage state without duplicating crafting rules.
 
 ## Known limitations
 
-- One active expedition at a time.
-- No actual food/drink inventory or crafting consumption yet.
-- Tavern patron archetypes and service are intentionally compact.
-- Preparation time and live tavern time are separate clocks for now.
+- Four recipes only; no recipe discovery or craft skill progression yet.
+- No merchant/shop system yet.
+- No durability/repair loop.
+- Assigned equipment currently remains with a dead hero rather than being automatically recovered.
+- One active expedition and one contract testbed.
 - No offline progression yet.
-- Fixed starter roster; recruitment comes later.
-- One contract remains the content testbed.
 
-## Next Operation (Slice 5)
+## Next Operation (Slice 6)
 
-Build **Loot & Crafting**: make recovered materials useful through a deliberately compact recipe/equipment/consumable system, integrated with the shared tavern inventory and existing hero loadouts.
+Build **Merchants & Procurement**: visiting merchants with rotating stock, gold-based purchases of ordinary gear/materials/consumables, and merchant quality that improves with tavern development while remaining complementary to crafting.

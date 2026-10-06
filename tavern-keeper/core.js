@@ -29,7 +29,17 @@
     wood_axe:{id:'wood_axe',name:'Wood Axe',slot:'weapon',kind:'melee',damage:5,range:0,defense:0,weight:1},
     padded_armor:{id:'padded_armor',name:'Padded Armor',slot:'armor',kind:'armor',damage:0,range:0,defense:2,weight:2},
     leather_armor:{id:'leather_armor',name:'Leather Armor',slot:'armor',kind:'armor',damage:0,range:0,defense:3,weight:2},
-    healing_potion:{id:'healing_potion',name:'Healing Potion',slot:'consumable',kind:'potion',heal:28}
+    healing_potion:{id:'healing_potion',name:'Healing Potion',slot:'consumable',kind:'potion',heal:28,crafted:true},
+    field_bandage:{id:'field_bandage',name:'Field Bandage',slot:'consumable',kind:'bandage',heal:14,injuryRelief:1,crafted:true},
+    scrap_spear:{id:'scrap_spear',name:'Scrap Spear',slot:'weapon',kind:'melee',damage:9,range:0,defense:0,weight:1,crafted:true},
+    plated_vest:{id:'plated_vest',name:'Plated Vest',slot:'armor',kind:'armor',damage:0,range:0,defense:4,weight:3,crafted:true}
+  };
+
+  const CRAFT_RECIPES = {
+    scrap_spear:{id:'scrap_spear',name:'Scrap Spear',category:'weapon',output:'scrap_spear',outputCount:1,minutes:45,materials:{scrap_iron:3,rat_tail:1},description:'A stronger melee weapon built from recovered metal and tough binding.'},
+    plated_vest:{id:'plated_vest',name:'Plated Vest',category:'armor',output:'plated_vest',outputCount:1,minutes:55,materials:{scrap_iron:3,rat_tail:2},description:'Improvised plates reinforce a travel vest for better protection.'},
+    healing_potion:{id:'healing_potion',name:'Healing Potion',category:'consumable',output:'healing_potion',outputCount:1,minutes:30,materials:{medicinal_herb:2,strange_gland:1},description:'A strong emergency potion heroes can use autonomously in combat.'},
+    field_bandage:{id:'field_bandage',name:'Field Bandages',category:'consumable',output:'field_bandage',outputCount:2,minutes:20,materials:{medicinal_herb:2,rat_tail:1},description:'Two compact dressings for moderate wounds and lingering injuries.'}
   };
 
   const INJURY_TYPES = {
@@ -51,8 +61,7 @@
     common_room:{id:'common_room',name:'Unwind',cost:3,minutes:90,description:'Spend time in the common room to restore morale.',apply(h){h.morale=clamp(h.morale+28,0,100);h.fatigue=clamp(h.fatigue-6,0,100);}},
     full_rest:{id:'full_rest',name:'Full Rest',cost:3,minutes:360,description:'Major fatigue and health recovery; time makes the hero hungrier.',apply(h){h.fatigue=clamp(h.fatigue-78,0,100);h.health=clamp(h.health+18,0,h.maxHealth);h.morale=clamp(h.morale+7,0,100);setPrepEffect(h,'good_sleep');}},
     first_aid:{id:'first_aid',name:'First Aid',cost:4,minutes:30,description:'Restore health and reduce one injury by one severity.',apply(h){h.health=clamp(h.health+18,0,h.maxHealth);reduceWorstInjury(h,1);setPrepEffect(h,'patched_up');}},
-    physician:{id:'physician',name:'Physician',cost:12,minutes:90,description:'Expensive treatment: major healing and removes the worst injury.',apply(h){h.health=clamp(h.health+38,0,h.maxHealth);removeWorstInjury(h);setPrepEffect(h,'patched_up');}},
-    buy_potion:{id:'buy_potion',name:'Buy Potion',cost:7,minutes:5,description:'Adds one healing potion, up to two.',canApply(h){return (h.supplies.healing_potion||0)<2;},apply(h){h.supplies.healing_potion=(h.supplies.healing_potion||0)+1;}}
+    physician:{id:'physician',name:'Physician',cost:12,minutes:90,description:'Expensive treatment: major healing and removes the worst injury.',apply(h){h.health=clamp(h.health+38,0,h.maxHealth);removeWorstInjury(h);setPrepEffect(h,'patched_up');}}
   };
 
   const CONTRACT = {
@@ -158,7 +167,7 @@
       maxHealth:100, health:100, hunger:20, fatigue:15, morale:65,
       traits:['Cautious','Resourceful'],
       equipment:{weapon:'rusty_sword',armor:'padded_armor'},
-      supplies:{healing_potion:1},
+      supplies:{healing_potion:1,field_bandage:0},
       moodlets:[], injuries:[], prepEffects:[], career:normalizeCareer(), history:[], titles:[],
     };
     const h=JSON.parse(JSON.stringify(base));
@@ -233,7 +242,7 @@
   function gearPower(hero){
     const w=EQUIPMENT[hero.equipment.weapon]||EQUIPMENT.wood_axe;
     const a=EQUIPMENT[hero.equipment.armor]||{defense:0};
-    return (w.damage||0)*1.3 + (a.defense||0)*3 + (hero.supplies.healing_potion||0)*4;
+    return (w.damage||0)*1.3 + (a.defense||0)*3 + (hero.supplies.healing_potion||0)*4 + (hero.supplies.field_bandage||0)*1.5;
   }
 
   function readinessScore(hero){
@@ -382,6 +391,11 @@
         add((1-health)*100,health<0.65?'wounded':'not badly hurt');
         add(h.supplies.healing_potion>0?18:-999,h.supplies.healing_potion>0?'potion available':'no potion');
         if(trait(h,'Resourceful'))add(8,'resourceful');
+      } else if(action==='bandage'){
+        add((1-health)*72,health<0.72?'wounded':'not badly hurt');
+        add(h.supplies.field_bandage>0?15:-999,h.supplies.field_bandage>0?'bandage available':'no bandage');
+        if(totalInjurySeverity(h)>0)add(12,'lingering injury');
+        if(trait(h,'Resourceful'))add(5,'resourceful');
       } else if(action==='fight'){
         add(42,'enemy blocks path'); add(health*20,'current health'); add(h.stats.might+h.stats.finesse,'combat ability');
         if(trait(h,'Brave'))add(16,'brave'); if(trait(h,'Cautious'))add(-6,'cautious'); if(trait(h,'Veteran'))add(4,'veteran'); if(trait(h,'Battle Hardened'))add(5,'battle hardened'); add(-injuryPenalty(h,'retreatPressure')*0.6,'lingering injury');
@@ -433,6 +447,17 @@
       const c=this.currentCombat;if(!c||this.state!=='deployed')return;
       const spec=ENEMIES[c.enemyId],h=this.hero,w=weapon(h); c.round++;
       deriveMoodlets(h);
+      if(h.health<=68 && h.supplies.field_bandage>0 && (h.supplies.healing_potion<=0 || h.health>45)){
+        const bandage=this.choose(['bandage','fight']);
+        if(bandage.action==='bandage'){
+          const item=EQUIPMENT.field_bandage; h.supplies.field_bandage--; const before=h.health;
+          h.health=clamp(h.health+item.heal+Math.floor(h.stats.wits/2),0,h.maxHealth);
+          if(item.injuryRelief)reduceWorstInjury(h,item.injuryRelief);
+          this.addLog(`${h.name} used a field bandage (${Math.round(before)} → ${Math.round(h.health)} HP).`,'decision',bandage.reasons);
+          this.bumpRate(0.01,'field treatment');
+          return;
+        }
+      }
       if(h.health<=48 && h.supplies.healing_potion>0){
         const heal=this.choose(['heal','fight']);
         if(heal.action==='heal'){
@@ -712,10 +737,10 @@
   }
 
   class TavernRoster {
-    constructor({heroes=starterRoster(),fallen=[],funds=30,materials={},prepMinutes=0,selectedHeroId=null,history=[],settledKeys=[],tavern=null}={}){
+    constructor({heroes=starterRoster(),fallen=[],funds=30,materials={},inventory={},craftHistory=[],prepMinutes=0,selectedHeroId=null,history=[],settledKeys=[],tavern=null}={}){
       this.heroes=heroes.map(h=>heroTemplate(h)).filter(h=>h.alive);
       this.fallen=clone(fallen||[]);
-      this.funds=Number(funds)||0; this.materials=clone(materials||{}); this.prepMinutes=Number(prepMinutes)||0;
+      this.funds=Number(funds)||0; this.materials=clone(materials||{}); this.inventory=clone(inventory||{}); this.craftHistory=clone(craftHistory||[]); this.prepMinutes=Number(prepMinutes)||0;
       this.history=clone(history||[]); this.settledExpeditions=new Set(settledKeys||[]);
       this.selectedHeroId=selectedHeroId&&this.heroes.some(h=>h.id===selectedHeroId)?selectedHeroId:(this.heroes[0]?.id||null);
       this.tavern=TavernEconomy.fromSnapshot(tavern);
@@ -733,6 +758,50 @@
       this.funds-=cost;
       this.tavern.upgrade(id);
       return{ok:true,cost,projectedGoldRate:this.tavern.projectedGoldRate()};
+    }
+    itemCount(itemId){ return Math.max(0,Number(this.inventory[itemId])||0); }
+    materialCount(materialId){ return Math.max(0,Number(this.materials[materialId])||0); }
+    canCraft(recipeId,count=1){
+      const recipe=CRAFT_RECIPES[recipeId]; count=Math.max(1,Math.floor(count));
+      if(!recipe)return false;
+      return Object.entries(recipe.materials).every(([id,n])=>this.materialCount(id)>=n*count);
+    }
+    craft(recipeId,count=1){
+      const recipe=CRAFT_RECIPES[recipeId]; count=Math.max(1,Math.floor(count));
+      if(!recipe)return{ok:false,reason:'unknown recipe'};
+      if(!this.canCraft(recipeId,count))return{ok:false,reason:'insufficient materials'};
+      for(const [id,n] of Object.entries(recipe.materials))this.materials[id]=this.materialCount(id)-n*count;
+      const made=recipe.outputCount*count;
+      this.inventory[recipe.output]=this.itemCount(recipe.output)+made;
+      this.prepMinutes+=recipe.minutes*count;
+      const event={recipeId,name:recipe.name,count,made,output:recipe.output,minutes:recipe.minutes*count,materials:clone(recipe.materials)};
+      this.craftHistory.push(event); if(this.craftHistory.length>50)this.craftHistory=this.craftHistory.slice(-50);
+      return{ok:true,event};
+    }
+    equipInventoryItem(heroId,itemId){
+      const h=this.getHero(heroId),item=EQUIPMENT[itemId];
+      if(!h||!h.alive)return{ok:false,reason:'hero unavailable'};
+      if(!item||!['weapon','armor'].includes(item.slot))return{ok:false,reason:'not equippable'};
+      if(this.itemCount(itemId)<1)return{ok:false,reason:'item not in tavern stock'};
+      const previous=h.equipment[item.slot]||null;
+      this.inventory[itemId]=this.itemCount(itemId)-1;
+      if(previous)this.inventory[previous]=this.itemCount(previous)+1;
+      h.equipment[item.slot]=itemId;
+      deriveMoodlets(h);
+      return{ok:true,itemId,previous,slot:item.slot};
+    }
+    giveConsumable(heroId,itemId,count=1){
+      const h=this.getHero(heroId),item=EQUIPMENT[itemId]; count=Math.max(1,Math.floor(count));
+      if(!h||!h.alive)return{ok:false,reason:'hero unavailable'};
+      if(!item||item.slot!=='consumable')return{ok:false,reason:'not a consumable'};
+      if(this.itemCount(itemId)<count)return{ok:false,reason:'insufficient stock'};
+      const cap=itemId==='healing_potion'?3:4;
+      const current=Math.max(0,Number(h.supplies[itemId])||0);
+      const moved=Math.min(count,cap-current);
+      if(moved<=0)return{ok:false,reason:'hero supply full'};
+      this.inventory[itemId]=this.itemCount(itemId)-moved;
+      h.supplies[itemId]=current+moved;
+      return{ok:true,moved,itemId};
     }
     getHero(id=this.selectedHeroId){ return this.heroes.find(h=>h.id===id)||null; }
     selectHero(id){ if(this.heroes.some(h=>h.id===id)){this.selectedHeroId=id;return true;}return false; }
@@ -780,7 +849,7 @@
       return{ok:true,banked:expedition.gold,heroAlive:updated.alive,record};
     }
     snapshot(){
-      return{version:4,heroes:clone(this.heroes),fallen:clone(this.fallen),funds:this.funds,materials:clone(this.materials),prepMinutes:this.prepMinutes,selectedHeroId:this.selectedHeroId,history:clone(this.history),settledKeys:Array.from(this.settledExpeditions),tavern:this.tavern.snapshot()};
+      return{version:5,heroes:clone(this.heroes),fallen:clone(this.fallen),funds:this.funds,materials:clone(this.materials),inventory:clone(this.inventory),craftHistory:clone(this.craftHistory),prepMinutes:this.prepMinutes,selectedHeroId:this.selectedHeroId,history:clone(this.history),settledKeys:Array.from(this.settledExpeditions),tavern:this.tavern.snapshot()};
     }
     serialize(){ return JSON.stringify(this.snapshot()); }
     static fromSnapshot(data){
@@ -790,5 +859,5 @@
     static deserialize(text){ return TavernRoster.fromSnapshot(JSON.parse(text)); }
   }
 
-  return {RNG,EQUIPMENT,INJURY_TYPES,PREP_EFFECTS,PREPARATION_ACTIONS,CONTRACT,ENEMIES,MATERIAL_NAMES,PATRON_TYPES,heroTemplate,normalizeCareer,rankFromXp,applyCareerProgress,starterRoster,deriveMoodlets,totalInjurySeverity,addInjury,reduceWorstInjury,removeWorstInjury,readinessScore,threatAssessment,PreparationState,TavernEconomy,TavernRoster,Expedition,makePreset};
+  return {RNG,EQUIPMENT,CRAFT_RECIPES,INJURY_TYPES,PREP_EFFECTS,PREPARATION_ACTIONS,CONTRACT,ENEMIES,MATERIAL_NAMES,PATRON_TYPES,heroTemplate,normalizeCareer,rankFromXp,applyCareerProgress,starterRoster,deriveMoodlets,totalInjurySeverity,addInjury,reduceWorstInjury,removeWorstInjury,readinessScore,threatAssessment,PreparationState,TavernEconomy,TavernRoster,Expedition,makePreset};
 });

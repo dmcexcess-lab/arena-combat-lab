@@ -2,6 +2,17 @@
 
 Current truth: `PROJECT_CONTEXT.md` · Future: `ROADMAP.md`
 
+## 2026-10-05 — Tavern Keeper Slice 5: Loot & Crafting
+- Added an authoritative compact crafting catalog using the materials already recovered by contracts.
+- Added Scrap Spear, Plated Vest, Healing Potion and Field Bandages recipes with exact material costs and preparation-time costs.
+- Added persistent shared tavern item stock separate from raw material stash.
+- Equipping stored gear now transfers a real item from tavern stock to the selected hero and returns replaced gear to stock; the UI no longer provides free weapon/armor dropdown swapping.
+- Crafted consumables must be transferred from tavern stock into hero supplies with carrying caps.
+- Added autonomous Field Bandage use in combat; bandages heal moderate wounds and reduce a lingering injury.
+- Retired the direct invisible Buy Potion preparation shortcut so potions now come from crafting until merchant procurement is implemented.
+- Craft inventory/history now persists and old Slice 4 saves migrate with empty crafting stock.
+- Added test_crafting.js and wired it into the Pages CI gate.
+
 ## 2026-10-05 — Tavern Keeper Slice 4: Tavern Economy
 - Added a real patron-service economy to the persistent tavern state instead of a synthetic flat gold timer.
 - Patrons deterministically arrive, take limited seats or queue, order food/drink, consume service capacity, pay, linger and leave; overflow patrons can walk away.

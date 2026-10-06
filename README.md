@@ -4,7 +4,7 @@
 
 **Play the current web alpha:** https://dmcexcess-lab.github.io/arena-combat-lab/
 
-**Play Tavern Keeper — Slice 4:** https://dmcexcess-lab.github.io/arena-combat-lab/tavern-keeper/
+**Play Tavern Keeper — Slice 5:** https://dmcexcess-lab.github.io/arena-combat-lab/tavern-keeper/
 
 ## The game
 
