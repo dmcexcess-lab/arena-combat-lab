@@ -116,7 +116,8 @@ assert.ok(runs.get(live.entry.id));
 // Independent income continues accumulating only for running entries.
 runs.setSpeed(live.entry.id,4);
 const liveGold0=live.entry.expedition.gold;
-for(let i=0;i<3&&live.entry.expedition.state==='deployed';i++)runs.tickAll();
+const ticksToReward=Math.ceil(C.contractActionInterval(live.entry.expedition.contract)/4)+1;
+for(let i=0;i<ticksToReward&&live.entry.expedition.state==='deployed';i++)runs.tickAll();
 assert.ok(live.entry.expedition.gold>liveGold0);
 
 // Save/resume preserves active + completed reports, speeds, settlement status and selected focus.
