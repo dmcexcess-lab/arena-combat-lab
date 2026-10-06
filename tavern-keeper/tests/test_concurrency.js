@@ -76,7 +76,8 @@ runs.markSettled(s1.entry.id,r1);
 runs.markSettled(s2.entry.id,r2);
 runs.markSettled(s3.entry.id,r3);
 
-assert.equal(settlementRoster.funds,23.25);
+const mixedFunds=r1.banked+r2.banked+r3.banked;
+assert.equal(settlementRoster.funds,mixedFunds);
 assert.equal(settlementRoster.getHero('edrin').career.contracts,1);
 assert.equal(settlementRoster.getHero('mara').career.contracts,1);
 assert.equal(settlementRoster.getHero('borin'),null);
@@ -97,7 +98,7 @@ const repeatSettle=settlementRoster.settle('edrin',repeat.entry.expedition,repea
 assert.equal(repeatSettle.ok,true);
 runs.markSettled(repeat.entry.id,repeatSettle);
 assert.equal(settlementRoster.getHero('edrin').career.contracts,2);
-assert.equal(settlementRoster.funds,35.75);
+assert.equal(settlementRoster.funds,mixedFunds+repeatSettle.banked);
 
 // Reusing the same persistent expedition ID is still blocked as a duplicate settlement.
 const duplicateSettle=settlementRoster.settle('edrin',repeat.entry.expedition,repeat.entry.id);
@@ -137,7 +138,7 @@ assert.deepStrictEqual(legacyManager.get().expedition.snapshot(),legacyExp.snaps
 console.log('PASS concurrency',JSON.stringify({
   initialConcurrent:3,
   independentElapsed:[a.entry.expedition.elapsed,b.entry.expedition.elapsed,c.entry.expedition.elapsed],
-  mixedFunds:23.25,
+  mixedFunds:Number(mixedFunds.toFixed(2)),
   repeatCareer:settlementRoster.getHero('edrin').career.contracts,
   activeAfterSettlement:runs.activeEntries().length,
   legacyContract:legacyManager.get().expedition.contract.id

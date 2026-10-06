@@ -1,20 +1,19 @@
-# Tavern Keeper — Slice 10: Concurrent Expeditions & Hero Assignment
+# Tavern Keeper — Slice 11: Objective Mechanics & Partial Contract Scoring
 
-Heroes can now be assigned to independent contracts simultaneously while the tavern continues operating.
+Contracts are now mechanically different mini-RPGs with visible sub-objectives and paid partial success.
 
-## Slice 10
+## Slice 11
 
-- Deploy multiple different living heroes at once.
-- One hero cannot occupy more than one unsettled expedition.
-- Every expedition has its own persistent contract, RNG state, condition, gold, progress, speed and outcome.
-- Pause/1×/4×/12× is per expedition rather than global.
-- Expedition tabs let you inspect and control one run while all other unpaused runs continue.
-- Non-deployed heroes remain available for tavern preparation, equipment, maintenance and new assignments.
-- Tavern patrons, merchants and applicants continue operating independently.
-- Each completed expedition settles into the correct hero career/Fallen state and shared tavern economy.
-- Persistent expedition IDs prevent payout collisions when a hero later repeats an identical deterministic contract and seed.
-- Completed reports can be closed individually without disturbing other expeditions.
-- Existing Slice 9 single-expedition saves migrate into the new manager.
+- **Hunt:** track the wolf pack, cull quarry, clear the den.
+- **Extermination:** reach the infestation, kill vermin, destroy the main nest.
+- **Escort:** protect checkpoints and preserve caravan integrity; the caravan can be destroyed while the hero survives.
+- **Delve:** discover deep chambers, find missing miners and rescue as many as possible.
+- **Boss Hunt:** reach the bridge, earn credit at boss-damage milestones and kill the designated bridge troll.
+- Every sub-objective immediately pays a small gold bonus and raises performance gold/sec.
+- Retreat, failure or death keeps all objective rewards already earned.
+- Successful contracts finish at 100 objective score.
+- Objective state, score, events and bonus gold persist across saves and concurrent expeditions.
+- The expedition UI shows live objective state and the final report itemizes exactly what paid.
 
 ## Run
 
@@ -33,8 +32,9 @@ node tests/test_contracts.js
 node tests/test_recruitment.js
 node tests/test_durability.js
 node tests/test_concurrency.js
+node tests/test_objectives.js
 ```
 
-## Next Operation (Slice 11)
+## Next Operation (Slice 12)
 
-Build **Objective Mechanics & Partial Contract Scoring** so Hunt, Extermination, Escort, Delve and Boss Hunt contracts differ mechanically instead of only through route/enemy data, with explicit sub-objectives and granular paid-failure results.
+Build **Tavern Facilities & Preparation Depth** so home upgrades directly improve meals, rest, morale, treatment and maintenance outcomes and therefore materially change contract readiness.

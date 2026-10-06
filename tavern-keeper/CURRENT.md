@@ -1,27 +1,27 @@
 # CURRENT — Tavern Keeper
 
 ## Current slice
-Slice 10 — Concurrent Expeditions & Hero Assignment
+Slice 11 — Objective Mechanics & Partial Contract Scoring
 
 ## Status
-Implemented as a standalone browser vertical slice on top of the persistent tavern, contract ladder, durability/maintenance, crafting, merchants, recruitment and permanent hero careers.
+Implemented as a standalone browser vertical slice on top of concurrent autonomous expeditions, persistent hero careers, tavern economy, crafting, merchants, recruitment and equipment durability.
 
 ## Core rules implemented
-- `ExpeditionManager` is the authoritative multi-expedition field layer.
-- Multiple different living heroes may be deployed at the same time, including to different contracts and threat levels.
-- Every expedition has a persistent unique ID, assigned hero, independent RNG/simulation state, speed, income, hero condition, contract progress, outcome and settlement/report state.
-- A hero cannot be deployed twice and remains assigned until their current expedition is settled.
-- Each expedition independently supports Pause, 1×, 4× and 12× simulation speed.
-- Selecting one expedition only changes the detailed viewer/control focus; all other unpaused expeditions continue simulating.
-- The tavern economy, merchants and applicants continue on the live tavern clock while expeditions run.
-- Non-deployed heroes remain selectable and can be fed, rested, treated, repaired, equipped, supplied and assigned to additional contracts.
-- Contract-board selection remains available while other expeditions are active.
-- Completed expeditions settle independently into shared gold/materials and the correct hero's career, injuries, durability or Fallen record.
-- Persistent expedition IDs are used for settlement identity, so deterministic repeat runs by the same hero/contract/seed can pay correctly while the same expedition cannot pay twice.
-- Resolved settled reports may remain visible until individually closed; closing one report never affects other active/completed expeditions.
-- Browser save version 3 persists the full ExpeditionManager state.
-- Slice 9 single-expedition browser saves migrate into one managed expedition entry without changing the expedition snapshot.
-- All Slice 1–9 systems remain authoritative.
+- Every contract exposes explicit `subObjectives` and `objectiveRules` in the authoritative contract catalog.
+- Every expedition owns a persistent objective scorecard: objective score/max, objective state, completed objective events, objective awards and objective bonus gold.
+- Sub-objectives immediately add banked gold and increase the existing performance gold/sec rate. Their value survives retreat, ordinary failure and hero death.
+- Successful contracts close the objective scorecard at 100 without erasing granular objective history.
+- Hunt: finding the pack trail, culling wolves up to the target and clearing the den are separately scored.
+- Extermination: reaching the infestation, culling vermin up to the target and destroying the main nest are separately scored.
+- Escort: checkpoint protection is scored and caravan integrity is a live objective resource. Enemy pressure can destroy the caravan and produce a contract `failure` while the hero remains alive.
+- Delve: deep-location discoveries, finding missing miners and the number of miners rescued are separately scored. Rescue count uses the hero's Wits + Survival capability.
+- Boss Hunt: only the designated Wren Bridge boss counts for boss-damage scoring; 25/50/75% damage milestones and the boss kill pay independently. The optional lair troll does not falsely complete the boss objective.
+- Career XP uses the better of route progress or objective score so meaningful partial objective performance is recognized.
+- Expedition summary/report UI shows objective score, objective-specific live state, objective bonus gold and each paid sub-objective event.
+- Expedition snapshot version 4 persists objective state/events/awards/bonus gold.
+- Slice 10 expedition snapshots without objective fields migrate safely using existing route progress as initial score.
+- Concurrent expeditions independently maintain and settle their own scorecards.
+- All Slice 1–10 systems remain authoritative.
 
 ## Tests
 Run:
@@ -37,17 +37,19 @@ node tests/test_contracts.js
 node tests/test_recruitment.js
 node tests/test_durability.js
 node tests/test_concurrency.js
+node tests/test_objectives.js
 ```
 
 ## Known limitations
-- Contract types still share the same generic route/encounter engine; Escort/Delve/Boss Hunt labels are not yet distinct objective simulations.
-- Concurrent expeditions are solo-hero assignments; party contracts are not implemented.
-- Applicants arrive one at a time with no negotiation/reputation layer.
+- The contract catalog remains five authored contracts rather than a rotating/generated board.
+- Escort cargo/caravan is modeled as integrity rather than individual escorted NPC actors.
+- Delve rescue resolves rescued-miner count at the rescue encounter rather than simulating each miner as an actor.
+- Concurrent expeditions remain solo-hero assignments; party contracts are not implemented.
+- Tavern upgrades mostly affect revenue and visitor quality; preparation actions do not yet scale deeply with facilities.
 - Crafting remains four recipes with no craft skill progression.
 - Merchants have no haggling/reputation.
-- Repairs use generic Scrap Iron rather than item-specific maintenance recipes.
 - Preparation minutes and live tavern seconds remain separate clocks.
 - Offline progression is not implemented.
 
 ## NEXT OPERATION
-Slice 11 — Objective Mechanics & Partial Contract Scoring: make Hunt, Extermination, Escort, Delve and Boss Hunt contracts mechanically distinct with explicit sub-objectives and granular partial-success rewards while preserving autonomous hero decision-making and paid failure.
+Slice 12 — Tavern Facilities & Preparation Depth: make Kitchen, Bar/Commons, lodging/rest and treatment/maintenance quality materially change hero preparation outcomes and readiness, so the stable tavern progression loop directly improves contract performance rather than only income and visitor quality.

@@ -47,6 +47,11 @@ Operational checklist for humans + AIs. Keep compact; add only behaviors whose r
 - Mixed concurrent success/retreat/death outcomes settle independently into the correct hero career/fallen state and additive shared funds/materials.
 - Persistent expedition IDs make identical repeat hero/contract/seed runs settle separately while duplicate settlement of the same expedition ID remains blocked.
 - Multi-expedition manager state round-trips active/completed entries, focus, speed and settlement state; the old single-expedition snapshot can be wrapped without changing expedition state.
+- Slice 11 objectives: every contract exposes explicit sub-objectives/rules and each kind produces distinct objective state rather than only route labels.
+- Hunt scores trail/quarry/den progress; Extermination scores infestation/vermin/nest progress; Escort scores checkpoints and caravan integrity; Delve scores discoveries/miner rescue; Boss Hunt scores designated-boss damage milestones and kill.
+- Escort caravan destruction can end the contract as failure while the hero remains alive; earlier checkpoint rewards remain banked.
+- Sub-objective gold and performance-rate rewards remain in the expedition total on retreat/failure/death; success closes objective score at 100 without erasing prior events.
+- Objective state/events/bonus gold persist through snapshot/restore; Slice 10 snapshots without objective fields migrate from route progress.
 
 ### Arena
 - Main scene instantiates without script/runtime errors.

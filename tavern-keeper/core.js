@@ -102,7 +102,7 @@
     briar_farm_wolves:{
       id:'briar_farm_wolves',name:'Wolves at Briar Farm',threat:1,kind:'Hunt',
       objective:'Drive the wolf pack away from Briar Farm.',brief:'A short rural hunt with modest danger and dependable herbs.',
-      incomeMult:0.82,materialProfile:['medicinal_herb','scrap_iron'],start:'farm_gate',
+      incomeMult:0.82,materialProfile:['medicinal_herb','scrap_iron'],start:'farm_gate',subObjectives:['Pick up the pack trail','Cull up to 5 wolves','Clear the wolf den'],objectiveRules:{quarryEnemy:'wolf',killTarget:5,trailLocation:'sheep_pens',lairLocation:'den'},
       locations:{
         farm_gate:{id:'farm_gate',name:'Farm Gate',progress:10,next:['sheep_pens'],encounter:null,materials:[['medicinal_herb',0.45]]},
         sheep_pens:{id:'sheep_pens',name:'Sheep Pens',progress:20,next:['orchard','tree_line'],encounter:{enemy:'wolf',count:[1,2]},materials:[['medicinal_herb',0.45],['scrap_iron',0.2]]},
@@ -115,7 +115,7 @@
     greymill_rats:{
       id:'greymill_rats',name:'Rats Below Greymill',threat:2,kind:'Extermination',
       objective:'Clear the infestation beneath Greymill.',brief:'A branching cellar infestation with useful alchemical salvage.',
-      incomeMult:1,materialProfile:['rat_tail','medicinal_herb','scrap_iron','strange_gland'],start:'entrance',
+      incomeMult:1,materialProfile:['rat_tail','medicinal_herb','scrap_iron','strange_gland'],start:'entrance',subObjectives:['Reach the infestation','Cull up to 8 vermin','Destroy the main nest'],objectiveRules:{verminEnemies:['giant_rat','dire_rat'],killTarget:8,infestationLocation:'cellar',nestLocation:'nest'},
       locations:{
         entrance:{id:'entrance',name:'Mill Entrance',progress:8,next:['cellar'],encounter:null,materials:[['scrap_iron',0.35]]},
         cellar:{id:'cellar',name:'Storage Cellar',progress:18,next:['pantry','flooded'],encounter:{enemy:'giant_rat',count:[2,3]},materials:[['rat_tail',0.6],['medicinal_herb',0.25]]},
@@ -129,7 +129,7 @@
     ashroad_caravan:{
       id:'ashroad_caravan',name:'Ashroad Caravan',threat:3,kind:'Escort',
       objective:'Break the ambushes and get the caravan through Ashroad.',brief:'A longer escort through repeated human ambushes and a risky ravine shortcut.',
-      incomeMult:1.28,materialProfile:['scrap_iron','medicinal_herb'],start:'west_marker',
+      incomeMult:1.28,materialProfile:['scrap_iron','medicinal_herb'],start:'west_marker',subObjectives:['Survive the first ambush','Get the caravan across the bridge','Reach the last ridge','Preserve caravan integrity'],objectiveRules:{startingIntegrity:100,checkpointLocations:['first_ambush','old_bridge','last_ridge']},
       locations:{
         west_marker:{id:'west_marker',name:'West Mile Marker',progress:8,next:['first_ambush'],encounter:null,materials:[['medicinal_herb',0.3]]},
         first_ambush:{id:'first_ambush',name:'Burned Cart Ambush',progress:18,next:['ravine','wagon_circle'],encounter:{enemy:'bandit',count:[2,3]},materials:[['scrap_iron',0.65],['medicinal_herb',0.25]]},
@@ -143,7 +143,7 @@
     blackroot_mine:{
       id:'blackroot_mine',name:'Blackroot Mine',threat:4,kind:'Delve',
       objective:'Find the missing miners and break the infestation in Blackroot Mine.',brief:'A deep underground contract with dangerous optional chambers and rare glands.',
-      incomeMult:1.58,materialProfile:['strange_gland','scrap_iron','medicinal_herb'],start:'mine_mouth',
+      incomeMult:1.58,materialProfile:['strange_gland','scrap_iron','medicinal_herb'],start:'mine_mouth',subObjectives:['Survey deep mine chambers','Find the missing miners','Rescue as many miners as possible'],objectiveRules:{discoveryLocations:['fungus_cave','collapsed_lift','brood_chamber'],rescueLocation:'miner_gallery',rescueMax:3},
       locations:{
         mine_mouth:{id:'mine_mouth',name:'Mine Mouth',progress:8,next:['timber_gallery'],encounter:null,materials:[['scrap_iron',0.45]]},
         timber_gallery:{id:'timber_gallery',name:'Timber Gallery',progress:16,next:['fungus_cave','lower_tunnel'],encounter:{enemy:'cave_crawler',count:[2,3]},materials:[['medicinal_herb',0.45],['scrap_iron',0.5]]},
@@ -158,12 +158,12 @@
     wren_bridge_troll:{
       id:'wren_bridge_troll',name:'The Wren Bridge Troll',threat:6,kind:'Boss Hunt',
       objective:'Open Wren Bridge by killing the troll that has claimed it.',brief:'A short, brutal boss contract with a dangerous lair detour and the highest income potential.',
-      incomeMult:2.08,materialProfile:['strange_gland','scrap_iron'],start:'roadblock',
+      incomeMult:2.08,materialProfile:['strange_gland','scrap_iron'],start:'roadblock',subObjectives:['Reach Wren Bridge','Wound the bridge troll','Kill the bridge troll'],objectiveRules:{approachLocation:'bridge_approach',bossLocation:'bridge',bossEnemy:'troll'},
       locations:{
         roadblock:{id:'roadblock',name:'Abandoned Roadblock',progress:10,next:['bridge_approach'],encounter:null,materials:[['scrap_iron',0.65]]},
         bridge_approach:{id:'bridge_approach',name:'Bridge Approach',progress:18,next:['troll_lair','bridge'],encounter:{enemy:'raider',count:[1,2]},materials:[['scrap_iron',0.6]]},
-        troll_lair:{id:'troll_lair',name:'Troll Lair',progress:22,next:['bridge'],optional:true,risk:1.0,reward:1.8,encounter:{enemy:'troll',count:[1,1]},materials:[['strange_gland',0.95],['scrap_iron',0.8]]},
-        bridge:{id:'bridge',name:'Wren Bridge',progress:42,next:['resolution'],encounter:{enemy:'troll',count:[1,1]},materials:[['strange_gland',0.85],['scrap_iron',0.7]]},
+        troll_lair:{id:'troll_lair',name:'Troll Lair',progress:22,next:['bridge'],optional:true,risk:1.0,reward:1.8,encounter:{enemy:'troll',count:[1,1],boss:false},materials:[['strange_gland',0.95],['scrap_iron',0.8]]},
+        bridge:{id:'bridge',name:'Wren Bridge',progress:42,next:['resolution'],encounter:{enemy:'troll',count:[1,1],boss:true},materials:[['strange_gland',0.85],['scrap_iron',0.7]]},
         resolution:{id:'resolution',name:'Bridge Open',progress:0,next:[],encounter:null,materials:[]}
       }
     }
@@ -228,7 +228,8 @@
     const c=hero.career, rankBefore=c.rank;
     const oldTraits=hero.traits.slice(), oldTitles=hero.titles.slice();
     const weaponKind=weapon(hero).kind;
-    const xpGained=Math.max(1,Math.round(expedition.objectiveProgress*0.24 + expedition.enemiesDefeated*4 + expedition.areasExplored.length*2 + (expedition.state==='success'?24:0) + (expedition.state==='retreat'?5:0)));
+    const performanceProgress=Math.max(expedition.objectiveProgress,expedition.objectiveScore||0);
+    const xpGained=Math.max(1,Math.round(performanceProgress*0.24 + expedition.enemiesDefeated*4 + expedition.areasExplored.length*2 + (expedition.state==='success'?24:0) + (expedition.state==='retreat'?5:0)));
     const skillGains={melee:0,ranged:0,survival:0};
     skillGains.survival=Math.min(1.1,expedition.areasExplored.length*0.08 + (hero.alive?0.25:0) + expedition.objectiveProgress*0.002);
     if(weaponKind==='ranged')skillGains.ranged=Math.min(1.25,expedition.enemiesDefeated*0.16 + expedition.areasExplored.length*0.04);
@@ -246,7 +247,7 @@
     updateCareerIdentity(hero);
     const record={
       number:c.contracts,contractId:expedition.contract.id,contractName:expedition.contract.name,
-      outcome:expedition.state,seed:expedition.seed,progress:Math.round(expedition.objectiveProgress),
+      outcome:expedition.state,seed:expedition.seed,progress:Math.round(expedition.objectiveProgress),objectiveScore:Math.round(expedition.objectiveScore||0),objectiveBonusGold:Number((expedition.objectiveBonusGold||0).toFixed(2)),
       kills:expedition.enemiesDefeated,gold:Number(expedition.gold.toFixed(2)),peakGoldRate:Number(expedition.peakGoldRate.toFixed(2)),
       xpGained,rankBefore,rankAfter:c.rank,skillGains,
       injuriesAfter:clone(hero.injuries),traitsEarned:hero.traits.filter(x=>!oldTraits.includes(x)),titlesEarned:hero.titles.filter(x=>!oldTitles.includes(x))
@@ -454,11 +455,108 @@
       deriveMoodlets(this.hero);
       this.state='deployed'; this.locationId=contract.start; this.elapsed=0; this.goldRate=0.04+contract.threat*0.005; this.peakGoldRate=this.goldRate; this.gold=0;
       this.enemiesDefeated=0; this.areasExplored=[]; this.objectiveProgress=0; this.materials={}; this.log=[]; this.decisionDebug=[]; this.injuriesSuffered=0;
+      this.objectiveScore=0; this.objectiveMax=100; this.objectiveBonusGold=0; this.objectiveEvents=[]; this.objectiveAwards={};
+      this.objectiveState=this.makeObjectiveState();
       this.currentCombat=null; this.retreatReason=null; this.lastDecision=null; this.gearOutcome=null; this._entered=false; this._resolution=null;
       this.addLog(`Deployed to ${contract.name}.`, 'system');
     }
     addLog(text,type='event',reasons=[]){ this.log.push({time:this.elapsed,text,type,reasons}); if(this.log.length>250)this.log.shift(); }
     addMaterial(id,count=1){ this.materials[id]=(this.materials[id]||0)+count; }
+    makeObjectiveState(){
+      const rules=this.contract.objectiveRules||{};
+      if(this.contract.kind==='Hunt')return{quarryKills:0,killTarget:rules.killTarget||5,trailFound:false,lairCleared:false};
+      if(this.contract.kind==='Extermination')return{verminKills:0,killTarget:rules.killTarget||8,infestationReached:false,nestCleared:false};
+      if(this.contract.kind==='Escort')return{caravanIntegrity:rules.startingIntegrity||100,checkpoints:0,checkpointIds:[]};
+      if(this.contract.kind==='Delve')return{discoveries:0,discoveryIds:[],minersFound:false,minersRescued:0,rescueMax:rules.rescueMax||3};
+      if(this.contract.kind==='Boss Hunt')return{approachReached:false,bossDamage:0,bossMaxHp:ENEMIES[rules.bossEnemy||'troll']?.hp||1,bossKilled:false,damageMilestones:[]};
+      return{};
+    }
+    awardObjective(key,label,points,bonusMult=1){
+      if(this.objectiveAwards[key])return false;
+      const applied=Math.max(0,Math.min(points,this.objectiveMax-this.objectiveScore));
+      if(applied<=0)return false;
+      this.objectiveAwards[key]=true;
+      this.objectiveScore=clamp(this.objectiveScore+applied,0,this.objectiveMax);
+      const bonus=Number((applied*0.08*(this.contract.incomeMult||1)*bonusMult).toFixed(2));
+      this.gold+=bonus; this.objectiveBonusGold+=bonus;
+      this.bumpRate(applied*0.0015,'objective progress');
+      const event={key,label,points:applied,score:this.objectiveScore,bonus};
+      this.objectiveEvents.push(event);
+      this.addLog(`Objective: ${label} (+${applied} score, +${bonus.toFixed(2)}g).`,'objective');
+      return true;
+    }
+    objectiveLocation(loc){
+      const rules=this.contract.objectiveRules||{},id=loc.id;
+      if(this.contract.kind==='Hunt'&&id===rules.trailLocation){
+        this.objectiveState.trailFound=true; this.awardObjective('hunt_trail','Pack trail found',15);
+      }else if(this.contract.kind==='Extermination'&&id===rules.infestationLocation){
+        this.objectiveState.infestationReached=true; this.awardObjective('extermination_reached','Infestation reached',12);
+      }else if(this.contract.kind==='Delve'&&(rules.discoveryLocations||[]).includes(id)&&!this.objectiveState.discoveryIds.includes(id)){
+        this.objectiveState.discoveryIds.push(id); this.objectiveState.discoveries++;
+        this.awardObjective('delve_discovery_'+id,'Surveyed '+loc.name,10);
+      }else if(this.contract.kind==='Boss Hunt'&&id===rules.approachLocation){
+        this.objectiveState.approachReached=true; this.awardObjective('boss_approach','Reached the bridge approach',15);
+      }
+    }
+    objectiveKill(enemyId,combat){
+      const rules=this.contract.objectiveRules||{};
+      if(this.contract.kind==='Hunt'&&enemyId===rules.quarryEnemy&&this.objectiveState.quarryKills<this.objectiveState.killTarget){
+        this.objectiveState.quarryKills++; this.awardObjective('hunt_kill_'+this.objectiveState.quarryKills,'Wolf culled '+this.objectiveState.quarryKills+'/'+this.objectiveState.killTarget,7);
+      }else if(this.contract.kind==='Extermination'&&(rules.verminEnemies||[]).includes(enemyId)&&this.objectiveState.verminKills<this.objectiveState.killTarget){
+        this.objectiveState.verminKills++; this.awardObjective('vermin_kill_'+this.objectiveState.verminKills,'Vermin cleared '+this.objectiveState.verminKills+'/'+this.objectiveState.killTarget,5);
+      }
+      if(this.contract.kind==='Boss Hunt'&&combat?.boss&&enemyId===rules.bossEnemy){
+        this.objectiveState.bossKilled=true; this.awardObjective('boss_killed','Bridge troll killed',35,1.35);
+      }
+    }
+    objectiveDamage(enemyId,damage,combat){
+      const rules=this.contract.objectiveRules||{};
+      if(this.contract.kind!=='Boss Hunt'||!combat?.boss||enemyId!==rules.bossEnemy||damage<=0)return;
+      this.objectiveState.bossDamage+=damage;
+      const pct=clamp(this.objectiveState.bossDamage/Math.max(1,this.objectiveState.bossMaxHp)*100,0,100);
+      for(const mark of [25,50,75]){
+        if(pct>=mark&&!this.objectiveState.damageMilestones.includes(mark)){
+          this.objectiveState.damageMilestones.push(mark);
+          this.awardObjective('boss_damage_'+mark,'Bridge troll wounded to '+mark+'%',10,1.25);
+        }
+      }
+    }
+    objectiveCombatCleared(combat){
+      const rules=this.contract.objectiveRules||{},id=combat?.locationId;
+      if(this.contract.kind==='Hunt'&&id===rules.lairLocation){
+        this.objectiveState.lairCleared=true; this.awardObjective('hunt_lair','Wolf den cleared',30);
+      }else if(this.contract.kind==='Extermination'&&id===rules.nestLocation){
+        this.objectiveState.nestCleared=true; this.awardObjective('extermination_nest','Main nest destroyed',28);
+      }else if(this.contract.kind==='Escort'&&(rules.checkpointLocations||[]).includes(id)&&!this.objectiveState.checkpointIds.includes(id)){
+        this.objectiveState.checkpointIds.push(id); this.objectiveState.checkpoints++;
+        const label=this.contract.locations[id]?.name||'checkpoint';
+        this.awardObjective('escort_checkpoint_'+id,'Caravan secured '+label,20);
+      }else if(this.contract.kind==='Delve'&&id===rules.rescueLocation&&!this.objectiveState.minersFound){
+        this.objectiveState.minersFound=true; this.awardObjective('delve_miners_found','Missing miners found',20);
+        const skill=this.hero.stats.wits+this.hero.career.skills.survival;
+        let rescued=1+(skill>=8?1:0)+(skill>=13?1:0);
+        rescued=Math.min(this.objectiveState.rescueMax,rescued);
+        this.objectiveState.minersRescued=rescued;
+        for(let i=1;i<=rescued;i++)this.awardObjective('delve_rescue_'+i,'Miner rescued '+i+'/'+this.objectiveState.rescueMax,10);
+      }
+    }
+    escortPressure(spec,livingCount){
+      if(this.contract.kind!=='Escort'||livingCount<=0||this.state!=='deployed')return;
+      const chance=clamp(0.16+spec.danger*0.22+livingCount*0.035,0.18,0.55);
+      if(!this.rng.chance(chance))return;
+      const damage=Math.round(this.rng.range(3,7)+spec.danger*4);
+      this.objectiveState.caravanIntegrity=clamp(this.objectiveState.caravanIntegrity-damage,0,100);
+      this.addLog(`The caravan took ${damage} damage (${Math.round(this.objectiveState.caravanIntegrity)}% integrity).`,'objective');
+      if(this.objectiveState.caravanIntegrity<=0)this.finish('failure','caravan destroyed');
+    }
+    finalizeObjectiveScore(kind){
+      if(kind!=='success')return;
+      const remaining=this.objectiveMax-this.objectiveScore;
+      if(remaining<=0)return;
+      let mult=1;
+      if(this.contract.kind==='Escort')mult=clamp(this.objectiveState.caravanIntegrity/100,0.35,1);
+      this.awardObjective('primary_complete','Primary objective completed',remaining,mult);
+    }
     wearGear(slot,amount=1){
       const itemId=this.hero.equipment?.[slot];
       if(!itemId||!isDurableItem(itemId))return 0;
@@ -533,18 +631,18 @@
       const loc=this.contract.locations[this.locationId];
       if(!this.areasExplored.includes(loc.id)){
         this.areasExplored.push(loc.id); this.objectiveProgress=clamp(this.objectiveProgress+loc.progress,0,100);
-        this.addLog(`Entered ${loc.name}.`,'location'); this.bumpRate(0.06+loc.progress*0.004,'exploration progress');
+        this.addLog(`Entered ${loc.name}.`,'location'); this.bumpRate(0.06+loc.progress*0.004,'exploration progress'); this.objectiveLocation(loc);
         for(const [mat,p] of loc.materials){ if(this.rng.chance(p)){ const c=this.rng.chance(0.25)?2:1; this.addMaterial(mat,c); this.addLog(`Recovered ${c} ${MATERIAL_NAMES[mat]}${c>1?'s':''}.`,'loot'); this.bumpRate(0.035*c,'useful materials discovered'); } }
       }
       if(loc.encounter){
         const count=this.rng.int(loc.encounter.count[0],loc.encounter.count[1]);
-        this.startCombat(loc.encounter.enemy,count); return;
+        this.startCombat(loc.encounter.enemy,count,loc.encounter); return;
       }
       this._entered=true;
     }
-    startCombat(enemyId,count){
+    startCombat(enemyId,count,meta={}){
       const spec=ENEMIES[enemyId];
-      this.currentCombat={enemyId,enemies:Array.from({length:count},()=>({hp:spec.hp,maxHp:spec.hp})),round:0,distance:1};
+      this.currentCombat={enemyId,enemies:Array.from({length:count},()=>({hp:spec.hp,maxHp:spec.hp})),round:0,distance:1,locationId:this.locationId,boss:!!meta.boss};
       this.addLog(`${this.hero.name} spotted ${count} ${spec.name}${count>1?'s':''}.`,'combat');
       const d=this.choose(['fight','retreat']);
       this.addLog(`${this.hero.name} chose to ${d.action}.`,'decision',d.reasons);
@@ -601,12 +699,14 @@
         const injuryMult=clamp(1-injuryPenalty(h,'attackPenalty'),0.65,1);
         const hitChance=clamp(0.62+h.stats.finesse*0.025 + careerSkill*0.012 + (w.kind==='ranged'?0.06:0)+mood-injuryPenalty(h,'attackPenalty')*0.35,0.25,0.96);
         if(this.rng.chance(hitChance)){
-          const dmg=Math.max(1,Math.round(base*this.rng.range(0.82,1.18)*(1+cond+mood)*injuryMult-spec.defense)); target.hp-=dmg; this.addLog(`${h.name} hit ${spec.name} for ${dmg}.`,'combat');
-          if(target.hp<=0){this.enemiesDefeated++;this.addLog(`${h.name} killed ${spec.name}.`,'combat');this.bumpRate(0.08+spec.xp*0.035,'enemy defeated');}
+          const dmg=Math.max(1,Math.round(base*this.rng.range(0.82,1.18)*(1+cond+mood)*injuryMult-spec.defense));
+          const actualDamage=Math.min(Math.max(0,target.hp),dmg); target.hp-=dmg; this.addLog(`${h.name} hit ${spec.name} for ${dmg}.`,'combat');
+          this.objectiveDamage(c.enemyId,actualDamage,c);
+          if(target.hp<=0){this.enemiesDefeated++;this.addLog(`${h.name} killed ${spec.name}.`,'combat');this.bumpRate(0.08+spec.xp*0.035,'enemy defeated');this.objectiveKill(c.enemyId,c);}
         } else this.addLog(`${h.name} missed ${spec.name}.`,'combat');
       }
       const living=c.enemies.filter(e=>e.hp>0);
-      if(living.length===0){this.currentCombat=null;this._entered=true;this.hero.morale=clamp(this.hero.morale+4,0,100);deriveMoodlets(h);return;}
+      if(living.length===0){const cleared=clone(c);this.currentCombat=null;this._entered=true;this.hero.morale=clamp(this.hero.morale+4,0,100);this.objectiveCombatCleared(cleared);deriveMoodlets(h);return;}
       for(const enemy of living){
         let acc=spec.accuracy - h.stats.finesse*0.015;
         if(w.kind==='ranged' && style.action==='maintain_distance')acc-=0.16;
@@ -615,6 +715,7 @@
           if(h.health<=0){h.health=0;h.alive=false;deriveMoodlets(h);this.finish('death',`killed by ${spec.name}`);return;}
         }
       }
+      if(this.state==='deployed')this.escortPressure(spec,living.length);
       h.fatigue=clamp(h.fatigue+1.7,0,100);h.hunger=clamp(h.hunger+0.5,0,100);deriveMoodlets(h);
     }
     chooseNext(){
@@ -648,18 +749,20 @@
     }
     finish(kind,reason){
       if(this.state!=='deployed')return;
-      this.state=kind; this.retreatReason=reason; const finalRate=this.goldRate; this.goldRate=0;
+      this.finalizeObjectiveScore(kind);
+      const finalRate=this.goldRate; this.state=kind; this.retreatReason=reason; this.goldRate=0;
       if(kind==='success'){this.objectiveProgress=100;this.hero.morale=clamp(this.hero.morale+10,0,100);this.addLog(`Contract completed. ${this.hero.name} returns alive.`,'result');}
       else if(kind==='retreat'){this.addLog(`Contract failed — ${this.hero.name} retreated (${reason}).`,'result');}
+      else if(kind==='failure'){this.addLog(`Contract failed — ${reason}.`,'result');}
       else {this.hero.alive=false;this.addLog(`Contract failed — ${this.hero.name} died (${reason}).`,'result');}
       deriveMoodlets(this.hero);
       this._resolution={kind,reason,finalRate,summary:this.summary()};
     }
     summary(){
-      return {contractId:this.contract.id,contract:this.contract.name,threat:this.contract.threat,kind:this.contract.kind,outcome:this.state,reason:this.retreatReason,time:this.elapsed,enemiesDefeated:this.enemiesDefeated,areasExplored:this.areasExplored.length,totalAreas:Object.keys(this.contract.locations).length-1,objectiveProgress:Math.round(this.objectiveProgress),peakGoldRate:this.peakGoldRate,totalGold:this.gold,materials:clone(this.materials),heroAlive:this.hero.alive,health:this.hero.health,fatigue:this.hero.fatigue,hunger:this.hero.hunger,morale:this.hero.morale,injuries:clone(this.hero.injuries),moodlets:clone(this.hero.moodlets),gearDurability:clone(this.hero.gearDurability),gearOutcome:clone(this.gearOutcome),injuriesSuffered:this.injuriesSuffered,seed:this.seed};
+      return {contractId:this.contract.id,contract:this.contract.name,threat:this.contract.threat,kind:this.contract.kind,outcome:this.state,reason:this.retreatReason,time:this.elapsed,enemiesDefeated:this.enemiesDefeated,areasExplored:this.areasExplored.length,totalAreas:Object.keys(this.contract.locations).length-1,objectiveProgress:Math.round(this.objectiveProgress),objectiveScore:Math.round(this.objectiveScore),objectiveMax:this.objectiveMax,objectiveBonusGold:Number(this.objectiveBonusGold.toFixed(2)),objectiveEvents:clone(this.objectiveEvents),objectiveState:clone(this.objectiveState),peakGoldRate:this.peakGoldRate,totalGold:this.gold,materials:clone(this.materials),heroAlive:this.hero.alive,health:this.hero.health,fatigue:this.hero.fatigue,hunger:this.hero.hunger,morale:this.hero.morale,injuries:clone(this.hero.injuries),moodlets:clone(this.hero.moodlets),gearDurability:clone(this.hero.gearDurability),gearOutcome:clone(this.gearOutcome),injuriesSuffered:this.injuriesSuffered,seed:this.seed};
     }
     snapshot(){
-      return {version:3,contractId:this.contract.id,seed:this.seed,rngState:this.rng.state,hero:clone(this.hero),state:this.state,locationId:this.locationId,elapsed:this.elapsed,goldRate:this.goldRate,peakGoldRate:this.peakGoldRate,gold:this.gold,enemiesDefeated:this.enemiesDefeated,areasExplored:clone(this.areasExplored),objectiveProgress:this.objectiveProgress,materials:clone(this.materials),log:clone(this.log),decisionDebug:clone(this.decisionDebug),currentCombat:clone(this.currentCombat),retreatReason:this.retreatReason,lastDecision:clone(this.lastDecision),gearOutcome:clone(this.gearOutcome),entered:this._entered,resolution:clone(this._resolution),injuriesSuffered:this.injuriesSuffered};
+      return {version:4,contractId:this.contract.id,seed:this.seed,rngState:this.rng.state,hero:clone(this.hero),state:this.state,locationId:this.locationId,elapsed:this.elapsed,goldRate:this.goldRate,peakGoldRate:this.peakGoldRate,gold:this.gold,enemiesDefeated:this.enemiesDefeated,areasExplored:clone(this.areasExplored),objectiveProgress:this.objectiveProgress,objectiveScore:this.objectiveScore,objectiveMax:this.objectiveMax,objectiveBonusGold:this.objectiveBonusGold,objectiveEvents:clone(this.objectiveEvents),objectiveAwards:clone(this.objectiveAwards),objectiveState:clone(this.objectiveState),materials:clone(this.materials),log:clone(this.log),decisionDebug:clone(this.decisionDebug),currentCombat:clone(this.currentCombat),retreatReason:this.retreatReason,lastDecision:clone(this.lastDecision),gearOutcome:clone(this.gearOutcome),entered:this._entered,resolution:clone(this._resolution),injuriesSuffered:this.injuriesSuffered};
     }
     static fromSnapshot(data,{contract=null,debug=false}={}){
       if(!data||!data.hero)throw new Error('invalid expedition snapshot');
@@ -669,6 +772,10 @@
       e.state=data.state||'deployed'; e.locationId=data.locationId||contract.start; e.elapsed=Number(data.elapsed)||0;
       e.goldRate=Number(data.goldRate)||0; e.peakGoldRate=Number(data.peakGoldRate)||0; e.gold=Number(data.gold)||0;
       e.enemiesDefeated=Number(data.enemiesDefeated)||0; e.areasExplored=clone(data.areasExplored||[]); e.objectiveProgress=Number(data.objectiveProgress)||0;
+      e.objectiveScore=data.objectiveScore==null?Math.min(95,Math.round(e.objectiveProgress)):Number(data.objectiveScore)||0;
+      e.objectiveMax=Number(data.objectiveMax)||100; e.objectiveBonusGold=Number(data.objectiveBonusGold)||0;
+      e.objectiveEvents=clone(data.objectiveEvents||[]); e.objectiveAwards=clone(data.objectiveAwards||{});
+      e.objectiveState=clone(data.objectiveState||e.makeObjectiveState());
       e.materials=clone(data.materials||{}); e.log=clone(data.log||[]); e.decisionDebug=clone(data.decisionDebug||[]); e.currentCombat=clone(data.currentCombat||null);
       e.retreatReason=data.retreatReason||null; e.lastDecision=clone(data.lastDecision||null); e.gearOutcome=clone(data.gearOutcome||null); e._entered=!!data.entered; e._resolution=clone(data.resolution||null); e.injuriesSuffered=Number(data.injuriesSuffered)||0;
       return e;

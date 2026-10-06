@@ -2,6 +2,19 @@
 
 Current truth: `PROJECT_CONTEXT.md` · Future: `ROADMAP.md`
 
+## 2026-10-05 — Tavern Keeper Slice 11: Objective Mechanics & Partial Contract Scoring
+- Added explicit contract sub-objective metadata and persistent objective scorecards.
+- Hunt now tracks the pack trail, wolf culls and den clearance.
+- Extermination tracks infestation reach, vermin kills and main-nest destruction.
+- Escort tracks checkpoint protection and caravan integrity; the contract can fail with the hero alive if the caravan is destroyed.
+- Delve tracks deep-area discoveries, finding the missing miners and the number rescued.
+- Boss Hunt tracks only the designated bridge boss for cumulative damage milestones and kill credit.
+- Sub-objectives immediately award banked gold and performance gold/sec growth, preserving useful progress on retreat, failure or death.
+- Successful contracts close the objective score at 100; partial failures retain their actual score, objective events and bonus gold.
+- Career XP now recognizes objective score when it exceeds simple route progress.
+- Expedition snapshot version 4 persists objective state/events/awards; Slice 10 snapshots migrate safely.
+- Added objective score/state UI, detailed final scorecards and test_objectives.js.
+
 ## 2026-10-05 — Tavern Keeper Slice 10: Concurrent Expeditions & Hero Assignment
 - Added persistent `ExpeditionManager` support for multiple simultaneous hero contracts.
 - Each expedition now has an independent ID, hero assignment, simulation state, speed, RNG, income, condition, settlement state and report.

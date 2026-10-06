@@ -60,6 +60,18 @@ function repairLabel(itemId,durability,prefix){
   if(!q||q.missing<=0)return prefix+' · maintained';
   return prefix+' · '+q.gold+'g'+(q.scrapIron?' + '+q.scrapIron+' iron':'')+' · '+q.minutes+'m';
 }
+function objectiveStateText(exp){
+  const o=exp.objectiveState||{};
+  if(exp.contract.kind==='Hunt')return 'Wolves '+(o.quarryKills||0)+'/'+(o.killTarget||0)+(o.lairCleared?' · den cleared':'');
+  if(exp.contract.kind==='Extermination')return 'Vermin '+(o.verminKills||0)+'/'+(o.killTarget||0)+(o.nestCleared?' · nest destroyed':'');
+  if(exp.contract.kind==='Escort')return 'Caravan '+Math.round(o.caravanIntegrity==null?100:o.caravanIntegrity)+'% · '+(o.checkpoints||0)+' checkpoints';
+  if(exp.contract.kind==='Delve')return (o.discoveries||0)+' discoveries · '+(o.minersRescued||0)+'/'+(o.rescueMax||0)+' miners';
+  if(exp.contract.kind==='Boss Hunt'){
+    const pct=Math.round(Math.min(100,(o.bossDamage||0)/Math.max(1,o.bossMaxHp||1)*100));
+    return 'Boss '+pct+'% damage'+(o.bossKilled?' · killed':'');
+  }
+  return 'No objective state';
+}
 function chipList(items,empty){
   empty=empty||'None';
   return items&&items.length?items.map(function(x){return '<span>'+x+'</span>';}).join(''):'<span class="muted">'+empty+'</span>';
@@ -329,6 +341,7 @@ function renderContractBoard(){
       '<div><strong>'+c.name+'</strong><span>Threat '+c.threat+'</span></div>'+
       '<em>'+c.kind+' · '+assessment+'</em>'+
       '<p>'+c.brief+'</p>'+
+      '<small>Objectives: '+c.subObjectives.join(' · ')+'</small>'+
       '<small>Income ×'+c.incomeMult.toFixed(2)+' · '+mats+'</small></button>';
   }).join('');
 
@@ -476,7 +489,7 @@ function renderExpeditionTabs(){
     const state=e.state==='deployed'?(entry.speed===0?'PAUSED':'ACTIVE ×'+entry.speed):e.state.toUpperCase();
     return '<button class="expedition-tab '+(entry.id===expeditions.selectedId?'selected':'')+' '+e.state+'" data-expedition="'+entry.id+'">'+
       '<div><strong>'+h.name+'</strong><span>'+state+'</span></div>'+
-      '<small>'+e.contract.name+' · '+Math.round(e.objectiveProgress)+'% · '+e.gold.toFixed(1)+'g</small></button>';
+      '<small>'+e.contract.name+' · score '+Math.round(e.objectiveScore||0)+'/100 · '+e.gold.toFixed(1)+'g</small></button>';
   }).join('');
   document.querySelectorAll('[data-expedition]').forEach(function(btn){
     btn.addEventListener('click',function(){
@@ -513,12 +526,15 @@ function renderSummary(entry){
       (r.traitsEarned.length?' · new trait: '+r.traitsEarned.join(', '):'')+
       (r.titlesEarned.length?' · new title: '+r.titlesEarned.join(', '):'')+'</p>';
   }
+  const objectiveEvents=(s.objectiveEvents||[]).map(function(e){return '<div><strong>'+e.label+'</strong><span>+'+e.points+' score · +'+e.bonus.toFixed(2)+'g</span></div>';}).join('')||'<p class="empty">No sub-objectives completed.</p>';
   $('summaryBody').innerHTML='<h3>'+s.contract+'</h3><p><strong>Result: '+s.outcome.toUpperCase()+'</strong> — '+(s.reason||'')+'</p>'+
     '<div class="summary-grid"><div>Time<br><strong>'+fmtTime(s.time)+'</strong></div><div>Areas<br><strong>'+s.areasExplored+'/'+s.totalAreas+'</strong></div>'+
-    '<div>Enemies<br><strong>'+s.enemiesDefeated+'</strong></div><div>Progress<br><strong>'+s.objectiveProgress+'%</strong></div>'+
+    '<div>Enemies<br><strong>'+s.enemiesDefeated+'</strong></div><div>Route progress<br><strong>'+s.objectiveProgress+'%</strong></div>'+
+    '<div>Objective score<br><strong>'+s.objectiveScore+'/'+s.objectiveMax+'</strong></div><div>Objective bonus<br><strong>'+s.objectiveBonusGold.toFixed(2)+'g</strong></div>'+
     '<div>Peak hero income<br><strong>'+s.peakGoldRate.toFixed(2)+' g/s</strong></div><div>Hero gold<br><strong>'+s.totalGold.toFixed(1)+'</strong></div>'+
     '<div>Hero<br><strong>'+(s.heroAlive?'Alive':'Dead')+'</strong></div><div>Injuries<br><strong>'+s.injuries.length+'</strong></div></div>'+
-    progression+gearResult+'<h3>Recovered Materials</h3><div class="materials">'+mats+'</div><p class="banked">Current tavern funds: '+roster.funds.toFixed(1)+'g. Other expeditions and tavern service continued independently.</p>';
+    '<h3>Objective Scorecard</h3><div class="objective-events">'+objectiveEvents+'</div>'+
+    progression+gearResult+'<h3>Recovered Materials</h3><div class="materials">'+mats+'</div><p class="banked">Current tavern funds: '+roster.funds.toFixed(1)+'g. Objective bonuses and performance pay earned before failure remain banked.</p>';
   $('returnHome').disabled=!entry.settled;
 }
 
@@ -528,7 +544,7 @@ function renderExpedition(){
   if(!entry){
     $('status').textContent='READY';
     $('activeHeroBanner').textContent='No active expedition.';
-    ['hp','gps','gold','progress','location','moodlets','fieldInjuries','fieldPotions','fieldWeapon','fieldArmor'].forEach(function(id){$(id).textContent='—';});
+    ['hp','gps','gold','progress','location','moodlets','fieldInjuries','fieldPotions','fieldWeapon','fieldArmor','fieldObjectiveScore','fieldObjectiveState'].forEach(function(id){$(id).textContent='—';});
     ['hpBar','fatigueBar','hungerBar','moraleBar'].forEach(function(id){setBar(id,0);});
     $('log').innerHTML='<p class="empty">No expedition selected.</p>';
     $('debug').textContent='No decision yet.';
@@ -550,6 +566,8 @@ function renderExpedition(){
   $('fieldPotions').textContent=h.supplies.healing_potion||0;
   $('fieldWeapon').textContent=gearConditionText(h,'weapon');
   $('fieldArmor').textContent=gearConditionText(h,'armor');
+  $('fieldObjectiveScore').textContent=Math.round(exp.objectiveScore||0)+'/'+(exp.objectiveMax||100)+' · +'+(exp.objectiveBonusGold||0).toFixed(2)+'g';
+  $('fieldObjectiveState').textContent=objectiveStateText(exp);
   setBar('hpBar',h.health/h.maxHealth*100);
   setBar('fatigueBar',h.fatigue);
   setBar('hungerBar',h.hunger);
