@@ -21,7 +21,12 @@ Operational checklist for humans + AIs. Keep compact; add only behaviors whose r
 - Stored weapons/armor must transfer from tavern inventory to a hero; replaced equipment returns to stock and crafted equipment changes real readiness/combat stats.
 - Crafted Healing Potions and Field Bandages transfer from stock into capped hero supplies; autonomous Field Bandage use heals and reduces lingering injury in the real combat simulation.
 - Expedition loot settles into the same raw-material stash consumed by recipes; crafting stock/history round-trip through persistence and Slice 4 saves migrate with empty crafting fields.
-- Direct buy_potion preparation is absent pending the merchant slice; no invisible merchant substitute may reappear.
+- Direct buy_potion preparation is absent; potion procurement is only through explicit crafting or the visible merchant system.
+- Slice 6 merchants: merchant quality is derived only from tavern development; equal merchant seeds/state/ticks produce identical visits and stock.
+- Merchant visits are timed, finite and rotating; generated offers are unique/bounded, obey quality gates, and never contain crafted-only Scrap Spear, Plated Vest or Field Bandages.
+- Purchases spend exact shared gold, decrement finite merchant stock and add to the authoritative shared material/item inventories; insufficient funds and sold-out purchases are atomic failures.
+- Quality 3 can surface Steel Sword / Chain Mail while lower-quality visits cannot; purchased gear uses the same inventory-to-hero equip path as crafted gear.
+- Merchant state/purchase history round-trip through persistence, Slice 5 saves migrate to a future visit, and the merchant clock advances through TavernRoster.tickTavern.
 
 ### Arena
 - Main scene instantiates without script/runtime errors.

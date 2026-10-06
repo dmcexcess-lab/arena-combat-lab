@@ -1,26 +1,26 @@
 # CURRENT — Tavern Keeper
 
 ## Current slice
-Slice 5 — Loot & Crafting
+Slice 6 — Merchants & Procurement
 
 ## Status
-Implemented as a standalone browser vertical slice on top of autonomous contracts, preparation/condition, persistent heroes, and the live tavern economy.
+Implemented as a standalone browser vertical slice on top of autonomous contracts, preparation/condition, persistent heroes, live tavern economy, and loot/crafting.
 
 ## Core rules implemented
-- Contract materials settle into one persistent shared tavern material stash.
-- `CRAFT_RECIPES` is the authoritative compact recipe catalog.
-- Current recipes: Scrap Spear, Plated Vest, Healing Potion, Field Bandages.
-- Crafting consumes exact raw materials atomically and advances preparation time.
-- Crafted outputs enter persistent shared tavern item stock.
-- Weapons/armor must exist in shared stock before a hero can equip them through the player UI.
-- Equipping a stored weapon/armor consumes that stock item and returns the hero's replaced gear to shared stock.
-- Healing Potions and Field Bandages must be transferred from shared stock into a hero's capped supplies.
-- Field Bandages are real autonomous expedition consumables: heroes can use them during combat to heal moderate damage and reduce lingering injury.
-- Crafted equipment uses the same live EQUIPMENT catalog as combat/readiness; Scrap Spear and Plated Vest therefore alter actual outcomes rather than UI-only stats.
-- The old direct `buy_potion` preparation action is retired. Potions come from crafting until merchant procurement is implemented.
-- Craft history and item inventory persist alongside roster, tavern, economy, death archive and active expedition state.
-- Slice 4 saves without crafting fields migrate to empty item stock/craft history.
-- Slice 1 autonomous contracts, Slice 2 preparation/condition, Slice 3 persistent careers/death, and Slice 4 tavern economy remain authoritative.
+- `MerchantSystem` is persistent and advances on the same real-time tavern clock as patron service.
+- A new tavern schedules its first merchant shortly after opening; merchants remain for a finite visit, depart, then another visit is scheduled.
+- Merchant visit name, quality, offers, quantities, timers, RNG state and logs persist through browser refresh.
+- Merchant quality is derived from tavern development: Seating, Service, Kitchen and Bar levels determine Quality 1–3.
+- Merchant stock is finite, rotating, deterministic from merchant RNG and bounded by the merchant quality gate.
+- Merchants sell ordinary raw materials and ordinary equipment into the same shared stash/item inventory already used by crafting and hero loadouts.
+- Healing Potions may be bought from Quality 2+ merchants at a premium and in limited quantity.
+- Quality 3 merchants can surface merchant-only Steel Sword and Chain Mail.
+- Crafted-only Scrap Spear, Plated Vest and Field Bandages never appear in merchant stock.
+- Purchases spend shared tavern gold, decrement the exact visit offer, and record purchase history.
+- Purchased equipment/consumables use the existing shared-stock transfer rules; merchants do not bypass hero inventory ownership.
+- Failed purchases from insufficient funds, sold-out offers or absent merchants are atomic and do not mutate state.
+- Slice 5 saves without merchant state migrate to a valid future merchant visit.
+- Slice 1 autonomous contracts, Slice 2 preparation, Slice 3 persistent careers/death, Slice 4 tavern economy and Slice 5 crafting remain authoritative.
 
 ## Tests
 Run:
@@ -31,20 +31,21 @@ node tests/test_preparation.js
 node tests/test_roster.js
 node tests/test_tavern.js
 node tests/test_crafting.js
+node tests/test_merchants.js
 ```
 
 CI also syntax-checks `core.js` and `app.js`.
 
 ## Known limitations
 - Only one hero expedition may be active at a time.
-- Crafting is intentionally compact: four recipes and no recipe discovery tiers yet.
-- No merchants/procurement exist yet; direct potion buying was removed rather than faking that system.
+- There is still only one contract testbed despite the design requiring a contract board with threat levels.
+- Merchant archetypes are presentation-light; stock rotation/quality is systemic but haggling/reputation is not implemented.
+- Crafting remains four recipes with no craft skill tiers.
 - Equipment has no durability/repair loop yet.
-- Equipped gear on a dead hero is not automatically returned to tavern stock; death therefore currently risks assigned gear.
-- Materials currently come from the single Greymill test contract.
-- Preparation-time minutes and live tavern seconds are still separate clocks.
-- Offline progression is not implemented yet.
+- Assigned gear remains with a dead hero rather than automatically returning to tavern stock.
+- Preparation-time minutes and live tavern seconds remain separate clocks.
+- Offline progression is not implemented.
 - Recruitment remains the fixed starter roster.
 
 ## NEXT OPERATION
-Slice 6 — Merchants & Procurement: add visiting merchants with persistent/rotating stock, gold-based purchasing of ordinary gear/materials/consumables, merchant quality tied to tavern development, and clean interaction with the same shared item/material inventories without replacing crafting.
+Slice 7 — Contract Board & Threat Ladder: replace the single Greymill test contract with a small authoritative contract catalog spanning multiple threat levels and mini-RPG structures, preserving the rule that any living hero may be sent and failed contracts still pay partial performance rewards.

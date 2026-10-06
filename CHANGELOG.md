@@ -2,6 +2,17 @@
 
 Current truth: `PROJECT_CONTEXT.md` · Future: `ROADMAP.md`
 
+## 2026-10-05 — Tavern Keeper Slice 6: Merchants & Procurement
+- Added persistent timed merchant visits driven by the live tavern clock, with deterministic arrival/departure, finite rotating offers and visit history.
+- Added merchant quality derived from tavern Seating, Service, Kitchen and Bar development; better taverns unlock higher-quality stock pools.
+- Merchants sell ordinary recovered materials, baseline equipment and limited premium Healing Potions into the same shared material/item inventories used by crafting and hero loadouts.
+- Added merchant-only Quality 3 Steel Sword and Chain Mail so tavern development materially improves procurement.
+- Preserved crafting identity: Scrap Spear, Plated Vest and Field Bandages never appear in merchant stock.
+- Purchases spend exact shared gold, decrement finite visit stock and persist in purchase history; sold-out/insufficient-fund purchases are atomic failures.
+- Merchant state, RNG, active visit, timers, offers and purchase history now persist; Slice 5 saves migrate to a scheduled merchant visit.
+- Merchant UI updates on the live tavern clock and contract settlement now immediately refreshes crafting inventory.
+- Added test_merchants.js and wired it into the Pages CI gate.
+
 ## 2026-10-05 — Tavern Keeper Slice 5: Loot & Crafting
 - Added an authoritative compact crafting catalog using the materials already recovered by contracts.
 - Added Scrap Spear, Plated Vest, Healing Potion and Field Bandages recipes with exact material costs and preparation-time costs.

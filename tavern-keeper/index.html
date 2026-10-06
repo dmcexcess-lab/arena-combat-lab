@@ -3,12 +3,12 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-  <title>Tavern Keeper — Slice 5</title>
+  <title>Tavern Keeper — Slice 6</title>
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
 <header>
-  <div><h1>Tavern Keeper</h1><p>Slice 5 — Loot &amp; Crafting</p></div>
+  <div><h1>Tavern Keeper</h1><p>Slice 6 — Merchants &amp; Procurement</p></div>
   <div class="top-stats">
     <div><span>Tavern funds</span><strong id="funds">0.0g</strong></div>
     <div><span>Tavern g/s</span><strong id="tavernGps">0.00</strong></div>
@@ -46,6 +46,19 @@
 
     <h3>Improve the Tavern</h3>
     <div id="tavernUpgrades" class="upgrade-grid"></div>
+  </section>
+
+  <section class="panel merchant-panel">
+    <div class="section-title"><h2>Visiting Merchant</h2><span id="merchantStatus" class="status">ON THE ROAD</span></div>
+    <div class="merchant-summary">
+      <div><span>Merchant</span><strong id="merchantName">No merchant present</strong></div>
+      <div><span>Quality</span><strong id="merchantQuality">—</strong></div>
+      <div><span>Visit timer</span><strong id="merchantTimer">—</strong></div>
+      <div><span>Tavern draw</span><strong id="merchantDraw">Quality 1</strong></div>
+    </div>
+    <p id="merchantNote" class="merchant-note">A merchant will stop by as the tavern operates.</p>
+    <div id="merchantOffers" class="merchant-offers"></div>
+    <div id="merchantLog" class="merchant-log"></div>
   </section>
 
   <section class="panel crafting-panel">

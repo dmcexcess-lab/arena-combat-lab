@@ -32,7 +32,9 @@
     healing_potion:{id:'healing_potion',name:'Healing Potion',slot:'consumable',kind:'potion',heal:28,crafted:true},
     field_bandage:{id:'field_bandage',name:'Field Bandage',slot:'consumable',kind:'bandage',heal:14,injuryRelief:1,crafted:true},
     scrap_spear:{id:'scrap_spear',name:'Scrap Spear',slot:'weapon',kind:'melee',damage:9,range:0,defense:0,weight:1,crafted:true},
-    plated_vest:{id:'plated_vest',name:'Plated Vest',slot:'armor',kind:'armor',damage:0,range:0,defense:4,weight:3,crafted:true}
+    plated_vest:{id:'plated_vest',name:'Plated Vest',slot:'armor',kind:'armor',damage:0,range:0,defense:4,weight:3,crafted:true},
+    steel_sword:{id:'steel_sword',name:'Steel Sword',slot:'weapon',kind:'melee',damage:10,range:0,defense:0,weight:2,merchant:true},
+    chain_mail:{id:'chain_mail',name:'Chain Mail',slot:'armor',kind:'armor',damage:0,range:0,defense:5,weight:4,merchant:true}
   };
 
   const CRAFT_RECIPES = {
@@ -573,6 +575,98 @@
   };
   const PATRON_ROTATION=['laborer','laborer','traveler','laborer','adventurer','traveler','merchant','adventurer'];
 
+  const MERCHANT_GOODS = {
+    scrap_iron:{id:'scrap_iron',name:'Scrap Iron',type:'material',minQuality:1,price:4,maxQty:4},
+    rat_tail:{id:'rat_tail',name:'Rat Tail',type:'material',minQuality:1,price:3,maxQty:4},
+    medicinal_herb:{id:'medicinal_herb',name:'Medicinal Herb',type:'material',minQuality:1,price:5,maxQty:3},
+    strange_gland:{id:'strange_gland',name:'Strange Gland',type:'material',minQuality:2,price:11,maxQty:2},
+    wood_axe:{id:'wood_axe',name:'Wood Axe',type:'item',minQuality:1,price:8,maxQty:1},
+    rusty_sword:{id:'rusty_sword',name:'Rusty Sword',type:'item',minQuality:1,price:14,maxQty:1},
+    padded_armor:{id:'padded_armor',name:'Padded Armor',type:'item',minQuality:1,price:17,maxQty:1},
+    hunting_bow:{id:'hunting_bow',name:'Hunting Bow',type:'item',minQuality:2,price:23,maxQty:1},
+    leather_armor:{id:'leather_armor',name:'Leather Armor',type:'item',minQuality:2,price:29,maxQty:1},
+    healing_potion:{id:'healing_potion',name:'Healing Potion',type:'item',minQuality:2,price:13,maxQty:2},
+    steel_sword:{id:'steel_sword',name:'Steel Sword',type:'item',minQuality:3,price:44,maxQty:1},
+    chain_mail:{id:'chain_mail',name:'Chain Mail',type:'item',minQuality:3,price:52,maxQty:1}
+  };
+  const MERCHANT_NAMES=['Mira the Peddler','Orren of the Road','Kestra Provisioner','Dain Copperhand'];
+
+  function merchantQuality(tavern){
+    const score=tavern.serviceLevel+tavern.kitchenLevel+tavern.barLevel+Math.floor(tavern.seats/2);
+    if(score>=11)return 3;
+    if(score>=7)return 2;
+    return 1;
+  }
+
+  class MerchantSystem {
+    constructor(data={}){
+      this.seed=Number(data.seed)||99173;
+      this.rng=new RNG(this.seed);
+      if(data.rngState)this.rng.state=data.rngState>>>0;
+      this.elapsed=Number(data.elapsed)||0;
+      this.visitIndex=Math.max(0,Number(data.visitIndex)||0);
+      this.nextArrival=data.nextArrival==null?10:Math.max(0,Number(data.nextArrival)||0);
+      this.active=clone(data.active||null);
+      this.log=clone(data.log||[]);
+    }
+    logEvent(text,type='merchant'){
+      this.log.push({time:this.elapsed,text,type});
+      if(this.log.length>40)this.log.shift();
+    }
+    qualityFor(tavern){ return merchantQuality(tavern); }
+    generateOffers(quality){
+      const eligible=Object.values(MERCHANT_GOODS).filter(g=>g.minQuality<=quality);
+      const materials=eligible.filter(g=>g.type==='material');
+      const equipment=eligible.filter(g=>g.type==='item'&&EQUIPMENT[g.id]?.slot!=='consumable');
+      const consumables=eligible.filter(g=>g.type==='item'&&EQUIPMENT[g.id]?.slot==='consumable');
+      const chosen=[];
+      const addUnique=(g)=>{
+        if(!g||chosen.some(x=>x.id===g.id))return;
+        const quantity=g.type==='material'?this.rng.int(Math.max(1,g.maxQty-1),g.maxQty):this.rng.int(1,g.maxQty);
+        chosen.push({key:'offer_'+this.visitIndex+'_'+chosen.length,id:g.id,name:g.name,type:g.type,unitPrice:g.price,quantity,minQuality:g.minQuality});
+      };
+      addUnique(this.rng.pick(materials));
+      addUnique(this.rng.pick(equipment));
+      if(consumables.length)addUnique(this.rng.pick(consumables));
+      const pool=eligible.filter(g=>!chosen.some(x=>x.id===g.id));
+      const target=Math.min(quality===1?4:quality===2?6:7,eligible.length);
+      while(chosen.length<target&&pool.length){
+        const idx=this.rng.int(0,pool.length-1);
+        addUnique(pool.splice(idx,1)[0]);
+      }
+      return chosen;
+    }
+    arrive(tavern){
+      this.visitIndex++;
+      const quality=this.qualityFor(tavern);
+      const name=MERCHANT_NAMES[(this.visitIndex-1)%MERCHANT_NAMES.length];
+      this.active={name,quality,remaining:60,offers:this.generateOffers(quality)};
+      this.nextArrival=0;
+      this.logEvent(name+' arrived with quality '+quality+' stock.','arrival');
+      return this.active;
+    }
+    depart(){
+      if(this.active)this.logEvent(this.active.name+' departed.','departure');
+      this.active=null;
+      this.nextArrival=55;
+    }
+    tick(dt,tavern){
+      dt=clamp(dt,0.01,5);
+      this.elapsed+=dt;
+      if(this.active){
+        this.active.remaining-=dt;
+        if(this.active.remaining<=0)this.depart();
+      }else{
+        this.nextArrival=Math.max(0,this.nextArrival-dt);
+        if(this.nextArrival<=0)this.arrive(tavern);
+      }
+    }
+    snapshot(){
+      return {version:1,seed:this.seed,rngState:this.rng.state,elapsed:this.elapsed,visitIndex:this.visitIndex,nextArrival:this.nextArrival,active:clone(this.active),log:clone(this.log)};
+    }
+    static fromSnapshot(data){ return new MerchantSystem(data||{}); }
+  }
+
   class TavernEconomy {
     constructor(data={}){
       this.seed=Number(data.seed)||73129;
@@ -737,17 +831,19 @@
   }
 
   class TavernRoster {
-    constructor({heroes=starterRoster(),fallen=[],funds=30,materials={},inventory={},craftHistory=[],prepMinutes=0,selectedHeroId=null,history=[],settledKeys=[],tavern=null}={}){
+    constructor({heroes=starterRoster(),fallen=[],funds=30,materials={},inventory={},craftHistory=[],purchaseHistory=[],prepMinutes=0,selectedHeroId=null,history=[],settledKeys=[],tavern=null,merchants=null}={}){
       this.heroes=heroes.map(h=>heroTemplate(h)).filter(h=>h.alive);
       this.fallen=clone(fallen||[]);
-      this.funds=Number(funds)||0; this.materials=clone(materials||{}); this.inventory=clone(inventory||{}); this.craftHistory=clone(craftHistory||[]); this.prepMinutes=Number(prepMinutes)||0;
+      this.funds=Number(funds)||0; this.materials=clone(materials||{}); this.inventory=clone(inventory||{}); this.craftHistory=clone(craftHistory||[]); this.purchaseHistory=clone(purchaseHistory||[]); this.prepMinutes=Number(prepMinutes)||0;
       this.history=clone(history||[]); this.settledExpeditions=new Set(settledKeys||[]);
       this.selectedHeroId=selectedHeroId&&this.heroes.some(h=>h.id===selectedHeroId)?selectedHeroId:(this.heroes[0]?.id||null);
       this.tavern=TavernEconomy.fromSnapshot(tavern);
+      this.merchants=MerchantSystem.fromSnapshot(merchants);
     }
     aliveHeroes(){ return this.heroes.filter(h=>h.alive); }
     tickTavern(seconds=1){
       const earned=this.tavern.tick(seconds);
+      this.merchants.tick(seconds,this.tavern);
       this.funds+=earned;
       return earned;
     }
@@ -758,6 +854,23 @@
       this.funds-=cost;
       this.tavern.upgrade(id);
       return{ok:true,cost,projectedGoldRate:this.tavern.projectedGoldRate()};
+    }
+    purchaseMerchantOffer(offerKey,count=1){
+      const visit=this.merchants.active;
+      if(!visit)return{ok:false,reason:'no merchant present'};
+      const offer=visit.offers.find(o=>o.key===offerKey);
+      count=Math.max(1,Math.floor(count));
+      if(!offer||offer.quantity<count)return{ok:false,reason:'stock unavailable'};
+      const cost=offer.unitPrice*count;
+      if(this.funds<cost)return{ok:false,reason:'insufficient funds',cost};
+      this.funds-=cost;
+      offer.quantity-=count;
+      if(offer.type==='material')this.materials[offer.id]=this.materialCount(offer.id)+count;
+      else this.inventory[offer.id]=this.itemCount(offer.id)+count;
+      const event={merchant:visit.name,quality:visit.quality,offerKey,id:offer.id,name:offer.name,type:offer.type,count,cost,time:this.merchants.elapsed};
+      this.purchaseHistory.push(event); if(this.purchaseHistory.length>50)this.purchaseHistory=this.purchaseHistory.slice(-50);
+      this.merchants.logEvent('Purchased '+count+' '+offer.name+' for '+cost.toFixed(1)+'g.','purchase');
+      return{ok:true,event};
     }
     itemCount(itemId){ return Math.max(0,Number(this.inventory[itemId])||0); }
     materialCount(materialId){ return Math.max(0,Number(this.materials[materialId])||0); }
@@ -849,7 +962,7 @@
       return{ok:true,banked:expedition.gold,heroAlive:updated.alive,record};
     }
     snapshot(){
-      return{version:5,heroes:clone(this.heroes),fallen:clone(this.fallen),funds:this.funds,materials:clone(this.materials),inventory:clone(this.inventory),craftHistory:clone(this.craftHistory),prepMinutes:this.prepMinutes,selectedHeroId:this.selectedHeroId,history:clone(this.history),settledKeys:Array.from(this.settledExpeditions),tavern:this.tavern.snapshot()};
+      return{version:6,heroes:clone(this.heroes),fallen:clone(this.fallen),funds:this.funds,materials:clone(this.materials),inventory:clone(this.inventory),craftHistory:clone(this.craftHistory),purchaseHistory:clone(this.purchaseHistory),prepMinutes:this.prepMinutes,selectedHeroId:this.selectedHeroId,history:clone(this.history),settledKeys:Array.from(this.settledExpeditions),tavern:this.tavern.snapshot(),merchants:this.merchants.snapshot()};
     }
     serialize(){ return JSON.stringify(this.snapshot()); }
     static fromSnapshot(data){
@@ -859,5 +972,5 @@
     static deserialize(text){ return TavernRoster.fromSnapshot(JSON.parse(text)); }
   }
 
-  return {RNG,EQUIPMENT,CRAFT_RECIPES,INJURY_TYPES,PREP_EFFECTS,PREPARATION_ACTIONS,CONTRACT,ENEMIES,MATERIAL_NAMES,PATRON_TYPES,heroTemplate,normalizeCareer,rankFromXp,applyCareerProgress,starterRoster,deriveMoodlets,totalInjurySeverity,addInjury,reduceWorstInjury,removeWorstInjury,readinessScore,threatAssessment,PreparationState,TavernEconomy,TavernRoster,Expedition,makePreset};
+  return {RNG,EQUIPMENT,CRAFT_RECIPES,INJURY_TYPES,PREP_EFFECTS,PREPARATION_ACTIONS,CONTRACT,ENEMIES,MATERIAL_NAMES,PATRON_TYPES,MERCHANT_GOODS,merchantQuality,MerchantSystem,heroTemplate,normalizeCareer,rankFromXp,applyCareerProgress,starterRoster,deriveMoodlets,totalInjurySeverity,addInjury,reduceWorstInjury,removeWorstInjury,readinessScore,threatAssessment,PreparationState,TavernEconomy,TavernRoster,Expedition,makePreset};
 });

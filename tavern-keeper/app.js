@@ -111,6 +111,53 @@ function renderEconomy(){
   });
 }
 
+function renderMerchants(){
+  const m=roster.merchants;
+  const draw=C.merchantQuality(roster.tavern);
+  $('merchantDraw').textContent='Quality '+draw;
+  if(!m.active){
+    $('merchantStatus').textContent='ON THE ROAD';
+    $('merchantName').textContent='No merchant present';
+    $('merchantQuality').textContent='—';
+    $('merchantTimer').textContent=Math.ceil(m.nextArrival)+'s';
+    $('merchantNote').textContent='Next merchant due in about '+Math.ceil(m.nextArrival)+'s. Better-developed taverns attract higher-quality stock.';
+    $('merchantOffers').innerHTML='<p class="empty">No offers until a merchant arrives.</p>';
+  }else{
+    const visit=m.active;
+    $('merchantStatus').textContent='TRADING';
+    $('merchantName').textContent=visit.name;
+    $('merchantQuality').textContent='Quality '+visit.quality;
+    $('merchantTimer').textContent=Math.max(0,Math.ceil(visit.remaining))+'s';
+    $('merchantNote').textContent='Finite visit stock. Purchased goods enter the same shared stash used by crafting and hero loadouts.';
+    $('merchantOffers').innerHTML=visit.offers.map(function(o){
+      let detail='';
+      if(o.type==='material')detail='Raw material';
+      else{
+        const item=C.EQUIPMENT[o.id];
+        if(item.slot==='weapon')detail='Weapon · damage '+item.damage;
+        else if(item.slot==='armor')detail='Armor · defense '+item.defense;
+        else detail='Consumable · heal '+(item.heal||0);
+      }
+      const sold=o.quantity<=0;
+      const affordable=roster.funds>=o.unitPrice;
+      return '<div class="merchant-offer '+(sold?'sold':'')+'"><div><strong>'+o.name+'</strong><span>×'+o.quantity+'</span></div>'+
+        '<small>'+detail+' · '+o.unitPrice+'g each</small>'+
+        '<button data-buy="'+o.key+'" '+(sold||!affordable?'disabled':'')+'>'+(sold?'Sold out':'Buy 1')+'</button></div>';
+    }).join('');
+  }
+
+  $('merchantLog').innerHTML=m.log.length?m.log.slice().reverse().slice(0,7).map(function(e){
+    return '<div class="'+e.type+'"><time>'+fmtTime(e.time)+'</time><span>'+e.text+'</span></div>';
+  }).join(''):'<p class="empty">No merchant visits yet.</p>';
+
+  document.querySelectorAll('[data-buy]').forEach(function(btn){
+    btn.addEventListener('click',function(){
+      const r=roster.purchaseMerchantOffer(btn.dataset.buy,1);
+      if(r.ok){renderAll();saveGame();}
+    });
+  });
+}
+
 function renderCrafting(){
   const materialIds=Object.keys(C.MATERIAL_NAMES);
   $('materialStash').innerHTML=materialIds.map(function(id){
@@ -345,7 +392,7 @@ function settleAndRender(){
     '<div>Hero<br><strong>'+(s.heroAlive?'Alive':'Dead')+'</strong></div><div>Injuries<br><strong>'+s.injuries.length+'</strong></div></div>'+
     progression+'<h3>Recovered Materials</h3><div class="materials">'+mats+'</div><p class="banked">Current tavern funds: '+roster.funds.toFixed(1)+'g. Tavern service continued while this contract ran.</p>';
   $('returnHome').disabled=false;
-  renderEconomy(); renderRoster(); renderHome(); renderHistoryLog();
+  renderEconomy(); renderMerchants(); renderCrafting(); renderRoster(); renderHome(); renderHistoryLog();
   saveGame();
 }
 
@@ -370,7 +417,7 @@ function closeReport(){
   renderAll();
   saveGame();
 }
-function renderAll(){renderEconomy();renderCrafting();renderRoster();renderHome();renderHistoryLog();renderExpedition();}
+function renderAll(){renderEconomy();renderMerchants();renderCrafting();renderRoster();renderHome();renderHistoryLog();renderExpedition();}
 
 loadGame();
 renderPrepActions();
@@ -390,6 +437,7 @@ setInterval(function(){
     renderExpedition();
   }
   renderEconomy();
+  renderMerchants();
   if(earned>0)renderHome();
   saveClock+=0.25;
   if(saveClock>=1){saveClock=0;saveGame();}
