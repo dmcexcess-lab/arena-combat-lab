@@ -52,6 +52,10 @@ Operational checklist for humans + AIs. Keep compact; add only behaviors whose r
 - Escort caravan destruction can end the contract as failure while the hero remains alive; earlier checkpoint rewards remain banked.
 - Sub-objective gold and performance-rate rewards remain in the expedition total on retreat/failure/death; success closes objective score at 100 without erasing prior events.
 - Objective state/events/bonus gold persist through snapshot/restore; Slice 10 snapshots without objective fields migrate from route progress.
+- Slice 12 facilities: Kitchen/Commons/Lodging/Infirmary/Workshop levels persist, upgrade through shared tavern funds and default to level 1 for legacy saves.
+- Identical heroes receive stronger/faster meal, morale, rest and treatment results in developed facilities; scaled prep buffs materially alter readiness and live expedition hunger/fatigue/combat/retreat behavior.
+- Workshop level lowers authoritative repair gold/time and high-level scrap requirements, and shortens crafting time without changing recipes, materials or outputs.
+- Preparation/crafting quotes match execution values so UI cannot drift from the authoritative facility formulas.
 
 ### Arena
 - Main scene instantiates without script/runtime errors.

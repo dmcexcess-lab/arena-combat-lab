@@ -55,10 +55,10 @@ function gearConditionText(hero,slot){
   const d=C.normalizeDurability(hero.gearDurability?.[slot]);
   return (C.EQUIPMENT[itemId]?.name||itemId)+' · '+Math.round(d)+'% '+C.durabilityCondition(d);
 }
-function repairLabel(itemId,durability,prefix){
-  const q=C.repairQuote(itemId,durability);
+function repairLabel(itemId,durability,prefix,workshopLevel){
+  const q=C.repairQuote(itemId,durability,workshopLevel||1);
   if(!q||q.missing<=0)return prefix+' · maintained';
-  return prefix+' · '+q.gold+'g'+(q.scrapIron?' + '+q.scrapIron+' iron':'')+' · '+q.minutes+'m';
+  return prefix+' · '+q.gold+'g'+(q.scrapIron?' + '+q.scrapIron+' iron':'')+' · '+q.minutes+'m · W'+q.workshopLevel;
 }
 function objectiveStateText(exp){
   const o=exp.objectiveState||{};
@@ -119,6 +119,11 @@ function renderEconomy(){
   $('rollingGps').textContent=rolling.toFixed(2)+' g/s';
   $('seatCount').textContent=t.active.length+'/'+t.seats;
   $('serviceLevel').textContent='Lv '+t.serviceLevel+' · '+t.serviceSlots()+' server'+(t.serviceSlots()===1?'':'s');
+  $('kitchenLevel').textContent='Lv '+t.kitchenLevel;
+  $('barLevel').textContent='Lv '+t.barLevel;
+  $('lodgingLevel').textContent='Lv '+t.lodgingLevel;
+  $('infirmaryLevel').textContent='Lv '+t.infirmaryLevel;
+  $('workshopLevel').textContent='Lv '+t.workshopLevel;
   $('servedCount').textContent=t.served;
   $('lostCount').textContent=t.lost;
 
@@ -143,10 +148,13 @@ function renderEconomy(){
   }).join(''):'<p class="empty">Open the doors and patrons will arrive.</p>';
 
   const defs=[
-    {id:'seats',name:'Add Seating',level:t.seats+' seats',next:'+2 seats'},
+    {id:'seats',name:'Add Seating',level:t.seats+' seats',next:'+2 patron seats'},
     {id:'service',name:'Improve Service',level:'Lv '+t.serviceLevel,next:'faster / more servers'},
-    {id:'kitchen',name:'Improve Kitchen',level:'Lv '+t.kitchenLevel,next:'higher food spend'},
-    {id:'bar',name:'Improve Bar',level:'Lv '+t.barLevel,next:'higher drink spend'}
+    {id:'kitchen',name:'Improve Kitchen',level:'Lv '+t.kitchenLevel,next:'stronger + faster meals · higher food spend'},
+    {id:'bar',name:'Improve Commons',level:'Lv '+t.barLevel,next:'stronger morale prep · higher drink spend'},
+    {id:'lodging',name:'Improve Lodging',level:'Lv '+t.lodgingLevel,next:'stronger + faster rest'},
+    {id:'infirmary',name:'Improve Infirmary',level:'Lv '+t.infirmaryLevel,next:'stronger + faster treatment'},
+    {id:'workshop',name:'Improve Workshop',level:'Lv '+t.workshopLevel,next:'cheaper repairs · faster crafting'}
   ];
   $('tavernUpgrades').innerHTML=defs.map(function(d){
     const maxed=!t.canUpgrade(d.id);
@@ -270,7 +278,7 @@ function renderCrafting(){
         stat+=' · '+ds.map(function(d){return Math.round(d)+'%';}).join(', ');
         const worst=ds.length?Math.min.apply(null,ds):100;
         action='<button data-equip="'+id+'" '+(!h||expeditionLocked()?'disabled':'')+'>Equip best</button>'+
-          '<button data-repair-stock="'+id+'" '+(worst>=100||expeditionLocked()?'disabled':'')+'>'+repairLabel(id,worst,'Repair worst')+'</button>';
+          '<button data-repair-stock="'+id+'" '+(worst>=100||expeditionLocked()?'disabled':'')+'>'+repairLabel(id,worst,'Repair worst',roster.tavern.workshopLevel)+'</button>';
       }else if(item.slot==='consumable'){
         action='<button data-give="'+id+'" '+(!h||expeditionLocked()?'disabled':'')+'>Give</button>';
       }
@@ -285,14 +293,15 @@ function renderCrafting(){
       const have=roster.materialCount(kv[0]);
       return '<span class="'+(have>=kv[1]?'ok':'short')+'">'+C.MATERIAL_NAMES[kv[0]]+' '+have+'/'+kv[1]+'</span>';
     }).join('');
-    return '<div class="recipe-card"><div><strong>'+r.name+'</strong><span>'+r.category+'</span></div><p>'+r.description+'</p><div class="recipe-mats">'+mats+'</div><small>'+r.minutes+' prep min · makes '+r.outputCount+'</small><button data-craft="'+r.id+'" '+(!roster.canCraft(r.id)?'disabled':'')+'>Craft</button></div>';
+    const quote=roster.craftQuote(r.id,1);
+    return '<div class="recipe-card"><div><strong>'+r.name+'</strong><span>'+r.category+'</span></div><p>'+r.description+'</p><div class="recipe-mats">'+mats+'</div><small>'+quote.minutes+' prep min · Workshop Lv '+quote.workshopLevel+(quote.minutes<quote.baseMinutes?' · base '+quote.baseMinutes+'m':'')+' · makes '+r.outputCount+'</small><button data-craft="'+r.id+'" '+(!roster.canCraft(r.id)?'disabled':'')+'>Craft</button></div>';
   }).join('');
 
   $('craftLog').innerHTML=roster.craftHistory.length?roster.craftHistory.slice().reverse().slice(0,6).map(function(e){
     return '<div><strong>'+e.name+'</strong><span>made '+e.made+' · '+e.minutes+'m</span></div>';
   }).join(''):'<p class="empty">No crafting yet.</p>';
   $('repairLog').innerHTML=roster.repairHistory.length?roster.repairHistory.slice().reverse().slice(0,6).map(function(e){
-    return '<div><strong>'+e.name+'</strong><span>'+Math.round(e.before)+'% → 100% · '+e.gold+'g'+(e.scrapIron?' + '+e.scrapIron+' iron':'')+'</span></div>';
+    return '<div><strong>'+e.name+'</strong><span>'+Math.round(e.before)+'% → 100% · '+e.gold+'g'+(e.scrapIron?' + '+e.scrapIron+' iron':'')+' · '+e.minutes+'m · W'+(e.workshopLevel||1)+'</span></div>';
   }).join(''):'<p class="empty">No maintenance yet.</p>';
 
   document.querySelectorAll('[data-craft]').forEach(function(btn){
@@ -388,7 +397,9 @@ function renderRoster(){
 
 function renderPrepActions(){
   $('prepActions').innerHTML=Object.values(C.PREPARATION_ACTIONS).map(function(a){
-    return '<button class="prep-action" data-prep="'+a.id+'"><strong>'+a.name+'</strong><span>'+a.cost+'g · '+a.minutes+'m</span><small>'+a.description+'</small></button>';
+    const q=roster.preparationQuote(a.id);
+    const facility=(q.facility||'tavern').replace('_',' ');
+    return '<button class="prep-action" data-prep="'+a.id+'"><strong>'+a.name+'</strong><span>'+q.cost+'g · '+q.minutes+'m · '+facility+' Lv '+q.facilityLevel+'</span><small>'+q.description+(q.minutes<q.baseMinutes?' Base time '+q.baseMinutes+'m.':'')+'</small></button>';
   }).join('');
   document.querySelectorAll('[data-prep]').forEach(function(btn){
     btn.addEventListener('click',function(){
@@ -403,6 +414,7 @@ function renderPrepActions(){
 }
 
 function renderHome(){
+  renderPrepActions();
   $('funds').textContent=roster.funds.toFixed(1)+'g';
   $('prepTime').textContent=fmtPrepTime(roster.prepMinutes);
   const h=selected();
@@ -443,10 +455,11 @@ function renderHome(){
   $('bandages').textContent=h.supplies.field_bandage||0;
   $('currentWeapon').textContent=gearConditionText(h,'weapon');
   $('currentArmor').textContent=gearConditionText(h,'armor');
-  const wq=C.repairQuote(h.equipment.weapon,h.gearDurability.weapon);
-  const aq=h.equipment.armor?C.repairQuote(h.equipment.armor,h.gearDurability.armor):null;
-  $('repairWeapon').textContent=repairLabel(h.equipment.weapon,h.gearDurability.weapon,'Repair Weapon');
-  $('repairArmor').textContent=h.equipment.armor?repairLabel(h.equipment.armor,h.gearDurability.armor,'Repair Armor'):'No Armor';
+  const workshopLevel=roster.tavern.workshopLevel;
+  const wq=C.repairQuote(h.equipment.weapon,h.gearDurability.weapon,workshopLevel);
+  const aq=h.equipment.armor?C.repairQuote(h.equipment.armor,h.gearDurability.armor,workshopLevel):null;
+  $('repairWeapon').textContent=repairLabel(h.equipment.weapon,h.gearDurability.weapon,'Repair Weapon',workshopLevel);
+  $('repairArmor').textContent=h.equipment.armor?repairLabel(h.equipment.armor,h.gearDurability.armor,'Repair Armor',workshopLevel):'No Armor';
   $('repairWeapon').disabled=expeditionLocked(h.id)||!wq||wq.missing<=0||roster.funds<wq.gold||roster.materialCount('scrap_iron')<wq.scrapIron;
   $('repairArmor').disabled=expeditionLocked(h.id)||!aq||aq.missing<=0||roster.funds<aq.gold||roster.materialCount('scrap_iron')<aq.scrapIron;
   $('heroCard').innerHTML='<div><strong>'+h.name+'</strong><span>Rank '+h.career.rank+'</span></div>'+
@@ -615,7 +628,6 @@ function renderAll(){
 }
 
 loadGame();
-renderPrepActions();
 renderAll();
 
 $('repairWeapon').addEventListener('click',function(){const h=selected();if(h&&!expeditionLocked(h.id)){const r=roster.repairEquippedGear(h.id,'weapon');if(r.ok){renderAll();saveGame();}}});

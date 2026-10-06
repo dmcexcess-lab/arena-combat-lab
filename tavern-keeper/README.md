@@ -1,19 +1,22 @@
-# Tavern Keeper — Slice 11: Objective Mechanics & Partial Contract Scoring
+# Tavern Keeper — Slice 12: Tavern Facilities & Preparation Depth
 
-Contracts are now mechanically different mini-RPGs with visible sub-objectives and paid partial success.
+Tavern upgrades now directly change how well heroes can be prepared for autonomous contracts.
 
-## Slice 11
+## Slice 12
 
-- **Hunt:** track the wolf pack, cull quarry, clear the den.
-- **Extermination:** reach the infestation, kill vermin, destroy the main nest.
-- **Escort:** protect checkpoints and preserve caravan integrity; the caravan can be destroyed while the hero survives.
-- **Delve:** discover deep chambers, find missing miners and rescue as many as possible.
-- **Boss Hunt:** reach the bridge, earn credit at boss-damage milestones and kill the designated bridge troll.
-- Every sub-objective immediately pays a small gold bonus and raises performance gold/sec.
-- Retreat, failure or death keeps all objective rewards already earned.
-- Successful contracts finish at 100 objective score.
-- Objective state, score, events and bonus gold persist across saves and concurrent expeditions.
-- The expedition UI shows live objective state and the final report itemizes exactly what paid.
+- **Kitchen:** stronger/faster meals; better Hearty Meal expedition buffs.
+- **Commons / Bar:** stronger morale recovery; developed commons grant Good Company.
+- **Lodging:** stronger/faster naps and full rest; better Good Sleep buffs.
+- **Infirmary:** stronger/faster healing and increasingly effective injury treatment.
+- **Workshop:** cheaper/faster repairs, lower major-repair Scrap Iron at higher levels, and faster crafting.
+- All five hero-facing facilities use Levels 1–6 and permanent shared-tavern upgrades.
+- Level 1 preserves the previous preparation/repair/crafting behavior.
+- Preparation and crafting buttons display authoritative adjusted times rather than duplicated UI estimates.
+- Save migration preserves Kitchen/Bar and defaults newly introduced facilities to Level 1.
+
+## Why it matters
+
+A richer tavern now produces measurably better-prepared heroes. Two otherwise identical heroes given the same preparation sequence in Level 1 versus developed facilities leave with different condition, buff quality, readiness and resource/time cost.
 
 ## Run
 
@@ -33,8 +36,9 @@ node tests/test_recruitment.js
 node tests/test_durability.js
 node tests/test_concurrency.js
 node tests/test_objectives.js
+node tests/test_facilities.js
 ```
 
-## Next Operation (Slice 12)
+## Next Operation (Slice 13)
 
-Build **Tavern Facilities & Preparation Depth** so home upgrades directly improve meals, rest, morale, treatment and maintenance outcomes and therefore materially change contract readiness.
+Build **Offline Progression & Return Summary**: safely advance tavern service and active expeditions across a bounded closed-browser interval and show exactly what happened on return.

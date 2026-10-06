@@ -61,12 +61,19 @@
     if(d>0)return 'Damaged';
     return 'Broken';
   }
-  function repairQuote(itemId,durability){
+  function repairQuote(itemId,durability,workshopLevel=1){
     if(!isDurableItem(itemId))return null;
     const d=normalizeDurability(durability),missing=Math.ceil(MAX_DURABILITY-d);
-    if(missing<=0)return{itemId,durability:d,missing:0,gold:0,scrapIron:0,minutes:0};
+    const workshop=clamp(Math.floor(Number(workshopLevel)||1),1,6);
+    if(missing<=0)return{itemId,durability:d,missing:0,gold:0,scrapIron:0,minutes:0,workshopLevel:workshop};
     const item=EQUIPMENT[itemId],tier=item.premium?1.35:item.crafted?1.15:1;
-    return {itemId,durability:d,missing,gold:Math.max(1,Math.ceil(missing*0.12*tier)),scrapIron:missing>=15?Math.ceil(missing/50):0,minutes:Math.max(10,Math.ceil(missing/10)*10)};
+    const baseGold=Math.max(1,Math.ceil(missing*0.12*tier));
+    const baseMinutes=Math.max(10,Math.ceil(missing/10)*10);
+    const gold=Math.max(1,Math.ceil(baseGold*Math.max(0.6,1-0.08*(workshop-1))));
+    const minutes=Math.max(5,Math.ceil((baseMinutes*Math.max(0.5,1-0.1*(workshop-1)))/5)*5);
+    const baseScrap=missing>=15?Math.ceil(missing/50):0;
+    const scrapIron=Math.max(0,baseScrap-(workshop>=4?1:0));
+    return {itemId,durability:d,missing,gold,scrapIron,minutes,workshopLevel:workshop};
   }
 
   const CRAFT_RECIPES = {
@@ -85,18 +92,32 @@
   const PREP_EFFECTS = {
     hearty_meal:{id:'hearty_meal',name:'Hearty Meal',duration:180,hungerRateMult:0.55,attackBonus:0.05,readinessBonus:5},
     good_sleep:{id:'good_sleep',name:'Good Sleep',duration:240,fatigueRateMult:0.55,attackBonus:0.03,readinessBonus:6},
-    patched_up:{id:'patched_up',name:'Patched Up',duration:150,retreatRelief:4,readinessBonus:3}
+    patched_up:{id:'patched_up',name:'Patched Up',duration:150,retreatRelief:4,readinessBonus:3},
+    good_company:{id:'good_company',name:'Good Company',duration:150,attackBonus:0.012,retreatRelief:1.5,readinessBonus:2}
   };
 
   const PREPARATION_ACTIONS = {
-    simple_meal:{id:'simple_meal',name:'Simple Meal',cost:2,minutes:20,description:'Cheap food. Strong hunger recovery.',apply(h){h.hunger=clamp(h.hunger-36,0,100);h.morale=clamp(h.morale+3,0,100);}},
-    hearty_meal:{id:'hearty_meal',name:'Hearty Meal',cost:5,minutes:35,description:'Deep hunger recovery plus a contract-long food buff.',apply(h){h.hunger=clamp(h.hunger-62,0,100);h.morale=clamp(h.morale+8,0,100);setPrepEffect(h,'hearty_meal');}},
-    nap:{id:'nap',name:'Nap',cost:1,minutes:60,description:'Fast fatigue recovery with a little healing.',apply(h){h.fatigue=clamp(h.fatigue-32,0,100);h.health=clamp(h.health+5,0,h.maxHealth);h.morale=clamp(h.morale+2,0,100);}},
-    common_room:{id:'common_room',name:'Unwind',cost:3,minutes:90,description:'Spend time in the common room to restore morale.',apply(h){h.morale=clamp(h.morale+28,0,100);h.fatigue=clamp(h.fatigue-6,0,100);}},
-    full_rest:{id:'full_rest',name:'Full Rest',cost:3,minutes:360,description:'Major fatigue and health recovery; time makes the hero hungrier.',apply(h){h.fatigue=clamp(h.fatigue-78,0,100);h.health=clamp(h.health+18,0,h.maxHealth);h.morale=clamp(h.morale+7,0,100);setPrepEffect(h,'good_sleep');}},
-    first_aid:{id:'first_aid',name:'First Aid',cost:4,minutes:30,description:'Restore health and reduce one injury by one severity.',apply(h){h.health=clamp(h.health+18,0,h.maxHealth);reduceWorstInjury(h,1);setPrepEffect(h,'patched_up');}},
-    physician:{id:'physician',name:'Physician',cost:12,minutes:90,description:'Expensive treatment: major healing and removes the worst injury.',apply(h){h.health=clamp(h.health+38,0,h.maxHealth);removeWorstInjury(h);setPrepEffect(h,'patched_up');}}
+    simple_meal:{id:'simple_meal',name:'Simple Meal',facility:'kitchen',cost:2,minutes:20,description:'Cheap food. Kitchen quality improves recovery and speed.',apply(h,q=1){const n=q-1;h.hunger=clamp(h.hunger-(36+5*n),0,100);h.morale=clamp(h.morale+3+n,0,100);}},
+    hearty_meal:{id:'hearty_meal',name:'Hearty Meal',facility:'kitchen',cost:5,minutes:35,description:'Deep hunger recovery plus a kitchen-scaled expedition food buff.',apply(h,q=1){const n=q-1;h.hunger=clamp(h.hunger-(62+5*n),0,100);h.morale=clamp(h.morale+8+2*n,0,100);setPrepEffect(h,'hearty_meal',q);}},
+    nap:{id:'nap',name:'Nap',facility:'lodging',cost:1,minutes:60,description:'Lodging quality improves fatigue recovery, healing and speed.',apply(h,q=1){const n=q-1;h.fatigue=clamp(h.fatigue-(32+6*n),0,100);h.health=clamp(h.health+5+2*n,0,h.maxHealth);h.morale=clamp(h.morale+2+n,0,100);}},
+    common_room:{id:'common_room',name:'Unwind',facility:'bar',cost:3,minutes:90,description:'Commons quality improves morale and leaves a stronger social boost.',apply(h,q=1){const n=q-1;h.morale=clamp(h.morale+28+6*n,0,100);h.fatigue=clamp(h.fatigue-(6+2*n),0,100);if(q>=2)setPrepEffect(h,'good_company',q);}},
+    full_rest:{id:'full_rest',name:'Full Rest',facility:'lodging',cost:3,minutes:360,description:'Lodging quality improves deep rest, healing and Good Sleep.',apply(h,q=1){const n=q-1;h.fatigue=clamp(h.fatigue-(78+4*n),0,100);h.health=clamp(h.health+18+4*n,0,h.maxHealth);h.morale=clamp(h.morale+7+2*n,0,100);setPrepEffect(h,'good_sleep',q);}},
+    first_aid:{id:'first_aid',name:'First Aid',facility:'infirmary',cost:4,minutes:30,description:'Infirmary quality improves healing and injury reduction.',apply(h,q=1){const n=q-1;h.health=clamp(h.health+18+5*n,0,h.maxHealth);reduceWorstInjury(h,1+Math.floor(n/2));setPrepEffect(h,'patched_up',q);}},
+    physician:{id:'physician',name:'Physician',facility:'infirmary',cost:12,minutes:90,description:'Infirmary quality improves major healing and can clear additional injuries.',apply(h,q=1){const n=q-1;h.health=clamp(h.health+38+7*n,0,h.maxHealth);const removals=1+Math.floor(n/2);for(let i=0;i<removals;i++)if(!removeWorstInjury(h))break;setPrepEffect(h,'patched_up',q);}}
   };
+
+  function normalizeFacilityLevels(facilities={}){
+    const get=(key)=>clamp(Math.floor(Number(facilities[key]??facilities[key+'Level']??1)||1),1,6);
+    return {kitchen:get('kitchen'),bar:get('bar'),lodging:get('lodging'),infirmary:get('infirmary'),workshop:get('workshop')};
+  }
+  function preparationFacilityLevel(facilities,actionId){
+    const action=PREPARATION_ACTIONS[actionId];
+    if(!action||!action.facility)return 1;
+    return normalizeFacilityLevels(facilities)[action.facility]||1;
+  }
+  function facilityActionMinutes(baseMinutes,level){
+    return Math.max(5,Math.round(baseMinutes*Math.max(0.65,1-0.06*(clamp(level,1,6)-1))));
+  }
 
   const CONTRACTS = {
     briar_farm_wolves:{
@@ -287,13 +308,31 @@
   }
 
   function effectActive(hero,id){ return (hero.prepEffects||[]).some(e=>e.id===id&&e.remaining>0); }
-  function setPrepEffect(hero,id){
+  function prepEffectRecord(hero,id){ return (hero.prepEffects||[]).find(e=>e.id===id&&e.remaining>0)||null; }
+  function prepEffectValue(hero,id,key){
+    const e=prepEffectRecord(hero,id),def=PREP_EFFECTS[id];
+    if(!e||!def)return 0;
+    return (Number(def[key])||0)*(Number(e.potency)||1);
+  }
+  function prepEffectRateMultiplier(hero,id,key){
+    const e=prepEffectRecord(hero,id),def=PREP_EFFECTS[id];
+    if(!e||!def)return 1;
+    const base=Number(def[key]); if(!Number.isFinite(base))return 1;
+    return clamp(1-(1-base)*(Number(e.potency)||1),0.25,1);
+  }
+  function setPrepEffect(hero,id,quality=1){
     if(!hero.prepEffects)hero.prepEffects=[];
     const def=PREP_EFFECTS[id];
     if(!def)return;
+    const q=clamp(Math.floor(Number(quality)||1),1,6);
+    const potency=1+0.08*(q-1);
+    const remaining=Math.round(def.duration*(1+0.1*(q-1)));
     const existing=hero.prepEffects.find(e=>e.id===id);
-    if(existing)existing.remaining=def.duration;
-    else hero.prepEffects.push({id,remaining:def.duration});
+    if(existing){
+      existing.remaining=Math.max(existing.remaining||0,remaining);
+      existing.potency=Math.max(Number(existing.potency)||1,potency);
+      existing.quality=Math.max(Number(existing.quality)||1,q);
+    }else hero.prepEffects.push({id,remaining,potency,quality:q});
   }
   function tickPrepEffects(hero,dt){
     if(!hero.prepEffects)return;
@@ -363,7 +402,7 @@
     if(hero.moodlets.includes('Tired'))score-=9;
     score-=injuryPenalty(hero,'readinessPenalty');
     for(const e of hero.prepEffects||[]){
-      if(e.remaining>0)score+=PREP_EFFECTS[e.id]?.readinessBonus||0;
+      if(e.remaining>0)score+=(PREP_EFFECTS[e.id]?.readinessBonus||0)*(Number(e.potency)||1);
     }
     const skill=weapon(hero).kind==='ranged'?hero.career.skills.ranged:hero.career.skills.melee;
     score+=skill*1.2 + hero.career.skills.survival*0.7;
@@ -393,11 +432,12 @@
   }
 
   class PreparationState {
-    constructor({hero=makePreset('prepared'),funds=18,materials={},prepMinutes=0}={}){
+    constructor({hero=makePreset('prepared'),funds=18,materials={},prepMinutes=0,facilities={}}={}){
       this.hero=heroTemplate(hero);
       this.funds=funds;
       this.materials=clone(materials);
       this.prepMinutes=prepMinutes;
+      this.facilities=normalizeFacilityLevels(facilities);
       this.log=[];
       this.settledExpeditions=new Set();
     }
@@ -418,12 +458,14 @@
       if(!this.hero.alive)return{ok:false,reason:'hero is dead'};
       if(this.funds<a.cost)return{ok:false,reason:'insufficient funds'};
       if(a.canApply&&!a.canApply(this.hero))return{ok:false,reason:'not needed'};
+      const facilityLevel=preparationFacilityLevel(this.facilities,actionId);
+      const minutes=facilityActionMinutes(a.minutes,facilityLevel);
       const before={funds:this.funds,health:this.hero.health,hunger:this.hero.hunger,fatigue:this.hero.fatigue,morale:this.hero.morale,injuries:totalInjurySeverity(this.hero)};
       this.funds-=a.cost;
-      this.advanceTime(a.minutes);
-      a.apply(this.hero);
+      this.advanceTime(minutes);
+      a.apply(this.hero,facilityLevel);
       deriveMoodlets(this.hero);
-      const event={action:actionId,name:a.name,cost:a.cost,minutes:a.minutes,before,after:{funds:this.funds,health:this.hero.health,hunger:this.hero.hunger,fatigue:this.hero.fatigue,morale:this.hero.morale,injuries:totalInjurySeverity(this.hero)}};
+      const event={action:actionId,name:a.name,facility:a.facility||null,facilityLevel,cost:a.cost,minutes,baseMinutes:a.minutes,before,after:{funds:this.funds,health:this.hero.health,hunger:this.hero.hunger,fatigue:this.hero.fatigue,morale:this.hero.morale,injuries:totalInjurySeverity(this.hero)}};
       this.log.push(event);
       return{ok:true,event};
     }
@@ -446,7 +488,7 @@
       this.log.push({action:'settle',name:'Expedition settled',banked,outcome:expedition.state});
       return{ok:true,banked,heroAlive:this.hero.alive};
     }
-    snapshot(){return{hero:clone(this.hero),funds:this.funds,materials:clone(this.materials),prepMinutes:this.prepMinutes,log:clone(this.log)};}
+    snapshot(){return{hero:clone(this.hero),funds:this.funds,materials:clone(this.materials),prepMinutes:this.prepMinutes,facilities:clone(this.facilities),log:clone(this.log)};}
   }
 
   class Expedition {
@@ -569,8 +611,8 @@
     }
     bumpRate(amount,reason){ const before=this.goldRate; const scaled=amount*(this.contract.incomeMult||1); this.goldRate=clamp(this.goldRate+scaled,0,50); this.peakGoldRate=Math.max(this.peakGoldRate,this.goldRate); if(Math.abs(this.goldRate-before)>=0.009)this.addLog(`Performance ${before.toFixed(2)} → ${this.goldRate.toFixed(2)} gold/sec — ${reason}.`,'income'); }
     updateNeeds(dt){
-      const hungerMult=effectActive(this.hero,'hearty_meal')?PREP_EFFECTS.hearty_meal.hungerRateMult:1;
-      const fatigueMult=effectActive(this.hero,'good_sleep')?PREP_EFFECTS.good_sleep.fatigueRateMult:1;
+      const hungerMult=prepEffectRateMultiplier(this.hero,'hearty_meal','hungerRateMult');
+      const fatigueMult=prepEffectRateMultiplier(this.hero,'good_sleep','fatigueRateMult');
       this.hero.hunger=clamp(this.hero.hunger+dt*0.11*hungerMult,0,100);
       this.hero.fatigue=clamp(this.hero.fatigue+dt*0.095*fatigueMult,0,100);
       if(this.hero.hunger>80) this.hero.morale=clamp(this.hero.morale-dt*0.025,0,100);
@@ -598,7 +640,7 @@
         if(trait(h,'Cautious'))add(14,'cautious'); if(trait(h,'Brave'))add(-18,'brave'); if(trait(h,'Veteran'))add(-3,'veteran'); if(trait(h,'Battle Hardened'))add(-4,'battle hardened'); if(trait(h,'Survivor'))add(6,'survivor');
         if(moods.includes('Afraid'))add(18,'afraid');
         add(injuryPenalty(h,'retreatPressure')*(trait(h,'Brave')?0.3:1),'lingering injury');
-        if(effectActive(h,'patched_up'))add(-PREP_EFFECTS.patched_up.retreatRelief,'fresh treatment');
+        if(effectActive(h,'patched_up'))add(-prepEffectValue(h,'patched_up','retreatRelief'),'fresh treatment'); if(effectActive(h,'good_company'))add(-prepEffectValue(h,'good_company','retreatRelief'),'good company');
       } else if(action==='optional'){
         add((ctx.reward||0)*28,'valuable opportunity'); add(-(ctx.risk||0)*28,'danger');
         add((health-0.55)*28,health>0.65?'healthy':'injured'); add((55-h.fatigue)*0.15,h.fatigue<55?'rested':'fatigue');
@@ -694,8 +736,9 @@
         const base=(w.damage + h.stats.might*0.8 + (w.kind==='ranged'?h.stats.finesse*0.7:h.stats.finesse*0.25) + careerSkill*0.5) * (trait(h,'Ratbane')?1.08:1);
         const cond=(100-h.fatigue)*0.0025 + (100-h.hunger)*0.0015;
         let mood=(h.moodlets.includes('Confident')?0.12:0)+(h.moodlets.includes('Afraid')?-0.12:0)+(h.moodlets.includes('Tired')?-0.1:0);
-        if(effectActive(h,'hearty_meal'))mood+=PREP_EFFECTS.hearty_meal.attackBonus;
-        if(effectActive(h,'good_sleep'))mood+=PREP_EFFECTS.good_sleep.attackBonus;
+        if(effectActive(h,'hearty_meal'))mood+=prepEffectValue(h,'hearty_meal','attackBonus');
+        if(effectActive(h,'good_sleep'))mood+=prepEffectValue(h,'good_sleep','attackBonus');
+        if(effectActive(h,'good_company'))mood+=prepEffectValue(h,'good_company','attackBonus');
         const injuryMult=clamp(1-injuryPenalty(h,'attackPenalty'),0.65,1);
         const hitChance=clamp(0.62+h.stats.finesse*0.025 + careerSkill*0.012 + (w.kind==='ranged'?0.06:0)+mood-injuryPenalty(h,'attackPenalty')*0.35,0.25,0.96);
         if(this.rng.chance(hitChance)){
@@ -1086,6 +1129,9 @@
       this.serviceLevel=Math.max(1,Number(data.serviceLevel)||1);
       this.kitchenLevel=Math.max(1,Number(data.kitchenLevel)||1);
       this.barLevel=Math.max(1,Number(data.barLevel)||1);
+      this.lodgingLevel=Math.max(1,Number(data.lodgingLevel)||1);
+      this.infirmaryLevel=Math.max(1,Number(data.infirmaryLevel)||1);
+      this.workshopLevel=Math.max(1,Number(data.workshopLevel)||1);
       this.elapsed=Number(data.elapsed)||0;
       this.arrivalClock=Number(data.arrivalClock)||0;
       this.nextPatronId=Math.max(1,Number(data.nextPatronId)||1);
@@ -1100,6 +1146,7 @@
       this.revenueEvents=clone(data.revenueEvents||[]);
       this.log=clone(data.log||[]);
     }
+    facilityLevels(){ return normalizeFacilityLevels({kitchen:this.kitchenLevel,bar:this.barLevel,lodging:this.lodgingLevel,infirmary:this.infirmaryLevel,workshop:this.workshopLevel}); }
     arrivalInterval(){ return 5.2; }
     maxQueue(){ return 5; }
     serviceSlots(){ return 1+Math.floor((this.serviceLevel-1)/2); }
@@ -1215,6 +1262,9 @@
       if(id==='service')return 28*this.serviceLevel;
       if(id==='kitchen')return 24*this.kitchenLevel;
       if(id==='bar')return 20*this.barLevel;
+      if(id==='lodging')return 26*this.lodgingLevel;
+      if(id==='infirmary')return 34*this.infirmaryLevel;
+      if(id==='workshop')return 30*this.workshopLevel;
       return Infinity;
     }
     canUpgrade(id){
@@ -1222,6 +1272,9 @@
       if(id==='service')return this.serviceLevel<6;
       if(id==='kitchen')return this.kitchenLevel<6;
       if(id==='bar')return this.barLevel<6;
+      if(id==='lodging')return this.lodgingLevel<6;
+      if(id==='infirmary')return this.infirmaryLevel<6;
+      if(id==='workshop')return this.workshopLevel<6;
       return false;
     }
     upgrade(id){
@@ -1230,12 +1283,15 @@
       else if(id==='service')this.serviceLevel++;
       else if(id==='kitchen')this.kitchenLevel++;
       else if(id==='bar')this.barLevel++;
+      else if(id==='lodging')this.lodgingLevel++;
+      else if(id==='infirmary')this.infirmaryLevel++;
+      else if(id==='workshop')this.workshopLevel++;
       else return false;
       this.logEvent('Tavern upgraded: '+id+'.','upgrade');
       return true;
     }
     snapshot(){
-      return {version:1,seed:this.seed,rngState:this.rng.state,seats:this.seats,serviceLevel:this.serviceLevel,kitchenLevel:this.kitchenLevel,barLevel:this.barLevel,elapsed:this.elapsed,arrivalClock:this.arrivalClock,nextPatronId:this.nextPatronId,patronIndex:this.patronIndex,queue:clone(this.queue),active:clone(this.active),served:this.served,lost:this.lost,totalRevenue:this.totalRevenue,foodServed:this.foodServed,drinksServed:this.drinksServed,revenueEvents:clone(this.revenueEvents),log:clone(this.log)};
+      return {version:2,seed:this.seed,rngState:this.rng.state,seats:this.seats,serviceLevel:this.serviceLevel,kitchenLevel:this.kitchenLevel,barLevel:this.barLevel,lodgingLevel:this.lodgingLevel,infirmaryLevel:this.infirmaryLevel,workshopLevel:this.workshopLevel,elapsed:this.elapsed,arrivalClock:this.arrivalClock,nextPatronId:this.nextPatronId,patronIndex:this.patronIndex,queue:clone(this.queue),active:clone(this.active),served:this.served,lost:this.lost,totalRevenue:this.totalRevenue,foodServed:this.foodServed,drinksServed:this.drinksServed,revenueEvents:clone(this.revenueEvents),log:clone(this.log)};
     }
     static fromSnapshot(data){ return new TavernEconomy(data||{}); }
   }
@@ -1339,6 +1395,14 @@
       if(!recipe)return false;
       return Object.entries(recipe.materials).every(([id,n])=>this.materialCount(id)>=n*count);
     }
+    craftQuote(recipeId,count=1){
+      const recipe=CRAFT_RECIPES[recipeId]; count=Math.max(1,Math.floor(count));
+      if(!recipe)return null;
+      const workshopLevel=this.tavern.workshopLevel;
+      const baseMinutes=recipe.minutes*count;
+      const minutes=Math.max(5,Math.ceil((baseMinutes*Math.max(0.65,1-0.06*(workshopLevel-1)))/5)*5);
+      return {recipeId,count,workshopLevel,baseMinutes,minutes};
+    }
     craft(recipeId,count=1){
       const recipe=CRAFT_RECIPES[recipeId]; count=Math.max(1,Math.floor(count));
       if(!recipe)return{ok:false,reason:'unknown recipe'};
@@ -1346,8 +1410,9 @@
       for(const [id,n] of Object.entries(recipe.materials))this.materials[id]=this.materialCount(id)-n*count;
       const made=recipe.outputCount*count;
       this.addInventoryItem(recipe.output,made,100);
-      this.prepMinutes+=recipe.minutes*count;
-      const event={recipeId,name:recipe.name,count,made,output:recipe.output,minutes:recipe.minutes*count,materials:clone(recipe.materials)};
+      const quote=this.craftQuote(recipeId,count),workshopLevel=quote.workshopLevel,minutes=quote.minutes;
+      this.prepMinutes+=minutes;
+      const event={recipeId,name:recipe.name,count,made,output:recipe.output,minutes,baseMinutes:quote.baseMinutes,workshopLevel,materials:clone(recipe.materials)};
       this.craftHistory.push(event); if(this.craftHistory.length>50)this.craftHistory=this.craftHistory.slice(-50);
       return{ok:true,event};
     }
@@ -1371,7 +1436,7 @@
       if(!['weapon','armor'].includes(slot))return{ok:false,reason:'invalid slot'};
       const itemId=h.equipment[slot];
       if(!itemId)return{ok:false,reason:'slot empty'};
-      const quote=repairQuote(itemId,h.gearDurability?.[slot]);
+      const quote=repairQuote(itemId,h.gearDurability?.[slot],this.tavern.workshopLevel);
       if(!quote||quote.missing<=0)return{ok:false,reason:'already maintained'};
       if(this.funds<quote.gold)return{ok:false,reason:'insufficient funds',quote};
       if(this.materialCount('scrap_iron')<quote.scrapIron)return{ok:false,reason:'insufficient scrap iron',quote};
@@ -1379,7 +1444,7 @@
       this.materials.scrap_iron=this.materialCount('scrap_iron')-quote.scrapIron;
       this.prepMinutes+=quote.minutes;
       h.gearDurability[slot]=100;
-      const event={scope:'equipped',heroId:h.id,heroName:h.name,slot,itemId,name:EQUIPMENT[itemId].name,before:quote.durability,after:100,gold:quote.gold,scrapIron:quote.scrapIron,minutes:quote.minutes};
+      const event={scope:'equipped',heroId:h.id,heroName:h.name,slot,itemId,name:EQUIPMENT[itemId].name,before:quote.durability,after:100,gold:quote.gold,scrapIron:quote.scrapIron,minutes:quote.minutes,workshopLevel:quote.workshopLevel};
       this.repairHistory.push(event); if(this.repairHistory.length>50)this.repairHistory=this.repairHistory.slice(-50);
       return{ok:true,event};
     }
@@ -1389,7 +1454,7 @@
       while(arr.length<this.itemCount(itemId))arr.push(100);
       let worst=0;
       for(let i=1;i<arr.length;i++)if(arr[i]<arr[worst])worst=i;
-      const quote=repairQuote(itemId,arr[worst]);
+      const quote=repairQuote(itemId,arr[worst],this.tavern.workshopLevel);
       if(!quote||quote.missing<=0)return{ok:false,reason:'already maintained'};
       if(this.funds<quote.gold)return{ok:false,reason:'insufficient funds',quote};
       if(this.materialCount('scrap_iron')<quote.scrapIron)return{ok:false,reason:'insufficient scrap iron',quote};
@@ -1397,7 +1462,7 @@
       this.materials.scrap_iron=this.materialCount('scrap_iron')-quote.scrapIron;
       this.prepMinutes+=quote.minutes;
       const before=arr[worst]; arr[worst]=100; this.inventoryDurability[itemId]=arr;
-      const event={scope:'stock',itemId,name:EQUIPMENT[itemId].name,before,after:100,gold:quote.gold,scrapIron:quote.scrapIron,minutes:quote.minutes};
+      const event={scope:'stock',itemId,name:EQUIPMENT[itemId].name,before,after:100,gold:quote.gold,scrapIron:quote.scrapIron,minutes:quote.minutes,workshopLevel:quote.workshopLevel};
       this.repairHistory.push(event); if(this.repairHistory.length>50)this.repairHistory=this.repairHistory.slice(-50);
       return{ok:true,event};
     }
@@ -1422,18 +1487,24 @@
       const idx=this.heroes.findIndex(h=>h.id===heroId); if(idx<0)return;
       this.heroes[idx]=heroTemplate(prep.hero); this.funds=prep.funds; this.materials=clone(prep.materials); this.prepMinutes=prep.prepMinutes;
     }
+    preparationQuote(actionId){
+      const a=PREPARATION_ACTIONS[actionId]; if(!a)return null;
+      const facilities=this.tavern.facilityLevels();
+      const facilityLevel=preparationFacilityLevel(facilities,actionId);
+      return {actionId,name:a.name,facility:a.facility||null,facilityLevel,cost:a.cost,baseMinutes:a.minutes,minutes:facilityActionMinutes(a.minutes,facilityLevel),description:a.description};
+    }
     canPrepare(heroId,actionId){
       const h=this.getHero(heroId); if(!h)return false;
-      return new PreparationState({hero:h,funds:this.funds,materials:this.materials,prepMinutes:this.prepMinutes}).can(actionId);
+      return new PreparationState({hero:h,funds:this.funds,materials:this.materials,prepMinutes:this.prepMinutes,facilities:this.tavern.facilityLevels()}).can(actionId);
     }
     prepare(heroId,actionId){
       const h=this.getHero(heroId); if(!h)return{ok:false,reason:'hero unavailable'};
-      const prep=new PreparationState({hero:h,funds:this.funds,materials:this.materials,prepMinutes:this.prepMinutes});
+      const prep=new PreparationState({hero:h,funds:this.funds,materials:this.materials,prepMinutes:this.prepMinutes,facilities:this.tavern.facilityLevels()});
       const result=prep.apply(actionId); if(result.ok)this.syncPreparation(heroId,prep); return result;
     }
     setLoadout(heroId,weaponId,armorId){
       const h=this.getHero(heroId); if(!h)return false;
-      const prep=new PreparationState({hero:h,funds:this.funds,materials:this.materials,prepMinutes:this.prepMinutes}); prep.setLoadout(weaponId,armorId); this.syncPreparation(heroId,prep); return true;
+      const prep=new PreparationState({hero:h,funds:this.funds,materials:this.materials,prepMinutes:this.prepMinutes,facilities:this.tavern.facilityLevels()}); prep.setLoadout(weaponId,armorId); this.syncPreparation(heroId,prep); return true;
     }
     resolveDeathGear(hero,expedition){
       const threshold=50,recover=expedition.objectiveProgress>=threshold;
@@ -1484,7 +1555,7 @@
       return{ok:true,banked:expedition.gold,heroAlive:updated.alive,record,gearOutcome};
     }
     snapshot(){
-      return{version:9,heroes:clone(this.heroes),fallen:clone(this.fallen),funds:this.funds,materials:clone(this.materials),inventory:clone(this.inventory),inventoryDurability:clone(this.inventoryDurability),craftHistory:clone(this.craftHistory),purchaseHistory:clone(this.purchaseHistory),recruitmentHistory:clone(this.recruitmentHistory),repairHistory:clone(this.repairHistory),prepMinutes:this.prepMinutes,selectedHeroId:this.selectedHeroId,selectedContractId:this.selectedContractId,history:clone(this.history),settledKeys:Array.from(this.settledExpeditions),tavern:this.tavern.snapshot(),merchants:this.merchants.snapshot(),recruitment:this.recruitment.snapshot()};
+      return{version:10,heroes:clone(this.heroes),fallen:clone(this.fallen),funds:this.funds,materials:clone(this.materials),inventory:clone(this.inventory),inventoryDurability:clone(this.inventoryDurability),craftHistory:clone(this.craftHistory),purchaseHistory:clone(this.purchaseHistory),recruitmentHistory:clone(this.recruitmentHistory),repairHistory:clone(this.repairHistory),prepMinutes:this.prepMinutes,selectedHeroId:this.selectedHeroId,selectedContractId:this.selectedContractId,history:clone(this.history),settledKeys:Array.from(this.settledExpeditions),tavern:this.tavern.snapshot(),merchants:this.merchants.snapshot(),recruitment:this.recruitment.snapshot()};
     }
     serialize(){ return JSON.stringify(this.snapshot()); }
     static fromSnapshot(data){
@@ -1494,5 +1565,5 @@
     static deserialize(text){ return TavernRoster.fromSnapshot(JSON.parse(text)); }
   }
 
-  return {RNG,EQUIPMENT,MAX_DURABILITY,isDurableItem,normalizeDurability,durabilityMultiplier,durabilityCondition,repairQuote,CRAFT_RECIPES,INJURY_TYPES,PREP_EFFECTS,PREPARATION_ACTIONS,CONTRACT,CONTRACTS,CONTRACT_ORDER,ENEMIES,MATERIAL_NAMES,PATRON_TYPES,MERCHANT_GOODS,merchantQuality,MerchantSystem,APPLICANT_TRAITS,applicantQuality,RecruitmentSystem,heroTemplate,normalizeCareer,rankFromXp,applyCareerProgress,starterRoster,deriveMoodlets,totalInjurySeverity,addInjury,reduceWorstInjury,removeWorstInjury,readinessScore,threatAssessment,PreparationState,TavernEconomy,TavernRoster,Expedition,ExpeditionManager,makePreset};
+  return {RNG,EQUIPMENT,MAX_DURABILITY,isDurableItem,normalizeDurability,durabilityMultiplier,durabilityCondition,repairQuote,CRAFT_RECIPES,INJURY_TYPES,PREP_EFFECTS,PREPARATION_ACTIONS,normalizeFacilityLevels,preparationFacilityLevel,facilityActionMinutes,CONTRACT,CONTRACTS,CONTRACT_ORDER,ENEMIES,MATERIAL_NAMES,PATRON_TYPES,MERCHANT_GOODS,merchantQuality,MerchantSystem,APPLICANT_TRAITS,applicantQuality,RecruitmentSystem,heroTemplate,normalizeCareer,rankFromXp,applyCareerProgress,starterRoster,deriveMoodlets,totalInjurySeverity,addInjury,reduceWorstInjury,removeWorstInjury,readinessScore,threatAssessment,PreparationState,TavernEconomy,TavernRoster,Expedition,ExpeditionManager,makePreset};
 });

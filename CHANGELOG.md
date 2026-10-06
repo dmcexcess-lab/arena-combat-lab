@@ -2,6 +2,18 @@
 
 Current truth: `PROJECT_CONTEXT.md` · Future: `ROADMAP.md`
 
+## 2026-10-05 — Tavern Keeper Slice 12: Tavern Facilities & Preparation Depth
+- Added permanent Lodging, Infirmary and Workshop levels to the tavern alongside existing Kitchen and Bar/Commons progression.
+- Kitchen levels strengthen meal hunger/morale recovery, shorten meal preparation and increase Hearty Meal buff duration/potency.
+- Bar/Commons levels strengthen Unwind morale/fatigue recovery; developed commons grant a persistent Good Company readiness/combat/retreat benefit.
+- Lodging levels strengthen Nap/Full Rest recovery, shorten rest actions and increase Good Sleep duration/potency.
+- Infirmary levels strengthen healing, shorten treatment and remove more injury severity/additional injuries at high quality.
+- Workshop levels reduce repair gold/time costs, can reduce Scrap Iron consumption on major repairs, and shorten crafting time.
+- Added authoritative preparation/crafting quote APIs so UI estimates and execution use the same facility formulas.
+- Prep action UI now shows responsible facility level and exact facility-adjusted time; repair/crafting UI shows Workshop effects.
+- Added TavernEconomy snapshot v2 and TavernRoster snapshot v10 migration; old saves default new facilities to level 1.
+- Added test_facilities.js and wired all twelve Tavern Keeper suites into the deployment gate.
+
 ## 2026-10-05 — Tavern Keeper Slice 11: Objective Mechanics & Partial Contract Scoring
 - Added explicit contract sub-objective metadata and persistent objective scorecards.
 - Hunt now tracks the pack trail, wolf culls and den clearance.
