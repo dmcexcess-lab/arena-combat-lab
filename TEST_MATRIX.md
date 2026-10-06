@@ -4,8 +4,10 @@ Operational checklist for humans + AIs. Keep compact; add only behaviors whose r
 
 ## Automated CI smoke gate
 ### Tavern Keeper sibling prototype
-- `node tavern-keeper/tests/test_core.js` passes before Web export.
+- `node tavern-keeper/tests/test_core.js` and `node tavern-keeper/tests/test_preparation.js` pass before Web export.
 - Seeded runs cover success, retreat and death; preparation materially changes outcomes; failed contracts retain nonzero rewards; expedition gold/sec stops on resolution.
+- Slice 2 preparation: meals/rest/morale/treatment cost time/funds; long rest increases hunger; one-contract buffs alter real simulation state; injuries reduce readiness and can be treated.
+- Surviving condition/injuries return to the tavern; expedition gold/materials settle once; dead heroes cannot use preparation actions; threat assessment never blocks deployment.
 
 ### Arena
 - Main scene instantiates without script/runtime errors.

@@ -78,11 +78,12 @@ jobs:
           fi
           grep -q 'NEON DRIFTLINE SMOKE OK' "$LOG"
 
-      - name: Run Tavern Keeper contract simulation tests
+      - name: Run Tavern Keeper simulation tests
         shell: bash
         run: |
           set -euxo pipefail
           node tavern-keeper/tests/test_core.js
+          node tavern-keeper/tests/test_preparation.js
 
       - name: Export Web builds and reject script errors
         shell: bash

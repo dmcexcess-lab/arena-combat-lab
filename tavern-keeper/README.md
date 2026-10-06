@@ -1,6 +1,6 @@
-# Tavern Keeper — Slice 1: Autonomous Contract Core
+# Tavern Keeper — Slice 2: Preparation & Condition
 
-A standalone browser prototype implementing the real Slice 1 contract simulation.
+A standalone browser prototype implementing the real Tavern Keeper contract simulation plus the tavern-side preparation loop.
 
 ## Run
 
@@ -18,35 +18,45 @@ Then open `http://localhost:8000`.
 
 ```bash
 node tests/test_core.js
+node tests/test_preparation.js
 ```
 
-## Implemented
+## Slice 1 foundation retained
 
 - Data-driven hero stats, traits, needs/moodlets, equipment and supplies.
 - Branching Threat 2 contract (`Rats Below Greymill`).
 - Advisory hero-relative risk assessment; deployment is never blocked.
 - Seeded deterministic RNG.
-- Utility-scored autonomous decisions with readable player-facing reasons and detailed debug scores.
-- Simulated combat with melee/ranged behavior, mitigation, health, autonomous healing, retreat and death.
-- Dynamic performance gold/sec that ramps from accomplishments and stops at expedition resolution.
-- Independent partial-progress tracking, recovered materials, success/retreat/death summaries.
-- Normal / accelerated / pause / single-step controls.
-- Preparation presets and manual condition/equipment controls for repeatability.
+- Utility-scored autonomous decisions with readable reasons and debug scores.
+- Simulated combat with melee/ranged behavior, mitigation, autonomous healing, retreat and death.
+- Dynamic performance gold/sec that ramps from accomplishments and stops at resolution.
+- Partial-progress tracking, recovered materials and success/retreat/death summaries.
+
+## Slice 2
+
+- A persistent tavern-side `PreparationState` owns the current hero, funds, recovered materials and preparation time.
+- Health, hunger, fatigue, morale, potions and injuries survive a successful/retreated expedition and come home with the hero.
+- Preparation actions: Simple Meal, Hearty Meal, Nap, Unwind, Full Rest, First Aid, Physician and Buy Potion.
+- Preparation costs gold and time; spending time can create tradeoffs such as becoming hungrier while resting.
+- Hearty Meal, Good Sleep and Patched Up are real one-contract effects that modify need decay/readiness/behavior.
+- Combat can cause Sprain, Bruised Ribs and Deep Bite injuries with persistent severity.
+- Injuries reduce readiness and combat effectiveness; first aid reduces severity and a physician can remove the worst injury.
+- Expedition earnings and materials are banked into the tavern once when the run resolves.
+- A dead hero cannot be prepared or redeployed. The Fresh Test Hero button is a temporary developer reset until the real roster/recruitment slice.
 
 ## Architecture
 
-The simulation is isolated in `core.js`. It does not depend on DOM/browser APIs and is exercised directly by Node tests. `app.js` is a thin presentation adapter over the core.
+`core.js` remains the authoritative domain simulation. `PreparationState` was added there rather than building a second fake preparation model. `app.js` is a presentation adapter and does not own gameplay rules.
 
-This preserves the intended separation between simulation/domain state and presentation while keeping Slice 1 minimal.
+## Known limitations
 
-## Known Limitations
-
-- One contract and one hero at a time, by Slice 1 scope.
-- No persistent roster yet; persistence belongs to later slices.
-- No tavern patron economy, crafting, merchants, offline progression, parties, or large inventory.
+- One hero / one active contract at a time.
+- No persistent roster, experience/skill progression or save-file layer yet.
+- No patron economy, crafting, merchants, offline progression or parties yet.
+- Current tavern funds exist only to exercise preparation tradeoffs.
 - Visuals are functional UI, not final art direction.
-- Contract map presentation is event/path based rather than an animated spatial scene.
+- Contract presentation remains event/path based.
 
-## Next Operation (Slice 2)
+## Next Operation (Slice 3)
 
-Build the proper Preparation & Condition loop around this simulation: persistent hunger/fatigue/morale/injuries, tavern-based meals/rest/treatment, and stronger preparation tradeoffs without changing the autonomous contract core.
+Build **Persistent Heroes**: multiple surviving heroes, progression/history, permanent death records and actual persistence, while reusing the existing preparation and autonomous-contract systems.

@@ -2,6 +2,15 @@
 
 Current truth: `PROJECT_CONTEXT.md` · Future: `ROADMAP.md`
 
+## 2026-10-05 — Tavern Keeper Slice 2: Preparation & Condition
+- Replaced the Slice 1 developer sliders with a real tavern-side preparation loop while preserving the autonomous contract core.
+- Added persistent post-contract health, hunger, fatigue, morale, supplies and combat injuries for surviving heroes.
+- Added preparation actions for meals, rest, morale recovery, first aid, physician treatment and potion purchase; actions cost prototype gold and preparation time.
+- Added one-contract preparation effects (Hearty Meal, Good Sleep, Patched Up) that modify actual readiness/need decay/combat behavior.
+- Added persistent injury generation/severity and treatment; injuries alter readiness, combat effectiveness and retreat pressure.
+- Expedition gold and materials now settle into tavern state exactly once; dead heroes cannot be prepared or redeployed.
+- Added a dedicated Slice 2 Node regression suite and wired it into Pages CI.
+
 ## 2026-10-05 — Tavern Keeper Slice 1 Hosted
 - Added `tavern-keeper/` as a sibling browser prototype without changing the Arena Godot runtime.
 - Published the autonomous contract Slice 1 through the existing Pages artifact at `/tavern-keeper/`.
