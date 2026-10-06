@@ -1,4 +1,4 @@
-name: Deploy Arena Combat Lab Web
+name: Deploy Arena and Tavern Web
 
 on:
   push:
@@ -58,26 +58,6 @@ jobs:
           fi
           grep -q 'ARENA SMOKE OK' "$LOG"
 
-      - name: Run headless Neon Driftline smoke test
-        shell: bash
-        run: |
-          set -euxo pipefail
-          LOG=/tmp/neon-smoke.log
-          set +e
-          "/tmp/godot/Godot_v${GODOT_VERSION}-${GODOT_STATUS}_linux.x86_64" \
-            --headless --path neon-driftline --script res://tests/SmokeTest.gd 2>&1 | tee "$LOG"
-          GODOT_EXIT=${PIPESTATUS[0]}
-          set -e
-          if [ "$GODOT_EXIT" -ne 0 ]; then
-            echo "Neon Driftline smoke test exited with code $GODOT_EXIT"
-            exit "$GODOT_EXIT"
-          fi
-          if grep -E 'SCRIPT ERROR|Parse Error|Failed to load script|SMOKE FAIL' "$LOG"; then
-            echo 'Neon Driftline smoke test reported an error; refusing to publish.'
-            exit 1
-          fi
-          grep -q 'NEON DRIFTLINE SMOKE OK' "$LOG"
-
       - name: Run Tavern Keeper simulation tests
         shell: bash
         run: |
@@ -105,7 +85,7 @@ jobs:
         shell: bash
         run: |
           set -euxo pipefail
-          mkdir -p build/web build/web/neon-driftline build/web/tavern-keeper
+          mkdir -p build/web build/web/tavern-keeper
           SHORT_SHA="${GITHUB_SHA:0:12}"
 
           ARENA_BASENAME="arena-${SHORT_SHA}"
@@ -121,19 +101,6 @@ jobs:
           mv "build/web/${ARENA_BASENAME}.html" build/web/index.html
           test -f "build/web/${ARENA_BASENAME}.pck"
 
-          NEON_BASENAME="neon-${SHORT_SHA}"
-          NEON_LOG=/tmp/godot-export-neon.log
-          set +e
-          "/tmp/godot/Godot_v${GODOT_VERSION}-${GODOT_STATUS}_linux.x86_64" \
-            --headless --path neon-driftline --export-release Web "../build/web/neon-driftline/${NEON_BASENAME}.html" \
-            2>&1 | tee "$NEON_LOG"
-          NEON_EXIT=${PIPESTATUS[0]}
-          set -e
-          if [ "$NEON_EXIT" -ne 0 ]; then exit "$NEON_EXIT"; fi
-          if grep -E 'SCRIPT ERROR|Parse Error|Failed to load script' "$NEON_LOG"; then exit 1; fi
-          mv "build/web/neon-driftline/${NEON_BASENAME}.html" build/web/neon-driftline/index.html
-          test -f "build/web/neon-driftline/${NEON_BASENAME}.pck"
-
           cp tavern-keeper/index.html tavern-keeper/app.js tavern-keeper/core.js tavern-keeper/styles.css build/web/tavern-keeper/
           test -f build/web/tavern-keeper/index.html
           test -f build/web/tavern-keeper/core.js
@@ -142,7 +109,7 @@ jobs:
       - name: Keep downloadable build artifact
         uses: actions/upload-artifact@v4
         with:
-          name: arena-combat-lab-web
+          name: arena-and-tavern-web
           path: build/web
 
       - name: Upload Pages artifact
