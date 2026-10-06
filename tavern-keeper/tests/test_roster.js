@@ -10,15 +10,16 @@ function findSeed(hero,pred,max=3000){
   throw new Error('No matching seed found');
 }
 
-// Starter roster has distinct persistent identities.
+// Fresh generation starts with one founder and two low-threat jobs.
 const roster=new C.TavernRoster({funds:30});
-assert.equal(roster.aliveHeroes().length,3);
-assert.equal(new Set(roster.aliveHeroes().map(h=>h.id)).size,3);
-assert.ok(roster.getHero('edrin'));
-assert.ok(roster.getHero('mara'));
-assert.ok(roster.getHero('borin'));
+assert.equal(roster.aliveHeroes().length,1);
+assert.equal(roster.aliveHeroes()[0].id,'edrin');
+assert.deepStrictEqual(roster.availableContractIds(),['briar_farm_wolves','greymill_rats']);
+assert.equal(roster.tavernLevel(),1);
+assert.equal(roster.tavernReputation(),0);
 
 // Preparing one hero spends shared tavern money but does not mutate another hero.
+roster.heroes.push(C.makePreset('ranged'));
 const edrinBefore=JSON.parse(JSON.stringify(roster.getHero('edrin')));
 const maraBefore=JSON.parse(JSON.stringify(roster.getHero('mara')));
 const fundsBefore=roster.funds;
@@ -70,7 +71,7 @@ experienced.career.skills.survival=4;
 assert.ok(C.readinessScore(experienced)>C.readinessScore(rookie));
 
 // Death removes a hero from the living roster and records a memorial snapshot.
-const deathRoster=new C.TavernRoster({funds:0});
+const deathRoster=new C.TavernRoster({heroes:[C.makePreset('prepared'),C.makePreset('reckless')],funds:0});
 const deadRun=findSeed(deathRoster.getHero('borin'),o=>o.outcome==='death');
 const deathSettlement=deathRoster.settle('borin',deadRun);
 assert.equal(deathSettlement.ok,true);
@@ -96,7 +97,7 @@ assert.deepStrictEqual(restored.log,original.log);
 assert.deepStrictEqual(restored.hero,original.hero);
 
 // Selection survives persistence and invalid selected IDs recover safely.
-const sel=new C.TavernRoster();
+const sel=new C.TavernRoster({heroes:[C.makePreset('prepared'),C.makePreset('ranged')]});
 assert.equal(sel.selectHero('mara'),true);
 const selLoaded=C.TavernRoster.deserialize(sel.serialize());
 assert.equal(selLoaded.selectedHeroId,'mara');

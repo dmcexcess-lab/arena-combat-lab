@@ -13,11 +13,11 @@ function manualAdvance(roster,manager,seconds){
 }
 
 // Offline catch-up must be exactly equivalent to the live 0.25-second loop.
-const baseRoster=new C.TavernRoster({funds:40});
+const baseRoster=new C.TavernRoster({heroes:[C.makePreset('prepared'),C.makePreset('ranged'),C.makePreset('reckless')],funds:40});
 const baseManager=new C.ExpeditionManager();
-baseManager.deploy({hero:baseRoster.getHero('edrin'),seed:11,contract:C.CONTRACTS.briar_farm_wolves,speed:0});
-baseManager.deploy({hero:baseRoster.getHero('mara'),seed:22,contract:C.CONTRACTS.greymill_rats,speed:1});
-baseManager.deploy({hero:baseRoster.getHero('borin'),seed:33,contract:C.CONTRACTS.ashroad_caravan,speed:4});
+baseManager.deploy({hero:baseRoster.getHero('edrin'),seed:11,contract:C.CONTRACTS.briar_farm_wolves});
+baseManager.deploy({hero:baseRoster.getHero('mara'),seed:22,contract:C.CONTRACTS.greymill_rats});
+baseManager.deploy({hero:baseRoster.getHero('borin'),seed:33,contract:C.CONTRACTS.ashroad_caravan});
 
 const liveRoster=cloneRoster(baseRoster),liveManager=cloneManager(baseManager);
 const offRoster=cloneRoster(baseRoster),offManager=cloneManager(baseManager);
@@ -29,26 +29,16 @@ assert.equal(summary.appliedSeconds,20);
 assert.equal(summary.steps,80);
 assert.equal(summary.activeStarted,3);
 
-// Paused expeditions stay paused through offline catch-up.
-const paused=summary.progress.find(p=>p.heroId==='edrin');
-assert.ok(paused);
-assert.equal(paused.paused,true);
-assert.equal(paused.simulatedSeconds,0);
-assert.equal(offManager.entries.find(e=>e.heroId==='edrin').expedition.elapsed,0);
-
-// Per-entry speed remains authoritative offline.
-const p1=summary.progress.find(p=>p.heroId==='mara');
-const p4=summary.progress.find(p=>p.heroId==='borin');
-assert.ok(p1.simulatedSeconds>0);
-assert.ok(p4.simulatedSeconds>=p1.simulatedSeconds);
+// All active expeditions advance at the single authoritative speed.
+for(const p of summary.progress)assert.ok(p.simulatedSeconds>0);
 
 // Long enough offline interval resolves, settles and banks a real autonomous expedition.
 const settleRoster=new C.TavernRoster({funds:0});
 const settleManager=new C.ExpeditionManager();
-const deployed=settleManager.deploy({hero:settleRoster.getHero('edrin'),seed:7,contract:C.CONTRACTS.briar_farm_wolves,speed:12});
+const deployed=settleManager.deploy({hero:settleRoster.getHero('edrin'),seed:7,contract:C.CONTRACTS.briar_farm_wolves});
 assert.equal(deployed.ok,true);
 const fundsBefore=settleRoster.funds;
-const settledSummary=C.advanceOffline(settleRoster,settleManager,60);
+const settledSummary=C.advanceOffline(settleRoster,settleManager,16*60);
 assert.ok(settledSummary.settlements.length>=1);
 const result=settledSummary.settlements.find(x=>x.id===deployed.entry.id);
 assert.ok(result);
@@ -61,7 +51,7 @@ assert.equal(result.objectiveScore,settleManager.get(deployed.entry.id).expediti
 // Existing resolved-but-unsettled entries settle even with zero offline seconds.
 const zeroRoster=new C.TavernRoster({funds:0});
 const zeroManager=new C.ExpeditionManager();
-const z=zeroManager.deploy({hero:zeroRoster.getHero('mara'),seed:5,contract:C.CONTRACTS.greymill_rats,speed:1});
+const z=zeroManager.deploy({hero:zeroRoster.getHero('mara'),seed:5,contract:C.CONTRACTS.greymill_rats});
 z.entry.expedition.objectiveProgress=40;
 z.entry.expedition.gold=9;
 z.entry.expedition.finish('retreat','pre-saved resolution');
@@ -106,8 +96,8 @@ assert.equal(Number((tavernRoster.funds).toFixed(4)),Number((tavernSummary.total
 // Multi-expedition objective/durability/RNG state remains deterministic across offline save/resume.
 const detRosterA=new C.TavernRoster({funds:0});
 const detManagerA=new C.ExpeditionManager();
-detManagerA.deploy({hero:detRosterA.getHero('edrin'),seed:321,contract:C.CONTRACTS.blackroot_mine,speed:4});
-detManagerA.deploy({hero:detRosterA.getHero('mara'),seed:654,contract:C.CONTRACTS.wren_bridge_troll,speed:1});
+detManagerA.deploy({hero:detRosterA.getHero('edrin'),seed:321,contract:C.CONTRACTS.blackroot_mine});
+detManagerA.deploy({hero:detRosterA.getHero('mara'),seed:654,contract:C.CONTRACTS.wren_bridge_troll});
 const detRosterB=cloneRoster(detRosterA),detManagerB=cloneManager(detManagerA);
 const first=C.advanceOffline(detRosterA,detManagerA,12.75);
 const midRoster=C.TavernRoster.fromSnapshot(detRosterA.snapshot());
@@ -121,7 +111,7 @@ assert.equal(first.appliedSeconds+second.appliedSeconds,20);
 // Summary accounting separates tavern income from banked expedition payout.
 const accountRoster=new C.TavernRoster({funds:0});
 const accountManager=new C.ExpeditionManager();
-const acc=accountManager.deploy({hero:accountRoster.getHero('edrin'),seed:19,contract:C.CONTRACTS.briar_farm_wolves,speed:12});
+const acc=accountManager.deploy({hero:accountRoster.getHero('edrin'),seed:19,contract:C.CONTRACTS.briar_farm_wolves});
 const account=C.advanceOffline(accountRoster,accountManager,120);
 assert.ok(account.tavernGold>0);
 if(account.settlements.length){
@@ -134,7 +124,6 @@ if(account.settlements.length){
 
 console.log('PASS offline',JSON.stringify({
   exactLiveEquivalent:true,
-  pausedHeroSeconds:paused.simulatedSeconds,
   capSeconds:C.OFFLINE_MAX_SECONDS,
   autonomousResult:result.outcome,
   autonomousScore:result.objectiveScore,

@@ -105,8 +105,11 @@ assert.ok(css.includes('header{flex-direction:column}'));
 assert.ok(app.includes("document.addEventListener('visibilitychange'"));
 assert.ok(app.includes('renderOfflineReturn()'));
 assert.ok(html.includes('id="newTavern"'));
-assert.ok(html.includes('id="deploy"'));
-assert.ok(html.includes('data-speed="12"'));
+assert.ok(html.includes('id="jobHeroSelect"'));
+assert.ok(html.includes('id="jobDeploy"'));
+assert.ok(!html.includes('data-speed='));
+assert.ok(!html.includes('id="deploy"'));
+assert.ok(app.includes("const SAVE_KEY='tavernKeeper.reputationBoard.v1'"));
 
 console.log('PASS release acceptance',JSON.stringify({
   seedsPerBuildPerContract:SEEDS,
