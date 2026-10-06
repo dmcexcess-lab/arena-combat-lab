@@ -2,6 +2,18 @@
 
 Current truth: `PROJECT_CONTEXT.md` · Future: `ROADMAP.md`
 
+## 2026-10-05 — Tavern Keeper Slice 8: Recruitment & Applicants
+- Added persistent timed applicant visits driven by the live tavern clock; applicants remain for a finite window and move on if not hired.
+- Added deterministic generated applicant identities with varied stats, AI-relevant traits, health/hunger/fatigue/morale, personal starting gear and supplies.
+- Applicant Quality 1–3 is derived from tavern Seating, Service, Kitchen and Bar development; higher quality raises stat floors, condition quality, trait count and starting-gear ceiling.
+- Added explicit gold recruitment costs derived from applicant quality, stats and starting equipment.
+- Hiring transfers the exact inspected applicant into the persistent roster at career rank 1; applicants are not rerolled/recreated on acceptance.
+- Recruited heroes use the existing preparation, shared inventory transfer, unrestricted contract board, career progression and permanent-death/Fallen systems.
+- Total living-roster wipe is now recoverable through tavern income plus future applicants instead of requiring New Tavern.
+- Steel Sword / Chain Mail are now treated as premium ordinary gear rather than merchant-exclusive because Quality 3 applicants may arrive owning them; crafted-only gear remains crafting-exclusive.
+- Recruitment state/history now persists and Slice 7 saves migrate to a scheduled applicant visit.
+- Added test_recruitment.js and wired it into the Pages CI gate.
+
 ## 2026-10-05 — Tavern Keeper Slice 7: Contract Board & Threat Ladder
 - Replaced the single hard-coded Greymill contract with an authoritative data-driven five-contract catalog spanning Threat 1, 2, 3, 4 and 6.
 - Added Wolves at Briar Farm (Hunt), Ashroad Caravan (Escort), Blackroot Mine (Delve) and The Wren Bridge Troll (Boss Hunt) while retaining Rats Below Greymill (Extermination).

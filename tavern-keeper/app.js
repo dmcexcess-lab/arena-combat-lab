@@ -158,6 +158,45 @@ function renderMerchants(){
   });
 }
 
+function renderApplicants(){
+  const r=roster.recruitment;
+  const draw=C.applicantQuality(roster.tavern);
+  $('applicantDraw').textContent='Quality '+draw;
+  if(!r.active){
+    $('applicantStatus').textContent='WAITING';
+    $('applicantName').textContent='No applicant present';
+    $('applicantQuality').textContent='—';
+    $('applicantCost').textContent='—';
+    $('applicantTimer').textContent=Math.ceil(r.nextArrival)+'s';
+    $('applicantBody').innerHTML='<p class="empty">Next applicant expected in about '+Math.ceil(r.nextArrival)+'s. Tavern development improves applicant quality.</p>';
+    $('recruitApplicant').disabled=true;
+  }else{
+    const a=r.active,h=a.hero;
+    const weapon=C.EQUIPMENT[h.equipment.weapon]||C.EQUIPMENT.wood_axe;
+    const armor=h.equipment.armor?(C.EQUIPMENT[h.equipment.armor]||null):null;
+    $('applicantStatus').textContent='LOOKING FOR WORK';
+    $('applicantName').textContent=h.name;
+    $('applicantQuality').textContent='Quality '+a.quality;
+    $('applicantCost').textContent=a.cost+'g';
+    $('applicantTimer').textContent=Math.max(0,Math.ceil(a.remaining))+'s';
+    $('applicantBody').innerHTML=
+      '<div class="applicant-card">'+
+        '<div class="applicant-stats">'+Object.entries(h.stats).map(function(kv){return '<div><span>'+kv[0]+'</span><strong>'+kv[1]+'</strong></div>';}).join('')+'</div>'+
+        '<div class="applicant-details">'+
+          '<p><strong>Traits:</strong> '+h.traits.join(' · ')+'</p>'+
+          '<p><strong>Condition:</strong> '+Math.round(h.health)+' HP · Hunger '+Math.round(h.hunger)+' · Fatigue '+Math.round(h.fatigue)+' · Morale '+Math.round(h.morale)+'</p>'+
+          '<p><strong>Gear:</strong> '+weapon.name+' · '+(armor?armor.name:'No armor')+(h.supplies.healing_potion?' · Healing Potion':'')+'</p>'+
+          '<p><strong>Readiness:</strong> '+C.readinessScore(h).toFixed(0)+' · '+C.threatAssessment(h,roster.getContract())+' for '+roster.getContract().name+'</p>'+
+        '</div>'+
+      '</div>';
+    $('recruitApplicant').disabled=roster.funds<a.cost;
+  }
+
+  $('applicantLog').innerHTML=r.log.length?r.log.slice().reverse().slice(0,7).map(function(e){
+    return '<div class="'+e.type+'"><time>'+fmtTime(e.time)+'</time><span>'+e.text+'</span></div>';
+  }).join(''):'<p class="empty">No applicants have visited yet.</p>';
+}
+
 function renderCrafting(){
   const materialIds=Object.keys(C.MATERIAL_NAMES);
   $('materialStash').innerHTML=materialIds.map(function(id){
@@ -341,7 +380,7 @@ function renderHome(){
   $('currentArmor').textContent=h.equipment.armor?(C.EQUIPMENT[h.equipment.armor]?.name||h.equipment.armor):'None';
   $('heroCard').innerHTML='<div><strong>'+h.name+'</strong><span>Rank '+h.career.rank+'</span></div>'+
     '<p>'+Object.entries(h.stats).map(function(kv){return kv[0][0].toUpperCase()+kv[0].slice(1)+' '+kv[1];}).join(' · ')+'</p>'+
-    '<small>'+h.traits.join(' · ')+' · Readiness '+C.readinessScore(h).toFixed(0)+'</small>';
+    '<small>'+h.traits.join(' · ')+' · Readiness '+C.readinessScore(h).toFixed(0)+(h.recruitment?' · Recruited Q'+h.recruitment.quality:' · Founding hero')+'</small>';
 
   if(h.history.length){
     $('careerHistory').innerHTML=h.history.slice().reverse().slice(0,8).map(function(r){
@@ -423,7 +462,7 @@ function settleAndRender(){
     '<div>Hero<br><strong>'+(s.heroAlive?'Alive':'Dead')+'</strong></div><div>Injuries<br><strong>'+s.injuries.length+'</strong></div></div>'+
     progression+'<h3>Recovered Materials</h3><div class="materials">'+mats+'</div><p class="banked">Current tavern funds: '+roster.funds.toFixed(1)+'g. Tavern service continued while this contract ran.</p>';
   $('returnHome').disabled=false;
-  renderEconomy(); renderMerchants(); renderCrafting(); renderRoster(); renderHome(); renderHistoryLog();
+  renderEconomy(); renderMerchants(); renderApplicants(); renderCrafting(); renderContractBoard(); renderRoster(); renderHome(); renderHistoryLog();
   saveGame();
 }
 
@@ -448,13 +487,17 @@ function closeReport(){
   renderAll();
   saveGame();
 }
-function renderAll(){renderEconomy();renderMerchants();renderCrafting();renderContractBoard();renderRoster();renderHome();renderHistoryLog();renderExpedition();}
+function renderAll(){renderEconomy();renderMerchants();renderApplicants();renderCrafting();renderContractBoard();renderRoster();renderHome();renderHistoryLog();renderExpedition();}
 
 loadGame();
 renderPrepActions();
 renderAll();
 if(exp&&exp.state!=='deployed')settleAndRender();
 
+$('recruitApplicant').addEventListener('click',function(){
+  const r=roster.recruitApplicant();
+  if(r.ok){renderAll();saveGame();}
+});
 $('deploy').addEventListener('click',startExpedition);
 $('returnHome').addEventListener('click',closeReport);
 $('newTavern').addEventListener('click',function(){localStorage.removeItem(SAVE_KEY);newGame();$('summaryBody').innerHTML='<p>New tavern started.</p>';renderAll();saveGame();});
@@ -469,6 +512,7 @@ setInterval(function(){
   }
   renderEconomy();
   renderMerchants();
+  renderApplicants();
   if(earned>0)renderHome();
   saveClock+=0.25;
   if(saveClock>=1){saveClock=0;saveGame();}

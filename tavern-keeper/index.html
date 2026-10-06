@@ -3,12 +3,12 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-  <title>Tavern Keeper — Slice 7</title>
+  <title>Tavern Keeper — Slice 8</title>
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
 <header>
-  <div><h1>Tavern Keeper</h1><p>Slice 7 — Contract Board &amp; Threat Ladder</p></div>
+  <div><h1>Tavern Keeper</h1><p>Slice 8 — Recruitment &amp; Applicants</p></div>
   <div class="top-stats">
     <div><span>Tavern funds</span><strong id="funds">0.0g</strong></div>
     <div><span>Tavern g/s</span><strong id="tavernGps">0.00</strong></div>
@@ -59,6 +59,20 @@
     <p id="merchantNote" class="merchant-note">A merchant will stop by as the tavern operates.</p>
     <div id="merchantOffers" class="merchant-offers"></div>
     <div id="merchantLog" class="merchant-log"></div>
+  </section>
+
+  <section class="panel applicant-panel">
+    <div class="section-title"><h2>Applicants</h2><span id="applicantStatus" class="status">NO APPLICANT</span></div>
+    <div class="applicant-summary">
+      <div><span>Name</span><strong id="applicantName">No applicant present</strong></div>
+      <div><span>Quality</span><strong id="applicantQuality">—</strong></div>
+      <div><span>Hire cost</span><strong id="applicantCost">—</strong></div>
+      <div><span>Time remaining</span><strong id="applicantTimer">—</strong></div>
+      <div><span>Tavern draw</span><strong id="applicantDraw">Quality 1</strong></div>
+    </div>
+    <div id="applicantBody" class="applicant-body"><p class="empty">An applicant will eventually stop in looking for work.</p></div>
+    <button id="recruitApplicant" class="primary" disabled>Recruit Applicant</button>
+    <div id="applicantLog" class="applicant-log"></div>
   </section>
 
   <section class="panel crafting-panel">

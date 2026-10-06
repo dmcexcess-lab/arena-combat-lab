@@ -32,6 +32,12 @@ Operational checklist for humans + AIs. Keep compact; add only behaviors whose r
 - Equal hero/seed/contract inputs remain deterministic; active expedition snapshot/restore preserves contract ID and old snapshots without contract ID migrate to Greymill.
 - Every contract has at least one successful seeded run for a strong prepared hero and at least one non-success run with positive partial performance gold for an overmatched hero.
 - Contract income multipliers rise with threat, loot profiles produce differentiated material tendencies, and settlement keys include contract ID.
+- Slice 8 recruitment: applicant quality is derived from tavern development; equal recruitment seed/tavern/ticks produce the exact same applicant record.
+- Applicant stats/condition/traits/starting gear remain inside quality-tier bounds while repeated seeds generate varied people; crafted-only equipment never appears as applicant starting gear.
+- Applicants expire after a finite visit; insufficient-fund hiring is atomic; successful hiring spends exact gold and transfers the exact inspected applicant into the roster at career rank 1.
+- Recruited heroes can deploy to every contract regardless of threat and enter the same permanent-death/Fallen flow as founding heroes.
+- A zero-living-hero tavern can continue earning, receive an applicant and rebuild the roster without a full reset.
+- Recruitment state/history round-trip through persistence, Slice 7 saves migrate to a scheduled applicant, and the applicant clock advances through TavernRoster.tickTavern.
 
 ### Arena
 - Main scene instantiates without script/runtime errors.

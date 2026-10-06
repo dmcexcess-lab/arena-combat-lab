@@ -1,24 +1,27 @@
 # CURRENT — Tavern Keeper
 
 ## Current slice
-Slice 7 — Contract Board & Threat Ladder
+Slice 8 — Recruitment & Applicants
 
 ## Status
-Implemented as a standalone browser vertical slice on top of autonomous contracts, preparation/condition, persistent heroes, tavern economy, crafting, and merchants.
+Implemented as a standalone browser vertical slice on top of the persistent tavern, autonomous contract ladder, crafting, merchants and permanent hero careers.
 
 ## Core rules implemented
-- `CONTRACTS` is now the authoritative contract catalog; `CONTRACT_ORDER` is the board order.
-- Five contracts are live: Wolves at Briar Farm (Threat 1), Rats Below Greymill (Threat 2), Ashroad Caravan (Threat 3), Blackroot Mine (Threat 4), The Wren Bridge Troll (Threat 6).
-- Contracts are data-driven graph mini-RPGs with their own route, optional-risk branches, encounters, objective text, loot profile and performance-income multiplier.
-- New enemies support the ladder: Wolf, Bandit, Road Raider, Cave Crawler, Cave Stalker and Bridge Troll, alongside Giant Rat and Dire Rat.
-- Threat remains advisory only. Any living hero may deploy to any contract regardless of readiness/risk assessment.
-- Contract cards show the selected hero's relative risk, contract kind, threat, income multiplier and material emphasis.
-- Higher-threat contracts increase potential gold/sec by scaling the existing performance-pay gains; there is no separate guaranteed high-threat payout.
-- Failed/retreated/death outcomes retain gold earned while active and any materials already recovered.
-- TavernRoster persists `selectedContractId`; old Slice 6 saves default to Greymill.
-- Active Expedition snapshots persist `contractId`; old expedition snapshots without it restore as Greymill.
-- Settlement identity includes contract ID, hero ID, seed, elapsed time and outcome so different contracts cannot collide.
-- Slice 1 autonomous AI/combat, Slice 2 preparation, Slice 3 persistent heroes, Slice 4 tavern economy, Slice 5 crafting and Slice 6 merchants remain authoritative.
+- `RecruitmentSystem` is persistent and advances on the same live tavern clock as patrons and merchants.
+- Applicants arrive after a timed interval, remain for a finite hiring window, then move on if not recruited.
+- Every applicant is generated once as a complete persistent hero record: stable ID/name, five stats, AI-relevant traits, health, hunger, fatigue, morale, personal equipment, supplies and career-rank-1 state.
+- Applicant generation is deterministic from recruitment RNG/save state; accepting an applicant never rerolls them.
+- Applicant Quality 1–3 is derived from tavern Seating, Service, Kitchen and Bar development.
+- Higher applicant quality raises stat floors, improves likely condition, adds a second trait at Quality 3 and raises the ceiling on personal starting gear.
+- Quality 3 applicants can arrive with premium Steel Sword / Chain Mail; Scrap Spear, Plated Vest and Field Bandages remain crafting-exclusive.
+- Recruitment cost is explicit and derived from applicant quality, stats and equipment.
+- Recruiting spends exact shared tavern gold and transfers the exact inspected applicant into the living roster.
+- Recruited heroes use the same preparation, shared-stock equipment/consumable transfer, contract board, career XP/skills/traits/titles and permanent-death/Fallen archive as founding heroes.
+- Any recruited hero may be deployed to any Threat 1/2/3/4/6 contract; threat remains advisory.
+- A tavern with zero living heroes continues patron/merchant/applicant simulation and can rebuild its roster through recruitment instead of requiring a reset.
+- Recruitment visit/RNG/log/counters plus recruitment history persist in save version 8.
+- Slice 7 saves without recruitment state migrate to a valid scheduled first applicant.
+- All Slice 1–7 systems remain authoritative.
 
 ## Tests
 Run:
@@ -31,21 +34,22 @@ node tests/test_tavern.js
 node tests/test_crafting.js
 node tests/test_merchants.js
 node tests/test_contracts.js
+node tests/test_recruitment.js
 ```
 
 CI also syntax-checks `core.js` and `app.js`.
 
 ## Known limitations
 - Only one hero expedition may be active at a time.
-- Contract content is now a real ladder but remains five authored contracts rather than procedural contract generation.
-- Contract objective types are expressed through route/encounter structure; escort/rescue-specific NPC simulation is not yet separate.
-- Recruitment is still the fixed three-hero starter roster.
+- Applicants arrive one at a time and have no manual dismiss/negotiation/reputation layer yet.
+- The original three heroes remain the founding roster, but they are no longer the only source of heroes.
+- Applicant quality is tavern-development driven but there are no dedicated recruitment-room upgrades yet.
+- Equipment has no durability/repair loop.
+- Assigned gear remains with a dead hero rather than being recovered or explicitly lost through a gear-recovery rule.
 - Crafting remains four recipes with no craft skill progression.
 - Merchants have no haggling/reputation.
-- Equipment has no durability/repair loop.
-- Assigned gear remains with a dead hero rather than automatically returning to the tavern.
 - Preparation minutes and live tavern seconds remain separate clocks.
 - Offline progression is not implemented.
 
 ## NEXT OPERATION
-Slice 8 — Recruitment & Applicants: replace the fixed-only roster with tavern visitors/applicants who can be recruited for gold, generate varied stats/traits/starting condition and equipment, and scale applicant quality with tavern development while preserving permanent death and unrestricted contract deployment.
+Slice 9 — Equipment Durability & Maintenance: add persistent wear from contracts, repair/maintenance at the tavern using gold/materials, meaningful broken/damaged gear effects, and an explicit death gear-recovery/loss rule so crafted and purchased equipment becomes a long-term management asset.

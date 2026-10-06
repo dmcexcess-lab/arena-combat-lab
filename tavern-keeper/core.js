@@ -33,8 +33,8 @@
     field_bandage:{id:'field_bandage',name:'Field Bandage',slot:'consumable',kind:'bandage',heal:14,injuryRelief:1,crafted:true},
     scrap_spear:{id:'scrap_spear',name:'Scrap Spear',slot:'weapon',kind:'melee',damage:9,range:0,defense:0,weight:1,crafted:true},
     plated_vest:{id:'plated_vest',name:'Plated Vest',slot:'armor',kind:'armor',damage:0,range:0,defense:4,weight:3,crafted:true},
-    steel_sword:{id:'steel_sword',name:'Steel Sword',slot:'weapon',kind:'melee',damage:10,range:0,defense:0,weight:2,merchant:true},
-    chain_mail:{id:'chain_mail',name:'Chain Mail',slot:'armor',kind:'armor',damage:0,range:0,defense:5,weight:4,merchant:true}
+    steel_sword:{id:'steel_sword',name:'Steel Sword',slot:'weapon',kind:'melee',damage:10,range:0,defense:0,weight:2,premium:true},
+    chain_mail:{id:'chain_mail',name:'Chain Mail',slot:'armor',kind:'armor',damage:0,range:0,defense:5,weight:4,premium:true}
   };
 
   const CRAFT_RECIPES = {
@@ -654,11 +654,129 @@
   };
   const MERCHANT_NAMES=['Mira the Peddler','Orren of the Road','Kestra Provisioner','Dain Copperhand'];
 
+  const APPLICANT_FIRST_NAMES=['Alden','Brina','Corin','Dessa','Eamon','Fara','Garrick','Hesta','Iven','Jora','Kellan','Lysa','Marek','Nessa','Orin','Petra','Quill','Rhea','Soren','Tamsin'];
+  const APPLICANT_LAST_NAMES=['Ash','Briar','Crow','Dale','Ember','Fen','Grove','Hale','Iron','Kestrel','Moor','Reed','Stone','Vale','Wren'];
+  const APPLICANT_TRAITS=['Brave','Cautious','Resourceful','Greedy'];
+
   function merchantQuality(tavern){
     const score=tavern.serviceLevel+tavern.kitchenLevel+tavern.barLevel+Math.floor(tavern.seats/2);
     if(score>=11)return 3;
     if(score>=7)return 2;
     return 1;
+  }
+
+  function applicantQuality(tavern){
+    const score=tavern.serviceLevel+tavern.kitchenLevel+tavern.barLevel+Math.floor(tavern.seats/2);
+    if(score>=11)return 3;
+    if(score>=7)return 2;
+    return 1;
+  }
+
+  class RecruitmentSystem {
+    constructor(data={}){
+      this.seed=Number(data.seed)||44771;
+      this.rng=new RNG(this.seed);
+      if(data.rngState)this.rng.state=data.rngState>>>0;
+      this.elapsed=Number(data.elapsed)||0;
+      this.visitIndex=Math.max(0,Number(data.visitIndex)||0);
+      this.nextArrival=data.nextArrival==null?16:Math.max(0,Number(data.nextArrival)||0);
+      this.active=clone(data.active||null);
+      this.recruited=Math.max(0,Number(data.recruited)||0);
+      this.expired=Math.max(0,Number(data.expired)||0);
+      this.log=clone(data.log||[]);
+    }
+    logEvent(text,type='applicant'){
+      this.log.push({time:this.elapsed,text,type});
+      if(this.log.length>50)this.log.shift();
+    }
+    qualityFor(tavern){ return applicantQuality(tavern); }
+    uniqueName(){
+      const first=this.rng.pick(APPLICANT_FIRST_NAMES);
+      const last=this.rng.pick(APPLICANT_LAST_NAMES);
+      return first+' '+last;
+    }
+    gearFor(quality){
+      const weaponPools={
+        1:['wood_axe','rusty_sword'],
+        2:['rusty_sword','hunting_bow'],
+        3:['hunting_bow','steel_sword']
+      };
+      const armorPools={
+        1:[null,'padded_armor'],
+        2:['padded_armor','leather_armor'],
+        3:['leather_armor','chain_mail']
+      };
+      return {weapon:this.rng.pick(weaponPools[quality]),armor:this.rng.pick(armorPools[quality])};
+    }
+    generateHero(quality){
+      const ranges={1:[3,6],2:[4,7],3:[5,8]};
+      const [lo,hi]=ranges[quality];
+      const stats={might:this.rng.int(lo,hi),finesse:this.rng.int(lo,hi),endurance:this.rng.int(lo,hi),wits:this.rng.int(lo,hi),resolve:this.rng.int(lo,hi)};
+      const traitCount=quality>=3?2:1;
+      const traitPool=APPLICANT_TRAITS.slice(),traits=[];
+      while(traits.length<traitCount&&traitPool.length){
+        const idx=this.rng.int(0,traitPool.length-1);
+        traits.push(traitPool.splice(idx,1)[0]);
+      }
+      const health=this.rng.int(quality===1?64:quality===2?70:78,100);
+      const hunger=this.rng.int(quality===1?18:quality===2?12:8,quality===1?62:quality===2?50:38);
+      const fatigue=this.rng.int(quality===1?12:quality===2?8:4,quality===1?58:quality===2?46:34);
+      const morale=this.rng.int(quality===1?38:quality===2?46:55,quality===1?76:quality===2?82:90);
+      const equipment=this.gearFor(quality);
+      const potionChance=quality===1?0.12:quality===2?0.38:0.65;
+      const supplies={healing_potion:this.rng.chance(potionChance)?1:0,field_bandage:0};
+      const id='recruit_'+this.visitIndex+'_'+this.rng.nextU32().toString(36);
+      return heroTemplate({id,name:this.uniqueName(),stats,health,hunger,fatigue,morale,traits,equipment,supplies,career:normalizeCareer(),history:[],titles:[],recruitment:{quality,visitIndex:this.visitIndex}});
+    }
+    costFor(hero,quality){
+      const statTotal=Object.values(hero.stats).reduce((n,v)=>n+v,0);
+      const w=EQUIPMENT[hero.equipment.weapon]||EQUIPMENT.wood_axe;
+      const a=EQUIPMENT[hero.equipment.armor]||{defense:0};
+      const gearValue=(w.damage||0)*0.7+(a.defense||0)*2.1+(hero.supplies.healing_potion||0)*5;
+      return Math.max(12,Math.round(7+quality*6+statTotal*0.42+gearValue));
+    }
+    arrive(tavern){
+      this.visitIndex++;
+      const quality=this.qualityFor(tavern);
+      const hero=this.generateHero(quality);
+      const cost=this.costFor(hero,quality);
+      this.active={quality,cost,remaining:80,hero};
+      this.nextArrival=0;
+      this.logEvent(hero.name+' is looking for work (quality '+quality+', '+cost+'g).','arrival');
+      return this.active;
+    }
+    depart(reason='left'){
+      if(this.active){
+        this.logEvent(this.active.hero.name+' '+reason+'.','departure');
+        this.expired++;
+      }
+      this.active=null;
+      this.nextArrival=48;
+    }
+    recruit(){
+      if(!this.active)return null;
+      const a=clone(this.active);
+      this.recruited++;
+      this.logEvent(a.hero.name+' joined the tavern roster.','recruited');
+      this.active=null;
+      this.nextArrival=48;
+      return a;
+    }
+    tick(dt,tavern){
+      dt=clamp(dt,0.01,5);
+      this.elapsed+=dt;
+      if(this.active){
+        this.active.remaining-=dt;
+        if(this.active.remaining<=0)this.depart('moved on');
+      }else{
+        this.nextArrival=Math.max(0,this.nextArrival-dt);
+        if(this.nextArrival<=0)this.arrive(tavern);
+      }
+    }
+    snapshot(){
+      return {version:1,seed:this.seed,rngState:this.rng.state,elapsed:this.elapsed,visitIndex:this.visitIndex,nextArrival:this.nextArrival,active:clone(this.active),recruited:this.recruited,expired:this.expired,log:clone(this.log)};
+    }
+    static fromSnapshot(data){ return new RecruitmentSystem(data||{}); }
   }
 
   class MerchantSystem {
@@ -894,20 +1012,22 @@
   }
 
   class TavernRoster {
-    constructor({heroes=starterRoster(),fallen=[],funds=30,materials={},inventory={},craftHistory=[],purchaseHistory=[],prepMinutes=0,selectedHeroId=null,selectedContractId='greymill_rats',history=[],settledKeys=[],tavern=null,merchants=null}={}){
+    constructor({heroes=starterRoster(),fallen=[],funds=30,materials={},inventory={},craftHistory=[],purchaseHistory=[],recruitmentHistory=[],prepMinutes=0,selectedHeroId=null,selectedContractId='greymill_rats',history=[],settledKeys=[],tavern=null,merchants=null,recruitment=null}={}){
       this.heroes=heroes.map(h=>heroTemplate(h)).filter(h=>h.alive);
       this.fallen=clone(fallen||[]);
-      this.funds=Number(funds)||0; this.materials=clone(materials||{}); this.inventory=clone(inventory||{}); this.craftHistory=clone(craftHistory||[]); this.purchaseHistory=clone(purchaseHistory||[]); this.prepMinutes=Number(prepMinutes)||0;
+      this.funds=Number(funds)||0; this.materials=clone(materials||{}); this.inventory=clone(inventory||{}); this.craftHistory=clone(craftHistory||[]); this.purchaseHistory=clone(purchaseHistory||[]); this.recruitmentHistory=clone(recruitmentHistory||[]); this.prepMinutes=Number(prepMinutes)||0;
       this.history=clone(history||[]); this.settledExpeditions=new Set(settledKeys||[]);
       this.selectedHeroId=selectedHeroId&&this.heroes.some(h=>h.id===selectedHeroId)?selectedHeroId:(this.heroes[0]?.id||null);
       this.selectedContractId=CONTRACTS[selectedContractId]?selectedContractId:'greymill_rats';
       this.tavern=TavernEconomy.fromSnapshot(tavern);
       this.merchants=MerchantSystem.fromSnapshot(merchants);
+      this.recruitment=RecruitmentSystem.fromSnapshot(recruitment);
     }
     aliveHeroes(){ return this.heroes.filter(h=>h.alive); }
     tickTavern(seconds=1){
       const earned=this.tavern.tick(seconds);
       this.merchants.tick(seconds,this.tavern);
+      this.recruitment.tick(seconds,this.tavern);
       this.funds+=earned;
       return earned;
     }
@@ -918,6 +1038,21 @@
       this.funds-=cost;
       this.tavern.upgrade(id);
       return{ok:true,cost,projectedGoldRate:this.tavern.projectedGoldRate()};
+    }
+    recruitApplicant(){
+      const applicant=this.recruitment.active;
+      if(!applicant)return{ok:false,reason:'no applicant present'};
+      if(this.funds<applicant.cost)return{ok:false,reason:'insufficient funds',cost:applicant.cost};
+      if(this.heroes.some(h=>h.id===applicant.hero.id))return{ok:false,reason:'duplicate applicant'};
+      this.funds-=applicant.cost;
+      const accepted=this.recruitment.recruit();
+      const hero=heroTemplate(accepted.hero);
+      hero.recruitment=Object.assign({},hero.recruitment||{},{quality:accepted.quality,cost:accepted.cost,recruitedAt:this.recruitment.elapsed});
+      this.heroes.push(hero);
+      if(!this.selectedHeroId)this.selectedHeroId=hero.id;
+      const event={heroId:hero.id,heroName:hero.name,quality:accepted.quality,cost:accepted.cost,time:this.recruitment.elapsed};
+      this.recruitmentHistory.push(event); if(this.recruitmentHistory.length>50)this.recruitmentHistory=this.recruitmentHistory.slice(-50);
+      return{ok:true,hero:clone(hero),event};
     }
     purchaseMerchantOffer(offerKey,count=1){
       const visit=this.merchants.active;
@@ -1029,7 +1164,7 @@
       return{ok:true,banked:expedition.gold,heroAlive:updated.alive,record};
     }
     snapshot(){
-      return{version:7,heroes:clone(this.heroes),fallen:clone(this.fallen),funds:this.funds,materials:clone(this.materials),inventory:clone(this.inventory),craftHistory:clone(this.craftHistory),purchaseHistory:clone(this.purchaseHistory),prepMinutes:this.prepMinutes,selectedHeroId:this.selectedHeroId,selectedContractId:this.selectedContractId,history:clone(this.history),settledKeys:Array.from(this.settledExpeditions),tavern:this.tavern.snapshot(),merchants:this.merchants.snapshot()};
+      return{version:8,heroes:clone(this.heroes),fallen:clone(this.fallen),funds:this.funds,materials:clone(this.materials),inventory:clone(this.inventory),craftHistory:clone(this.craftHistory),purchaseHistory:clone(this.purchaseHistory),recruitmentHistory:clone(this.recruitmentHistory),prepMinutes:this.prepMinutes,selectedHeroId:this.selectedHeroId,selectedContractId:this.selectedContractId,history:clone(this.history),settledKeys:Array.from(this.settledExpeditions),tavern:this.tavern.snapshot(),merchants:this.merchants.snapshot(),recruitment:this.recruitment.snapshot()};
     }
     serialize(){ return JSON.stringify(this.snapshot()); }
     static fromSnapshot(data){
@@ -1039,5 +1174,5 @@
     static deserialize(text){ return TavernRoster.fromSnapshot(JSON.parse(text)); }
   }
 
-  return {RNG,EQUIPMENT,CRAFT_RECIPES,INJURY_TYPES,PREP_EFFECTS,PREPARATION_ACTIONS,CONTRACT,CONTRACTS,CONTRACT_ORDER,ENEMIES,MATERIAL_NAMES,PATRON_TYPES,MERCHANT_GOODS,merchantQuality,MerchantSystem,heroTemplate,normalizeCareer,rankFromXp,applyCareerProgress,starterRoster,deriveMoodlets,totalInjurySeverity,addInjury,reduceWorstInjury,removeWorstInjury,readinessScore,threatAssessment,PreparationState,TavernEconomy,TavernRoster,Expedition,makePreset};
+  return {RNG,EQUIPMENT,CRAFT_RECIPES,INJURY_TYPES,PREP_EFFECTS,PREPARATION_ACTIONS,CONTRACT,CONTRACTS,CONTRACT_ORDER,ENEMIES,MATERIAL_NAMES,PATRON_TYPES,MERCHANT_GOODS,merchantQuality,MerchantSystem,APPLICANT_TRAITS,applicantQuality,RecruitmentSystem,heroTemplate,normalizeCareer,rankFromXp,applyCareerProgress,starterRoster,deriveMoodlets,totalInjurySeverity,addInjury,reduceWorstInjury,removeWorstInjury,readinessScore,threatAssessment,PreparationState,TavernEconomy,TavernRoster,Expedition,makePreset};
 });
