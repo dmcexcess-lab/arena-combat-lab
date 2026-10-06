@@ -79,6 +79,78 @@
 
   const MATERIAL_NAMES={rat_tail:'Rat Tail',medicinal_herb:'Medicinal Herb',scrap_iron:'Scrap Iron',strange_gland:'Strange Gland'};
 
+  function normalizeCareer(career={}){
+    const c=career||{};
+    return {
+      xp:Number(c.xp)||0,
+      rank:Math.max(1,Number(c.rank)||1),
+      skills:{
+        melee:clamp(Number(c.skills?.melee)||0,0,10),
+        ranged:clamp(Number(c.skills?.ranged)||0,0,10),
+        survival:clamp(Number(c.skills?.survival)||0,0,10)
+      },
+      contracts:Number(c.contracts)||0,
+      successes:Number(c.successes)||0,
+      retreats:Number(c.retreats)||0,
+      kills:Number(c.kills)||0,
+      totalGold:Number(c.totalGold)||0,
+      bestProgress:Number(c.bestProgress)||0,
+      injuriesSuffered:Number(c.injuriesSuffered)||0
+    };
+  }
+  function rankFromXp(xp){ return Math.max(1,Math.min(20,1+Math.floor(Math.sqrt(Math.max(0,xp)/45)))); }
+  function ensureProgression(hero){
+    hero.career=normalizeCareer(hero.career);
+    hero.career.rank=rankFromXp(hero.career.xp);
+    hero.history=clone(hero.history||[]);
+    hero.titles=clone(hero.titles||[]);
+    return hero;
+  }
+  function addUnique(arr,value){ if(value&&!arr.includes(value))arr.push(value); }
+  function updateCareerIdentity(hero){
+    const c=hero.career;
+    if(c.contracts>=3)addUnique(hero.traits,'Veteran');
+    if(c.retreats>=2)addUnique(hero.traits,'Survivor');
+    if(c.successes>=3)addUnique(hero.traits,'Battle Hardened');
+    if(c.kills>=10)addUnique(hero.traits,'Ratbane');
+    if(c.contracts>=3)addUnique(hero.titles,'Road Regular');
+    if(c.successes>=3)addUnique(hero.titles,'Greymill Veteran');
+    if(c.kills>=10)addUnique(hero.titles,'Ratcatcher');
+    if(c.injuriesSuffered>=3)addUnique(hero.titles,'Scarred Survivor');
+  }
+  function applyCareerProgress(hero,expedition){
+    ensureProgression(hero);
+    const c=hero.career, rankBefore=c.rank;
+    const oldTraits=hero.traits.slice(), oldTitles=hero.titles.slice();
+    const weaponKind=weapon(hero).kind;
+    const xpGained=Math.max(1,Math.round(expedition.objectiveProgress*0.24 + expedition.enemiesDefeated*4 + expedition.areasExplored.length*2 + (expedition.state==='success'?24:0) + (expedition.state==='retreat'?5:0)));
+    const skillGains={melee:0,ranged:0,survival:0};
+    skillGains.survival=Math.min(1.1,expedition.areasExplored.length*0.08 + (hero.alive?0.25:0) + expedition.objectiveProgress*0.002);
+    if(weaponKind==='ranged')skillGains.ranged=Math.min(1.25,expedition.enemiesDefeated*0.16 + expedition.areasExplored.length*0.04);
+    else skillGains.melee=Math.min(1.25,expedition.enemiesDefeated*0.16 + expedition.areasExplored.length*0.04);
+    c.xp+=xpGained;
+    c.contracts+=1;
+    if(expedition.state==='success')c.successes+=1;
+    if(expedition.state==='retreat')c.retreats+=1;
+    c.kills+=expedition.enemiesDefeated;
+    c.totalGold+=expedition.gold;
+    c.bestProgress=Math.max(c.bestProgress,Math.round(expedition.objectiveProgress));
+    c.injuriesSuffered+=expedition.injuriesSuffered||0;
+    for(const [k,v] of Object.entries(skillGains))c.skills[k]=clamp(c.skills[k]+v,0,10);
+    c.rank=rankFromXp(c.xp);
+    updateCareerIdentity(hero);
+    const record={
+      number:c.contracts,contractId:expedition.contract.id,contractName:expedition.contract.name,
+      outcome:expedition.state,seed:expedition.seed,progress:Math.round(expedition.objectiveProgress),
+      kills:expedition.enemiesDefeated,gold:Number(expedition.gold.toFixed(2)),peakGoldRate:Number(expedition.peakGoldRate.toFixed(2)),
+      xpGained,rankBefore,rankAfter:c.rank,skillGains,
+      injuriesAfter:clone(hero.injuries),traitsEarned:hero.traits.filter(x=>!oldTraits.includes(x)),titlesEarned:hero.titles.filter(x=>!oldTitles.includes(x))
+    };
+    hero.history.push(record);
+    if(hero.history.length>30)hero.history=hero.history.slice(-30);
+    return record;
+  }
+
   function heroTemplate(overrides={}){
     const base={
       id:'edrin', name:'Edrin Vale', alive:true,
@@ -87,16 +159,18 @@
       traits:['Cautious','Resourceful'],
       equipment:{weapon:'rusty_sword',armor:'padded_armor'},
       supplies:{healing_potion:1},
-      moodlets:[], injuries:[], prepEffects:[],
+      moodlets:[], injuries:[], prepEffects:[], career:normalizeCareer(), history:[], titles:[],
     };
     const h=JSON.parse(JSON.stringify(base));
     Object.assign(h,overrides);
     if(overrides.stats) h.stats=Object.assign(base.stats,overrides.stats);
     if(overrides.equipment) h.equipment=Object.assign(base.equipment,overrides.equipment);
     if(overrides.supplies) h.supplies=Object.assign(base.supplies,overrides.supplies);
+    h.traits=clone(overrides.traits||h.traits||[]);
     h.injuries=clone(overrides.injuries||h.injuries||[]);
     h.prepEffects=clone(overrides.prepEffects||h.prepEffects||[]);
     h.health=clamp(h.health,0,h.maxHealth);
+    ensureProgression(h);
     deriveMoodlets(h);
     return h;
   }
@@ -178,6 +252,10 @@
     for(const e of hero.prepEffects||[]){
       if(e.remaining>0)score+=PREP_EFFECTS[e.id]?.readinessBonus||0;
     }
+    const skill=weapon(hero).kind==='ranged'?hero.career.skills.ranged:hero.career.skills.melee;
+    score+=skill*1.2 + hero.career.skills.survival*0.7;
+    if(trait(hero,'Veteran'))score+=3;
+    if(trait(hero,'Battle Hardened'))score+=3;
     return score;
   }
 
@@ -258,7 +336,7 @@
       this.rng=new RNG(seed); this.seed=seed; this.hero=heroTemplate(hero); this.contract=contract; this.debug=debug;
       deriveMoodlets(this.hero);
       this.state='deployed'; this.locationId=contract.start; this.elapsed=0; this.goldRate=0.05; this.peakGoldRate=this.goldRate; this.gold=0;
-      this.enemiesDefeated=0; this.areasExplored=[]; this.objectiveProgress=0; this.materials={}; this.log=[]; this.decisionDebug=[];
+      this.enemiesDefeated=0; this.areasExplored=[]; this.objectiveProgress=0; this.materials={}; this.log=[]; this.decisionDebug=[]; this.injuriesSuffered=0;
       this.currentCombat=null; this.retreatReason=null; this.lastDecision=null; this._entered=false; this._resolution=null;
       this.addLog(`Deployed to ${contract.name}.`, 'system');
     }
@@ -285,14 +363,14 @@
         add((50-h.fatigue)*0.22,h.fatigue<45?'rested':'fatigue');
         if(moods.includes('Confident'))add(15,'confident');
         if(moods.includes('Afraid'))add(-22,'afraid');
-        if(trait(h,'Brave'))add(20,'brave'); if(trait(h,'Cautious'))add(-7,'cautious'); add(-injuryPenalty(h,'retreatPressure')*(trait(h,'Brave')?0.35:1),'lingering injury');
+        if(trait(h,'Brave'))add(20,'brave'); if(trait(h,'Cautious'))add(-7,'cautious'); if(trait(h,'Veteran'))add(5,'veteran'); if(trait(h,'Battle Hardened'))add(5,'battle hardened'); add(-injuryPenalty(h,'retreatPressure')*(trait(h,'Brave')?0.35:1),'lingering injury');
       } else if(action==='retreat'){
         add((1-health)*70,health<0.5?'low health':'health stable');
         add(Math.max(0,h.fatigue-50)*0.6,h.fatigue>50?'fatigue':null);
         add(Math.max(0,h.hunger-65)*0.45,h.hunger>65?'hungry':null);
         add(Math.max(0,45-h.morale)*0.6,h.morale<45?'low morale':null);
         if(h.supplies.healing_potion<=0)add(9,'no healing potion');
-        if(trait(h,'Cautious'))add(14,'cautious'); if(trait(h,'Brave'))add(-18,'brave');
+        if(trait(h,'Cautious'))add(14,'cautious'); if(trait(h,'Brave'))add(-18,'brave'); if(trait(h,'Veteran'))add(-3,'veteran'); if(trait(h,'Battle Hardened'))add(-4,'battle hardened'); if(trait(h,'Survivor'))add(6,'survivor');
         if(moods.includes('Afraid'))add(18,'afraid');
         add(injuryPenalty(h,'retreatPressure')*(trait(h,'Brave')?0.3:1),'lingering injury');
         if(effectActive(h,'patched_up'))add(-PREP_EFFECTS.patched_up.retreatRelief,'fresh treatment');
@@ -306,7 +384,7 @@
         if(trait(h,'Resourceful'))add(8,'resourceful');
       } else if(action==='fight'){
         add(42,'enemy blocks path'); add(health*20,'current health'); add(h.stats.might+h.stats.finesse,'combat ability');
-        if(trait(h,'Brave'))add(16,'brave'); if(trait(h,'Cautious'))add(-6,'cautious'); add(-injuryPenalty(h,'retreatPressure')*0.6,'lingering injury');
+        if(trait(h,'Brave'))add(16,'brave'); if(trait(h,'Cautious'))add(-6,'cautious'); if(trait(h,'Veteran'))add(4,'veteran'); if(trait(h,'Battle Hardened'))add(5,'battle hardened'); add(-injuryPenalty(h,'retreatPressure')*0.6,'lingering injury');
       } else if(action==='maintain_distance'){
         const w=weapon(h); add(w.kind==='ranged'?32:-20,w.kind==='ranged'?'ranged weapon':'no ranged weapon'); add(h.stats.finesse*2,'finesse');
       }
@@ -347,7 +425,7 @@
       if(this.rng.chance(chance)){
         const type=this.rng.pick(Object.keys(INJURY_TYPES));
         const severity=damage>=9?2:1;
-        addInjury(this.hero,type,severity);
+        addInjury(this.hero,type,severity); this.injuriesSuffered+=severity;
         this.addLog(`${this.hero.name} suffered ${INJURY_TYPES[type].name}${severity>1?' (severe)':''}.`,'injury');
       }
     }
@@ -370,13 +448,14 @@
       const style=w.kind==='ranged'?this.choose(['maintain_distance','fight']):{action:'fight',reasons:['melee weapon']};
       const target=c.enemies.find(e=>e.hp>0);
       if(target){
-        const base=w.damage + h.stats.might*0.8 + (w.kind==='ranged'?h.stats.finesse*0.7:h.stats.finesse*0.25);
+        const careerSkill=w.kind==='ranged'?h.career.skills.ranged:h.career.skills.melee;
+        const base=(w.damage + h.stats.might*0.8 + (w.kind==='ranged'?h.stats.finesse*0.7:h.stats.finesse*0.25) + careerSkill*0.5) * (trait(h,'Ratbane')?1.08:1);
         const cond=(100-h.fatigue)*0.0025 + (100-h.hunger)*0.0015;
         let mood=(h.moodlets.includes('Confident')?0.12:0)+(h.moodlets.includes('Afraid')?-0.12:0)+(h.moodlets.includes('Tired')?-0.1:0);
         if(effectActive(h,'hearty_meal'))mood+=PREP_EFFECTS.hearty_meal.attackBonus;
         if(effectActive(h,'good_sleep'))mood+=PREP_EFFECTS.good_sleep.attackBonus;
         const injuryMult=clamp(1-injuryPenalty(h,'attackPenalty'),0.65,1);
-        const hitChance=clamp(0.62+h.stats.finesse*0.025 + (w.kind==='ranged'?0.06:0)+mood-injuryPenalty(h,'attackPenalty')*0.35,0.25,0.96);
+        const hitChance=clamp(0.62+h.stats.finesse*0.025 + careerSkill*0.012 + (w.kind==='ranged'?0.06:0)+mood-injuryPenalty(h,'attackPenalty')*0.35,0.25,0.96);
         if(this.rng.chance(hitChance)){
           const dmg=Math.max(1,Math.round(base*this.rng.range(0.82,1.18)*(1+cond+mood)*injuryMult-spec.defense)); target.hp-=dmg; this.addLog(`${h.name} hit ${spec.name} for ${dmg}.`,'combat');
           if(target.hp<=0){this.enemiesDefeated++;this.addLog(`${h.name} killed ${spec.name}.`,'combat');this.bumpRate(0.08+spec.xp*0.035,'enemy defeated');}
@@ -433,18 +512,98 @@
       this._resolution={kind,reason,finalRate,summary:this.summary()};
     }
     summary(){
-      return {contract:this.contract.name,outcome:this.state,reason:this.retreatReason,time:this.elapsed,enemiesDefeated:this.enemiesDefeated,areasExplored:this.areasExplored.length,totalAreas:Object.keys(this.contract.locations).length-1,objectiveProgress:Math.round(this.objectiveProgress),peakGoldRate:this.peakGoldRate,totalGold:this.gold,materials:clone(this.materials),heroAlive:this.hero.alive,health:this.hero.health,fatigue:this.hero.fatigue,hunger:this.hero.hunger,morale:this.hero.morale,injuries:clone(this.hero.injuries),moodlets:clone(this.hero.moodlets),seed:this.seed};
+      return {contract:this.contract.name,outcome:this.state,reason:this.retreatReason,time:this.elapsed,enemiesDefeated:this.enemiesDefeated,areasExplored:this.areasExplored.length,totalAreas:Object.keys(this.contract.locations).length-1,objectiveProgress:Math.round(this.objectiveProgress),peakGoldRate:this.peakGoldRate,totalGold:this.gold,materials:clone(this.materials),heroAlive:this.hero.alive,health:this.hero.health,fatigue:this.hero.fatigue,hunger:this.hero.hunger,morale:this.hero.morale,injuries:clone(this.hero.injuries),moodlets:clone(this.hero.moodlets),injuriesSuffered:this.injuriesSuffered,seed:this.seed};
+    }
+    snapshot(){
+      return {version:1,seed:this.seed,rngState:this.rng.state,hero:clone(this.hero),state:this.state,locationId:this.locationId,elapsed:this.elapsed,goldRate:this.goldRate,peakGoldRate:this.peakGoldRate,gold:this.gold,enemiesDefeated:this.enemiesDefeated,areasExplored:clone(this.areasExplored),objectiveProgress:this.objectiveProgress,materials:clone(this.materials),log:clone(this.log),decisionDebug:clone(this.decisionDebug),currentCombat:clone(this.currentCombat),retreatReason:this.retreatReason,lastDecision:clone(this.lastDecision),entered:this._entered,resolution:clone(this._resolution),injuriesSuffered:this.injuriesSuffered};
+    }
+    static fromSnapshot(data,{contract=CONTRACT,debug=false}={}){
+      if(!data||!data.hero)throw new Error('invalid expedition snapshot');
+      const e=new Expedition({hero:data.hero,seed:data.seed||1,contract,debug});
+      e.rng.state=(data.rngState>>>0)||e.rng.state;
+      e.state=data.state||'deployed'; e.locationId=data.locationId||contract.start; e.elapsed=Number(data.elapsed)||0;
+      e.goldRate=Number(data.goldRate)||0; e.peakGoldRate=Number(data.peakGoldRate)||0; e.gold=Number(data.gold)||0;
+      e.enemiesDefeated=Number(data.enemiesDefeated)||0; e.areasExplored=clone(data.areasExplored||[]); e.objectiveProgress=Number(data.objectiveProgress)||0;
+      e.materials=clone(data.materials||{}); e.log=clone(data.log||[]); e.decisionDebug=clone(data.decisionDebug||[]); e.currentCombat=clone(data.currentCombat||null);
+      e.retreatReason=data.retreatReason||null; e.lastDecision=clone(data.lastDecision||null); e._entered=!!data.entered; e._resolution=clone(data.resolution||null); e.injuriesSuffered=Number(data.injuriesSuffered)||0;
+      return e;
     }
     runToEnd(maxTicks=5000,dt=1){ let n=0;while(this.state==='deployed'&&n++<maxTicks)this.tick(dt);return this.summary(); }
   }
 
   function makePreset(name){
-    if(name==='prepared')return heroTemplate({name:'Edrin Vale',health:100,hunger:10,fatigue:8,morale:78,traits:['Cautious','Resourceful'],equipment:{weapon:'rusty_sword',armor:'padded_armor'},supplies:{healing_potion:1}});
-    if(name==='ranged')return heroTemplate({name:'Mara Fen',stats:{might:4,finesse:8,endurance:5,wits:7,resolve:6},health:100,hunger:14,fatigue:10,morale:75,traits:['Cautious','Resourceful'],equipment:{weapon:'hunting_bow',armor:'leather_armor'},supplies:{healing_potion:1}});
-    if(name==='reckless')return heroTemplate({name:'Borin Hale',stats:{might:7,finesse:4,endurance:6,wits:3,resolve:8},health:100,hunger:25,fatigue:20,morale:82,traits:['Brave','Greedy'],equipment:{weapon:'rusty_sword',armor:null},supplies:{healing_potion:0}});
-    if(name==='unprepared')return heroTemplate({name:'Tomas Reed',stats:{might:4,finesse:4,endurance:4,wits:4,resolve:4},health:78,hunger:82,fatigue:80,morale:32,traits:['Cautious'],equipment:{weapon:'wood_axe',armor:null},supplies:{healing_potion:0}});
+    if(name==='prepared')return heroTemplate({id:'edrin',name:'Edrin Vale',health:100,hunger:10,fatigue:8,morale:78,traits:['Cautious','Resourceful'],equipment:{weapon:'rusty_sword',armor:'padded_armor'},supplies:{healing_potion:1}});
+    if(name==='ranged')return heroTemplate({id:'mara',name:'Mara Fen',stats:{might:4,finesse:8,endurance:5,wits:7,resolve:6},health:100,hunger:14,fatigue:10,morale:75,traits:['Cautious','Resourceful'],equipment:{weapon:'hunting_bow',armor:'leather_armor'},supplies:{healing_potion:1}});
+    if(name==='reckless')return heroTemplate({id:'borin',name:'Borin Hale',stats:{might:7,finesse:4,endurance:6,wits:3,resolve:8},health:100,hunger:25,fatigue:20,morale:82,traits:['Brave','Greedy'],equipment:{weapon:'rusty_sword',armor:null},supplies:{healing_potion:0}});
+    if(name==='unprepared')return heroTemplate({id:'tomas',name:'Tomas Reed',stats:{might:4,finesse:4,endurance:4,wits:4,resolve:4},health:78,hunger:82,fatigue:80,morale:32,traits:['Cautious'],equipment:{weapon:'wood_axe',armor:null},supplies:{healing_potion:0}});
     return heroTemplate();
   }
+  function starterRoster(){ return [makePreset('prepared'),makePreset('ranged'),makePreset('reckless')]; }
 
-  return {RNG,EQUIPMENT,INJURY_TYPES,PREP_EFFECTS,PREPARATION_ACTIONS,CONTRACT,ENEMIES,MATERIAL_NAMES,heroTemplate,deriveMoodlets,totalInjurySeverity,addInjury,reduceWorstInjury,removeWorstInjury,readinessScore,threatAssessment,PreparationState,Expedition,makePreset};
+  class TavernRoster {
+    constructor({heroes=starterRoster(),fallen=[],funds=30,materials={},prepMinutes=0,selectedHeroId=null,history=[],settledKeys=[]}={}){
+      this.heroes=heroes.map(h=>heroTemplate(h)).filter(h=>h.alive);
+      this.fallen=clone(fallen||[]);
+      this.funds=Number(funds)||0; this.materials=clone(materials||{}); this.prepMinutes=Number(prepMinutes)||0;
+      this.history=clone(history||[]); this.settledExpeditions=new Set(settledKeys||[]);
+      this.selectedHeroId=selectedHeroId&&this.heroes.some(h=>h.id===selectedHeroId)?selectedHeroId:(this.heroes[0]?.id||null);
+    }
+    aliveHeroes(){ return this.heroes.filter(h=>h.alive); }
+    getHero(id=this.selectedHeroId){ return this.heroes.find(h=>h.id===id)||null; }
+    selectHero(id){ if(this.heroes.some(h=>h.id===id)){this.selectedHeroId=id;return true;}return false; }
+    syncPreparation(heroId,prep){
+      const idx=this.heroes.findIndex(h=>h.id===heroId); if(idx<0)return;
+      this.heroes[idx]=heroTemplate(prep.hero); this.funds=prep.funds; this.materials=clone(prep.materials); this.prepMinutes=prep.prepMinutes;
+    }
+    canPrepare(heroId,actionId){
+      const h=this.getHero(heroId); if(!h)return false;
+      return new PreparationState({hero:h,funds:this.funds,materials:this.materials,prepMinutes:this.prepMinutes}).can(actionId);
+    }
+    prepare(heroId,actionId){
+      const h=this.getHero(heroId); if(!h)return{ok:false,reason:'hero unavailable'};
+      const prep=new PreparationState({hero:h,funds:this.funds,materials:this.materials,prepMinutes:this.prepMinutes});
+      const result=prep.apply(actionId); if(result.ok)this.syncPreparation(heroId,prep); return result;
+    }
+    setLoadout(heroId,weaponId,armorId){
+      const h=this.getHero(heroId); if(!h)return false;
+      const prep=new PreparationState({hero:h,funds:this.funds,materials:this.materials,prepMinutes:this.prepMinutes}); prep.setLoadout(weaponId,armorId); this.syncPreparation(heroId,prep); return true;
+    }
+    startExpedition(heroId=this.selectedHeroId,seed=1){
+      const h=this.getHero(heroId); if(!h||!h.alive)return null;
+      return new Expedition({hero:h,seed});
+    }
+    settle(heroId,expedition){
+      const hero=this.getHero(heroId);
+      if(!hero)return{ok:false,reason:'hero unavailable',banked:0};
+      if(expedition.state==='deployed')return{ok:false,reason:'expedition still active',banked:0};
+      if(expedition.hero.id!==heroId)return{ok:false,reason:'hero mismatch',banked:0};
+      const key=`${heroId}:${expedition.seed}:${expedition.elapsed}:${expedition.state}`;
+      if(this.settledExpeditions.has(key))return{ok:false,reason:'already settled',banked:0};
+      this.settledExpeditions.add(key);
+      this.funds+=expedition.gold;
+      for(const [id,count] of Object.entries(expedition.materials))this.materials[id]=(this.materials[id]||0)+count;
+      const updated=heroTemplate(expedition.hero); updated.prepEffects=[];
+      const record=applyCareerProgress(updated,expedition);
+      this.history.push({heroId:updated.id,heroName:updated.name,...clone(record)}); if(this.history.length>100)this.history=this.history.slice(-100);
+      const idx=this.heroes.findIndex(h=>h.id===heroId);
+      if(updated.alive)this.heroes[idx]=updated;
+      else{
+        this.heroes.splice(idx,1);
+        this.fallen.push({hero:clone(updated),deathRecord:clone(record)}); if(this.fallen.length>50)this.fallen=this.fallen.slice(-50);
+        if(this.selectedHeroId===heroId)this.selectedHeroId=this.heroes[0]?.id||null;
+      }
+      return{ok:true,banked:expedition.gold,heroAlive:updated.alive,record};
+    }
+    snapshot(){
+      return{version:3,heroes:clone(this.heroes),fallen:clone(this.fallen),funds:this.funds,materials:clone(this.materials),prepMinutes:this.prepMinutes,selectedHeroId:this.selectedHeroId,history:clone(this.history),settledKeys:Array.from(this.settledExpeditions)};
+    }
+    serialize(){ return JSON.stringify(this.snapshot()); }
+    static fromSnapshot(data){
+      if(!data||!Array.isArray(data.heroes))throw new Error('invalid tavern roster snapshot');
+      return new TavernRoster(data);
+    }
+    static deserialize(text){ return TavernRoster.fromSnapshot(JSON.parse(text)); }
+  }
+
+  return {RNG,EQUIPMENT,INJURY_TYPES,PREP_EFFECTS,PREPARATION_ACTIONS,CONTRACT,ENEMIES,MATERIAL_NAMES,heroTemplate,normalizeCareer,rankFromXp,applyCareerProgress,starterRoster,deriveMoodlets,totalInjurySeverity,addInjury,reduceWorstInjury,removeWorstInjury,readinessScore,threatAssessment,PreparationState,TavernRoster,Expedition,makePreset};
 });

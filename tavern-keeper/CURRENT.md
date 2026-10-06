@@ -1,41 +1,46 @@
 # CURRENT — Tavern Keeper
 
 ## Current slice
-Slice 2 — Preparation & Condition
+Slice 3 — Persistent Heroes
 
 ## Status
-Implemented as a standalone browser vertical slice on top of the Slice 1 autonomous contract core.
+Implemented as a standalone browser vertical slice on top of the Slice 1 autonomous contract core and Slice 2 preparation loop.
 
 ## Core rules implemented
-- Hero has Might, Finesse, Endurance, Wits, Resolve.
-- Persistent condition between contracts: health, hunger, fatigue, morale, supplies and injuries.
-- Moodlets are derived from condition and active one-contract preparation effects.
-- Tavern preparation actions consume prototype funds and preparation time.
-- Preparation includes meals, rest, morale recovery, first aid, physician treatment and potion purchase.
-- Rest is a tradeoff: long recovery consumes time and increases hunger.
-- Hearty meals / good sleep / fresh treatment alter readiness and expedition behavior rather than existing as labels only.
-- Combat can produce persistent Sprain / Bruised Ribs / Deep Bite injuries with severity.
-- Injuries reduce readiness/combat effectiveness and increase retreat pressure; treatment can reduce/remove them.
-- Surviving heroes return in their actual post-contract condition.
-- Expedition gold and recovered materials are banked at the tavern exactly once.
-- Pre-expedition buffs are consumed by the expedition and do not become permanent bonuses.
-- Death remains permanent for the current hero.
-- Threat Level remains advisory only; no condition or injury blocks deployment.
-- Contract AI/combat/performance gold from Slice 1 remains authoritative.
+- Tavern owns a persistent multi-hero roster with shared funds, materials and preparation time.
+- Starter roster contains three distinct heroes: Edrin Vale, Mara Fen and Borin Hale.
+- Each hero independently persists health, hunger, fatigue, morale, injuries, equipment, supplies, traits, titles, career XP, career rank, skills and contract history.
+- Career skills are Melee, Ranged and Survival; skills improve from actual expedition performance and feed back into readiness/combat.
+- Contract completion/failure awards performance-derived career XP rather than a flat static amount.
+- Career milestones can add systemic traits/titles such as Veteran, Survivor, Battle Hardened, Ratbane, Road Regular, Greymill Veteran, Ratcatcher and Scarred Survivor.
+- Surviving heroes return to the roster in their actual post-contract condition.
+- Dead heroes are permanently removed from the living roster and stored in the Fallen archive with their final career/history.
+- Shared expedition gold/materials settle into the tavern exactly once.
+- Preparation remains hero-specific while spending shared tavern funds.
+- Threat Level remains advisory; any living roster hero may deploy regardless of readiness.
+- Browser state auto-saves to localStorage.
+- Tavern roster/economy/death archive and an active expedition can be serialized/restored.
+- Active expedition restore includes RNG state, current combat, progress, AI/debug state and accumulated rewards so refreshing mid-contract resumes deterministically.
+- Slice 1 autonomous AI/combat/performance gold and Slice 2 condition/injury systems remain authoritative.
 
 ## Tests
 Run:
 
-```bash
+\`\`\`bash
 node tests/test_core.js
 node tests/test_preparation.js
-```
+node tests/test_roster.js
+\`\`\`
+
+CI also syntax-checks \`core.js\` and \`app.js\`.
 
 ## Known limitations
-- One hero and one contract at a time.
-- The current tavern fund pool is a prototype preparation economy; patron gold/sec arrives in a later slice.
-- Fresh Test Hero is a developer reset, not the future recruitment/roster system.
-- No save/refresh persistence yet.
+- Only one expedition may be active at a time.
+- Starter roster is fixed for now; the real recruitment system is a later slice.
+- If all heroes die, the current prototype requires New Tavern / Clear Save to restart.
+- Tavern funds are still mostly expedition-funded; patron gold/sec arrives in Slice 4.
+- Persistence is browser-local only and intentionally has no cloud/account save yet.
+- Contract content remains one test contract.
 
 ## NEXT OPERATION
-Slice 3 — Persistent Heroes: add the real roster and survivor progression layer (multiple heroes, experience/skill growth, traits/history, permanent deaths and persistence) without replacing the Slice 1 contract simulation or Slice 2 preparation state.
+Slice 4 — Tavern Economy: add patrons, food/drink service, seating/throughput and a stable tavern gold/sec engine that shares the same persistent tavern state without displacing expedition income.

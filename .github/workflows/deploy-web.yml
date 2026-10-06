@@ -82,8 +82,11 @@ jobs:
         shell: bash
         run: |
           set -euxo pipefail
+          node --check tavern-keeper/core.js
+          node --check tavern-keeper/app.js
           node tavern-keeper/tests/test_core.js
           node tavern-keeper/tests/test_preparation.js
+          node tavern-keeper/tests/test_roster.js
 
       - name: Export Web builds and reject script errors
         shell: bash

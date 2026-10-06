@@ -2,6 +2,16 @@
 
 Current truth: `PROJECT_CONTEXT.md` · Future: `ROADMAP.md`
 
+## 2026-10-05 — Tavern Keeper Slice 3: Persistent Heroes
+- Added a real multi-hero tavern roster with Edrin Vale, Mara Fen and Borin Hale as distinct persistent starter heroes.
+- Added per-hero career XP/rank, Melee/Ranged/Survival skill growth, contract history, evolving traits and earned titles.
+- Career skills now feed back into readiness and combat rather than existing as display-only progression.
+- Added shared tavern settlement around hero-specific preparation: funds/materials are shared while condition/equipment/progression remain per hero.
+- Permanent deaths now remove heroes from the living roster and preserve their final career in a Fallen archive.
+- Added full roster serialization plus active-expedition snapshot/restore including RNG/combat/progress state for deterministic refresh/resume.
+- Browser localStorage now auto-saves roster selection, preparation, loadouts, expedition progress and settlement.
+- Added test_roster.js plus JavaScript syntax checks to the Pages CI gate.
+
 ## 2026-10-05 — Tavern Keeper Slice 2: Preparation & Condition
 - Replaced the Slice 1 developer sliders with a real tavern-side preparation loop while preserving the autonomous contract core.
 - Added persistent post-contract health, hunger, fatigue, morale, supplies and combat injuries for surviving heroes.

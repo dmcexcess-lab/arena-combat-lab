@@ -4,10 +4,15 @@ Operational checklist for humans + AIs. Keep compact; add only behaviors whose r
 
 ## Automated CI smoke gate
 ### Tavern Keeper sibling prototype
-- `node tavern-keeper/tests/test_core.js` and `node tavern-keeper/tests/test_preparation.js` pass before Web export.
+- JavaScript syntax checks for core.js and app.js pass before Web export.
+- test_core.js, test_preparation.js and test_roster.js pass before Web export.
 - Seeded runs cover success, retreat and death; preparation materially changes outcomes; failed contracts retain nonzero rewards; expedition gold/sec stops on resolution.
 - Slice 2 preparation: meals/rest/morale/treatment cost time/funds; long rest increases hunger; one-contract buffs alter real simulation state; injuries reduce readiness and can be treated.
-- Surviving condition/injuries return to the tavern; expedition gold/materials settle once; dead heroes cannot use preparation actions; threat assessment never blocks deployment.
+- Slice 3 roster: starter heroes have unique IDs/state; hero-specific preparation cannot mutate other heroes; contract settlement grows only the deployed hero's career.
+- Career XP/skills/history persist; skills affect readiness/combat; milestone traits/titles evolve from contract history.
+- Death removes the hero from the living roster and preserves a Fallen memorial; settlement cannot pay twice.
+- Roster/economy/death state round-trips through serialization; active expedition snapshot/restore produces the same deterministic continuation.
+- Legacy Slice 2-shaped hero state normalizes into valid Slice 3 career state; threat assessment still never blocks deployment.
 
 ### Arena
 - Main scene instantiates without script/runtime errors.

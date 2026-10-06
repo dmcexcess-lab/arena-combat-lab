@@ -3,18 +3,38 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-  <title>Tavern Keeper — Slice 2</title>
+  <title>Tavern Keeper — Slice 3</title>
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
 <header>
-  <div><h1>Tavern Keeper</h1><p>Slice 2 — Preparation &amp; Condition</p></div>
-  <div class="top-stats"><div><span>Tavern funds</span><strong id="funds">0.0g</strong></div><div><span>Prep time</span><strong id="prepTime">0m</strong></div></div>
+  <div><h1>Tavern Keeper</h1><p>Slice 3 — Persistent Heroes</p></div>
+  <div class="top-stats">
+    <div><span>Tavern funds</span><strong id="funds">0.0g</strong></div>
+    <div><span>Prep time</span><strong id="prepTime">0m</strong></div>
+    <div><span>Save</span><strong id="saveState">Local</strong></div>
+  </div>
 </header>
 <main>
+  <aside class="panel roster-panel">
+    <div class="section-title"><h2>Hero Roster</h2><span id="rosterCount" class="status">0 alive</span></div>
+    <div id="heroRoster" class="hero-roster"></div>
+    <h3>Fallen</h3>
+    <div id="fallenRoster" class="fallen-roster"></div>
+    <div class="save-actions"><button id="newTavern" class="danger">New Tavern / Clear Save</button></div>
+  </aside>
+
   <section class="panel tavern" id="tavernPanel">
-    <div class="section-title"><h2>At the Tavern</h2><span id="risk" class="risk">Reasonable</span></div>
+    <div class="section-title"><h2>Selected Hero</h2><span id="risk" class="risk">—</span></div>
     <div id="heroCard" class="hero-card"></div>
+    <div class="career-grid">
+      <div><span>Career rank</span><strong id="careerRank">—</strong></div>
+      <div><span>XP</span><strong id="careerXp">—</strong></div>
+      <div><span>Contracts</span><strong id="careerContracts">—</strong></div>
+      <div><span>Successes</span><strong id="careerSuccesses">—</strong></div>
+    </div>
+    <div class="status-block"><span>Skills</span><div id="skills" class="chips"></div></div>
+    <div class="status-block"><span>Titles</span><div id="titles" class="chips"></div></div>
     <div class="condition-grid">
       <div><span>Health</span><strong id="homeHealth"></strong><i><b id="homeHealthBar"></b></i></div>
       <div><span>Hunger</span><strong id="homeHunger"></strong><i><b id="homeHungerBar"></b></i></div>
@@ -27,22 +47,25 @@
     <h3>Prepare</h3>
     <div id="prepActions" class="prep-actions"></div>
 
-    <h3>Test Loadout</h3>
+    <h3>Loadout</h3>
     <div class="grid-2">
       <label>Weapon<select id="weapon"><option value="rusty_sword">Rusty Sword</option><option value="hunting_bow">Hunting Bow</option><option value="wood_axe">Wood Axe</option></select></label>
       <label>Armor<select id="armor"><option value="padded_armor">Padded Armor</option><option value="leather_armor">Leather Armor</option><option value="">None</option></select></label>
     </div>
     <div class="supply-row"><span>Healing potions</span><strong id="potions">0</strong></div>
 
-    <div class="contract-card"><div><h3>Rats Below Greymill</h3><span class="threat">Threat 2</span></div><p>Clear the infestation beneath Greymill.</p><small>Any condition may deploy. Threat is advisory only.</small></div>
+    <div class="contract-card"><div><h3>Rats Below Greymill</h3><span class="threat">Threat 2</span></div><p>Clear the infestation beneath Greymill.</p><small>Any living hero may deploy. Threat remains advisory.</small></div>
     <label>Seed <input id="seed" type="number" value="42" min="1"></label>
-    <button id="deploy" class="primary">Deploy Hero</button>
-    <button id="freshHero" class="ghost">Developer: Fresh Test Hero</button>
+    <button id="deploy" class="primary">Deploy Selected Hero</button>
+
+    <h3 class="history-heading">Career History</h3>
+    <div id="careerHistory" class="career-history"></div>
     <div id="prepLog" class="prep-log"></div>
   </section>
 
   <section class="panel expedition" id="expeditionPanel">
     <div class="section-title"><h2>Expedition</h2><span id="status" class="status">READY</span></div>
+    <div id="activeHeroBanner" class="active-hero-banner">No active expedition.</div>
     <div class="metrics">
       <div><span>HP</span><strong id="hp">—</strong></div><div><span>Gold/sec</span><strong id="gps">0.00</strong></div><div><span>Gold</span><strong id="gold">0</strong></div><div><span>Progress</span><strong id="progress">0%</strong></div>
     </div>
@@ -54,7 +77,11 @@
     <details><summary>Decision Debug</summary><pre id="debug"></pre></details>
   </section>
 
-  <section class="panel summary" id="summaryPanel"><h2>Expedition Summary</h2><div id="summaryBody"><p>Prepare your hero, then deploy.</p></div><button id="returnHome" disabled>Return to Tavern</button></section>
+  <section class="panel summary" id="summaryPanel">
+    <h2>Expedition Summary</h2>
+    <div id="summaryBody"><p>Select a hero, prepare them, then deploy.</p></div>
+    <button id="returnHome" disabled>Close Expedition Report</button>
+  </section>
 </main>
 <script src="core.js"></script><script src="app.js"></script>
 </body></html>
