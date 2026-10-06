@@ -13,6 +13,10 @@ Operational checklist for humans + AIs. Keep compact; add only behaviors whose r
 - Death removes the hero from the living roster and preserves a Fallen memorial; settlement cannot pay twice.
 - Roster/economy/death state round-trips through serialization; active expedition snapshot/restore produces the same deterministic continuation.
 - Legacy Slice 2-shaped hero state normalizes into valid Slice 3 career state; threat assessment still never blocks deployment.
+- Slice 4 tavern economy: patrons generate nonzero live service revenue through seating/service flow; patron simulation is deterministic for equal seeds/ticks; active patrons never exceed seats and queue never exceeds its cap.
+- Seating and service upgrades improve throughput; kitchen/bar upgrades improve patron value; upgrade costs come from shared tavern funds and insufficient funds cannot mutate state.
+- Tavern economy round-trips with roster persistence, old Slice 3 saves without tavern state migrate to a valid default tavern, and patron income continues even with no living heroes.
+- Tavern revenue and expedition revenue remain additive but mechanically distinct.
 
 ### Arena
 - Main scene instantiates without script/runtime errors.

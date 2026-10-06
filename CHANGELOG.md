@@ -2,6 +2,16 @@
 
 Current truth: `PROJECT_CONTEXT.md` · Future: `ROADMAP.md`
 
+## 2026-10-05 — Tavern Keeper Slice 4: Tavern Economy
+- Added a real patron-service economy to the persistent tavern state instead of a synthetic flat gold timer.
+- Patrons deterministically arrive, take limited seats or queue, order food/drink, consume service capacity, pay, linger and leave; overflow patrons can walk away.
+- Added projected and rolling tavern gold/sec plus live seated/queued patron and recent-service presentation.
+- Added bounded Seating, Service, Kitchen and Bar upgrades. Seating/service change throughput bottlenecks; kitchen/bar increase patron spend.
+- Tavern patron income deposits continuously into the same shared funds used by hero preparation and upgrades, while expedition performance income remains a separate volatile stream.
+- Tavern service continues in real time while a hero expedition is running or hero simulation is paused.
+- Tavern state, patron queue, active patrons, RNG state, revenue history and upgrades now persist through the existing browser save.
+- Added test_tavern.js and wired it into the Pages CI gate.
+
 ## 2026-10-05 — Tavern Keeper Slice 3: Persistent Heroes
 - Added a real multi-hero tavern roster with Edrin Vale, Mara Fen and Borin Hale as distinct persistent starter heroes.
 - Added per-hero career XP/rank, Melee/Ranged/Survival skill growth, contract history, evolving traits and earned titles.

@@ -4,7 +4,7 @@ const C=window.TavernKeeperCore;
 const $=id=>document.getElementById(id);
 const SAVE_KEY='tavernKeeper.slice3.v1';
 
-let roster=null,exp=null,activeHeroId=null,settled=false,speed=1,renderedLogs=0;
+let roster=null,exp=null,activeHeroId=null,settled=false,speed=1,renderedLogs=0,saveClock=0;
 
 function newGame(){
   roster=new C.TavernRoster({funds:30});
@@ -12,7 +12,7 @@ function newGame(){
 }
 function saveGame(){
   try{
-    localStorage.setItem(SAVE_KEY,JSON.stringify({version:1,roster:roster.snapshot(),expedition:exp?exp.snapshot():null,activeHeroId:activeHeroId,settled:settled}));
+    localStorage.setItem(SAVE_KEY,JSON.stringify({version:2,roster:roster.snapshot(),expedition:exp?exp.snapshot():null,activeHeroId:activeHeroId,settled:settled}));
     $('saveState').textContent='Saved';
   }catch(_){$('saveState').textContent='Unavailable';}
 }
@@ -51,6 +51,65 @@ function chipList(items,empty){
 function setBar(id,value){$(id).style.width=Math.max(0,Math.min(100,value))+'%';}
 function selected(){return roster.getHero();}
 function expeditionLocked(){return !!(exp&&exp.state==='deployed');}
+function patronOrder(p){
+  const parts=[];
+  if(p.food)parts.push('food');
+  if(p.drink)parts.push('drink');
+  return parts.join(' + ');
+}
+
+function renderEconomy(){
+  const t=roster.tavern;
+  const projected=t.projectedGoldRate();
+  const rolling=t.rollingGoldRate();
+  $('funds').textContent=roster.funds.toFixed(1)+'g';
+  $('tavernGps').textContent=projected.toFixed(2);
+  $('projectedGps').textContent=projected.toFixed(2)+' g/s';
+  $('rollingGps').textContent=rolling.toFixed(2)+' g/s';
+  $('seatCount').textContent=t.active.length+'/'+t.seats;
+  $('serviceLevel').textContent='Lv '+t.serviceLevel+' · '+t.serviceSlots()+' server'+(t.serviceSlots()===1?'':'s');
+  $('servedCount').textContent=t.served;
+  $('lostCount').textContent=t.lost;
+
+  const unserved=t.active.filter(function(p){return !p.served;});
+  const servingIds=new Set(unserved.slice(0,t.serviceSlots()).map(function(p){return p.id;}));
+  $('seatedPatrons').innerHTML=t.active.length?t.active.map(function(p){
+    const type=C.PATRON_TYPES[p.type]||C.PATRON_TYPES.laborer;
+    let state='';
+    if(p.served)state='Eating/drinking · '+Math.max(0,p.remainingStay).toFixed(0)+'s';
+    else if(servingIds.has(p.id))state='Being served · '+Math.max(0,p.remainingService).toFixed(0)+'s';
+    else state='Waiting for service';
+    return '<div class="patron-card"><div><strong>'+type.name+'</strong><span>'+patronOrder(p)+'</span></div><small>'+state+'</small></div>';
+  }).join(''):'<p class="empty">No one seated yet.</p>';
+
+  $('waitingPatrons').innerHTML=t.queue.length?t.queue.map(function(p){
+    const type=C.PATRON_TYPES[p.type]||C.PATRON_TYPES.laborer;
+    return '<div class="patron-card"><div><strong>'+type.name+'</strong><span>'+patronOrder(p)+'</span></div></div>';
+  }).join(''):'<p class="empty">No queue.</p>';
+
+  $('serviceLog').innerHTML=t.log.length?t.log.slice().reverse().slice(0,8).map(function(e){
+    return '<div class="'+e.type+'"><time>'+fmtTime(e.time)+'</time><span>'+e.text+'</span></div>';
+  }).join(''):'<p class="empty">Open the doors and patrons will arrive.</p>';
+
+  const defs=[
+    {id:'seats',name:'Add Seating',level:t.seats+' seats',next:'+2 seats'},
+    {id:'service',name:'Improve Service',level:'Lv '+t.serviceLevel,next:'faster / more servers'},
+    {id:'kitchen',name:'Improve Kitchen',level:'Lv '+t.kitchenLevel,next:'higher food spend'},
+    {id:'bar',name:'Improve Bar',level:'Lv '+t.barLevel,next:'higher drink spend'}
+  ];
+  $('tavernUpgrades').innerHTML=defs.map(function(d){
+    const maxed=!t.canUpgrade(d.id);
+    const cost=t.upgradeCost(d.id);
+    return '<button class="upgrade-card" data-upgrade="'+d.id+'" '+(maxed||roster.funds<cost?'disabled':'')+'>'+
+      '<strong>'+d.name+'</strong><span>'+d.level+'</span><small>'+(maxed?'MAX':cost+'g · '+d.next)+'</small></button>';
+  }).join('');
+  document.querySelectorAll('[data-upgrade]').forEach(function(btn){
+    btn.addEventListener('click',function(){
+      const r=roster.upgradeTavern(btn.dataset.upgrade);
+      if(r.ok){renderAll();saveGame();}
+    });
+  });
+}
 
 function renderRoster(){
   const heroes=roster.aliveHeroes();
@@ -63,7 +122,7 @@ function renderRoster(){
         '<em>'+(h.titles.length?h.titles[h.titles.length-1]:h.traits.slice(0,2).join(' · '))+'</em></button>';
     }).join('');
   }else{
-    $('heroRoster').innerHTML='<p class="empty">No living heroes remain.</p>';
+    $('heroRoster').innerHTML='<p class="empty">No living heroes remain. The tavern still earns.</p>';
   }
   document.querySelectorAll('[data-hero]').forEach(function(btn){
     btn.addEventListener('click',function(){
@@ -117,6 +176,7 @@ function renderHome(){
     document.querySelectorAll('[data-prep]').forEach(function(b){b.disabled=true;});
     return;
   }
+
   C.deriveMoodlets(h);
   $('risk').textContent=C.threatAssessment(h);
   $('homeHealth').textContent=Math.round(h.health)+'/'+h.maxHealth;
@@ -141,6 +201,7 @@ function renderHome(){
   $('heroCard').innerHTML='<div><strong>'+h.name+'</strong><span>Rank '+h.career.rank+'</span></div>'+
     '<p>'+Object.entries(h.stats).map(function(kv){return kv[0][0].toUpperCase()+kv[0].slice(1)+' '+kv[1];}).join(' · ')+'</p>'+
     '<small>'+h.traits.join(' · ')+' · Readiness '+C.readinessScore(h).toFixed(0)+'</small>';
+
   if(h.history.length){
     $('careerHistory').innerHTML=h.history.slice().reverse().slice(0,8).map(function(r){
       let extra='';
@@ -152,6 +213,7 @@ function renderHome(){
   }else{
     $('careerHistory').innerHTML='<p class="empty">No contracts completed yet.</p>';
   }
+
   document.querySelectorAll('[data-prep]').forEach(function(btn){btn.disabled=expeditionLocked()||!roster.canPrepare(h.id,btn.dataset.prep);});
   $('deploy').disabled=expeditionLocked()||!h.alive;
   $('weapon').disabled=expeditionLocked();
@@ -218,11 +280,11 @@ function settleAndRender(){
   $('summaryBody').innerHTML='<h3>'+s.contract+'</h3><p><strong>Result: '+s.outcome.toUpperCase()+'</strong> — '+(s.reason||'')+'</p>'+
     '<div class="summary-grid"><div>Time<br><strong>'+fmtTime(s.time)+'</strong></div><div>Areas<br><strong>'+s.areasExplored+'/'+s.totalAreas+'</strong></div>'+
     '<div>Enemies<br><strong>'+s.enemiesDefeated+'</strong></div><div>Progress<br><strong>'+s.objectiveProgress+'%</strong></div>'+
-    '<div>Peak income<br><strong>'+s.peakGoldRate.toFixed(2)+' g/s</strong></div><div>Total gold<br><strong>'+s.totalGold.toFixed(1)+'</strong></div>'+
+    '<div>Peak hero income<br><strong>'+s.peakGoldRate.toFixed(2)+' g/s</strong></div><div>Hero gold<br><strong>'+s.totalGold.toFixed(1)+'</strong></div>'+
     '<div>Hero<br><strong>'+(s.heroAlive?'Alive':'Dead')+'</strong></div><div>Injuries<br><strong>'+s.injuries.length+'</strong></div></div>'+
-    progression+'<h3>Recovered Materials</h3><div class="materials">'+mats+'</div><p class="banked">Current tavern funds: '+roster.funds.toFixed(1)+'g.</p>';
+    progression+'<h3>Recovered Materials</h3><div class="materials">'+mats+'</div><p class="banked">Current tavern funds: '+roster.funds.toFixed(1)+'g. Tavern service continued while this contract ran.</p>';
   $('returnHome').disabled=false;
-  renderRoster(); renderHome(); renderHistoryLog();
+  renderEconomy(); renderRoster(); renderHome(); renderHistoryLog();
   saveGame();
 }
 
@@ -248,7 +310,7 @@ function closeReport(){
   renderAll();
   saveGame();
 }
-function renderAll(){renderRoster();renderHome();renderHistoryLog();renderExpedition();}
+function renderAll(){renderEconomy();renderRoster();renderHome();renderHistoryLog();renderExpedition();}
 
 loadGame();
 renderPrepActions();
@@ -262,5 +324,16 @@ $('returnHome').addEventListener('click',closeReport);
 $('newTavern').addEventListener('click',function(){localStorage.removeItem(SAVE_KEY);newGame();$('summaryBody').innerHTML='<p>New tavern started.</p>';renderAll();saveGame();});
 document.querySelectorAll('[data-speed]').forEach(function(b){b.addEventListener('click',function(){speed=+b.dataset.speed;document.querySelectorAll('[data-speed]').forEach(function(x){x.classList.toggle('active',x===b);});});});
 $('step').addEventListener('click',function(){if(exp&&exp.state==='deployed'){exp.tick(1);renderExpedition();saveGame();}});
-setInterval(function(){if(!exp||exp.state!=='deployed'||speed===0)return;for(let i=0;i<speed;i++)exp.tick(1);renderExpedition();saveGame();},250);
+
+setInterval(function(){
+  const earned=roster.tickTavern(0.25);
+  if(exp&&exp.state==='deployed'&&speed>0){
+    for(let i=0;i<speed;i++)exp.tick(1);
+    renderExpedition();
+  }
+  renderEconomy();
+  if(earned>0)renderHome();
+  saveClock+=0.25;
+  if(saveClock>=1){saveClock=0;saveGame();}
+},250);
 })();

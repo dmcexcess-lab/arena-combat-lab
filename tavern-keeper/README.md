@@ -1,79 +1,69 @@
-# Tavern Keeper — Slice 3: Persistent Heroes
+# Tavern Keeper — Slice 4: Tavern Economy
 
-A standalone browser prototype implementing the Tavern Keeper autonomous-contract loop, tavern preparation, and persistent multi-hero careers.
+A standalone browser prototype combining autonomous hero contracts with a persistent tavern that now earns its own stable income by actually serving patrons.
 
 ## Run
 
-Open \`index.html\` in a browser. No build step or external dependencies are required.
+Open `index.html` in a browser. No build step or external dependencies are required.
 
-For a local HTTP server:
+Local HTTP server:
 
-\`\`\`bash
+```bash
 python3 -m http.server 8000
-\`\`\`
+```
 
-Then open \`http://localhost:8000\`.
+Then open `http://localhost:8000`.
 
-The browser build automatically saves to localStorage, including the roster, fallen heroes, shared tavern economy, selected hero and any active expedition.
+The browser build auto-saves roster, fallen heroes, active expedition state and the live tavern economy to localStorage.
 
 ## Tests
 
-\`\`\`bash
+```bash
 node tests/test_core.js
 node tests/test_preparation.js
 node tests/test_roster.js
-\`\`\`
+node tests/test_tavern.js
+```
 
-## Slice 1 foundation retained
+## Slice 4
 
-- Data-driven autonomous contract simulation.
-- Advisory Threat Level with no deployment gate.
-- Readable utility-scored AI.
-- Simulated combat, retreat, success and permanent death.
-- Performance-driven gold/sec with partial-failure rewards.
-- Seeded deterministic simulation.
+- Patron arrivals are simulated instead of paying a flat passive rate.
+- Patrons take seats, queue when full, order food/drink, wait for service, pay and linger before leaving.
+- Tavern income is constrained by arrival rate, seating and service capacity.
+- Projected tavern gold/sec describes the current steady-state service configuration; rolling gold/sec shows recent realized sales.
+- Seating upgrades add seats; Service upgrades increase throughput; Kitchen and Bar upgrades increase order value.
+- Patron overflow can walk away when both seats and queue are saturated.
+- Patron revenue deposits into the same shared funds used for hero preparation and tavern upgrades.
+- Hero expedition income remains independently performance-driven, so stable home income and risky field income are visible as different systems.
+- The tavern keeps serving in real time while a contract runs or the hero simulation is paused.
+- Tavern RNG, active patrons, queue, upgrade levels, revenue and counters persist through browser refresh.
 
-## Slice 2 retained
+## Retained foundations
 
-- Persistent health, hunger, fatigue, morale, supplies and injuries between contracts.
-- Meals, rest, morale recovery, first aid, physician treatment and potion purchase.
-- Preparation costs shared prototype gold and time.
-- One-contract effects such as Hearty Meal, Good Sleep and Patched Up affect the real simulation.
-- Persistent injuries affect readiness/combat and can be treated.
-
-## Slice 3
-
-- Real multi-hero roster with three distinct starter heroes.
-- Hero-specific persistent career XP, career rank, Melee/Ranged/Survival skills, traits, titles and contract history.
-- Skills grow from actual expedition behavior and feed back into readiness and combat.
-- Repeated career milestones can evolve traits/titles.
-- Surviving heroes come home with their exact condition and improved career state.
-- Permanent death removes heroes from the living roster and records them under Fallen.
-- Preparation affects only the chosen hero while using the tavern's shared funds/materials/time.
-- Expedition proceeds settle once into shared tavern state.
-- Full roster state serializes/deserializes.
-- Active expedition state serializes/deserializes with RNG/combat/progress state, allowing deterministic refresh/resume.
-- Browser localStorage auto-save is wired into preparation, roster selection, loadout changes, expedition ticks and settlement.
+- Slice 1: autonomous contract AI, combat, readable decisions, threat ratings, partial rewards and performance gold/sec.
+- Slice 2: persistent health/hunger/fatigue/morale, injuries, meals/rest/treatment and preparation tradeoffs.
+- Slice 3: multiple persistent heroes, XP/rank/skills, traits/titles, career history, permanent-death archive and deterministic mid-expedition resume.
 
 ## Architecture
 
-\`core.js\` remains the authoritative domain layer.
+`core.js` remains the authoritative domain layer.
 
-- \`Expedition\` owns autonomous contract state and now exposes snapshot/restore.
-- \`PreparationState\` remains the single-hero preparation authority.
-- \`TavernRoster\` owns living heroes, fallen heroes, shared tavern resources, selection, settlement and career persistence.
-- \`app.js\` owns browser presentation and localStorage only; it does not duplicate gameplay rules.
+- `Expedition` owns autonomous contract state.
+- `PreparationState` owns one-hero tavern preparation.
+- `TavernRoster` owns living/fallen heroes plus shared resources and settlement.
+- `TavernEconomy` owns patrons, seats, service flow, food/drink revenue and tavern upgrades.
+- `app.js` owns browser rendering, timers and localStorage only.
 
 ## Known limitations
 
 - One active expedition at a time.
-- No real recruitment pipeline yet; the prototype starts with three fixed heroes.
-- All heroes can permanently die; until recruitment lands, New Tavern is the reset route after a wipe.
-- No patron economy, crafting, merchants, offline progression or parties yet.
-- Current funds primarily come from expeditions.
-- Save data is local to the browser/device.
-- Contract presentation remains event/path based and there is still one test contract.
+- No actual food/drink inventory or crafting consumption yet.
+- Tavern patron archetypes and service are intentionally compact.
+- Preparation time and live tavern time are separate clocks for now.
+- No offline progression yet.
+- Fixed starter roster; recruitment comes later.
+- One contract remains the content testbed.
 
-## Next Operation (Slice 4)
+## Next Operation (Slice 5)
 
-Build **Tavern Economy**: patrons, seating, food/drink, service throughput and dependable tavern gold/sec, integrated into the same persistent tavern state so the home economy becomes a true stable counterpart to volatile hero income.
+Build **Loot & Crafting**: make recovered materials useful through a deliberately compact recipe/equipment/consumable system, integrated with the shared tavern inventory and existing hero loadouts.

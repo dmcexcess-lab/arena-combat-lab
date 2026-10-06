@@ -540,15 +540,200 @@
   }
   function starterRoster(){ return [makePreset('prepared'),makePreset('ranged'),makePreset('reckless')]; }
 
+  const PATRON_TYPES = {
+    laborer:{id:'laborer',name:'Laborer',foodChance:0.9,drinkChance:0.72,foodSpend:1.35,drinkSpend:0.8,stay:7},
+    traveler:{id:'traveler',name:'Traveler',foodChance:0.82,drinkChance:0.62,foodSpend:1.7,drinkSpend:1.05,stay:8},
+    adventurer:{id:'adventurer',name:'Adventurer',foodChance:0.78,drinkChance:0.9,foodSpend:1.65,drinkSpend:1.35,stay:9},
+    merchant:{id:'merchant',name:'Merchant',foodChance:0.68,drinkChance:0.66,foodSpend:2.15,drinkSpend:1.55,stay:10}
+  };
+  const PATRON_ROTATION=['laborer','laborer','traveler','laborer','adventurer','traveler','merchant','adventurer'];
+
+  class TavernEconomy {
+    constructor(data={}){
+      this.seed=Number(data.seed)||73129;
+      this.rng=new RNG(this.seed);
+      if(data.rngState)this.rng.state=data.rngState>>>0;
+      this.seats=Math.max(2,Number(data.seats)||2);
+      this.serviceLevel=Math.max(1,Number(data.serviceLevel)||1);
+      this.kitchenLevel=Math.max(1,Number(data.kitchenLevel)||1);
+      this.barLevel=Math.max(1,Number(data.barLevel)||1);
+      this.elapsed=Number(data.elapsed)||0;
+      this.arrivalClock=Number(data.arrivalClock)||0;
+      this.nextPatronId=Math.max(1,Number(data.nextPatronId)||1);
+      this.patronIndex=Math.max(0,Number(data.patronIndex)||0);
+      this.queue=clone(data.queue||[]);
+      this.active=clone(data.active||[]);
+      this.served=Math.max(0,Number(data.served)||0);
+      this.lost=Math.max(0,Number(data.lost)||0);
+      this.totalRevenue=Math.max(0,Number(data.totalRevenue)||0);
+      this.foodServed=Math.max(0,Number(data.foodServed)||0);
+      this.drinksServed=Math.max(0,Number(data.drinksServed)||0);
+      this.revenueEvents=clone(data.revenueEvents||[]);
+      this.log=clone(data.log||[]);
+    }
+    arrivalInterval(){ return 5.2; }
+    maxQueue(){ return 5; }
+    serviceSlots(){ return 1+Math.floor((this.serviceLevel-1)/2); }
+    serviceTime(patron){
+      const items=(patron.food?1:0)+(patron.drink?1:0);
+      return Math.max(2.8,(5.8+items*1.4)*(1-0.12*(this.serviceLevel-1)));
+    }
+    orderValue(patron){
+      const type=PATRON_TYPES[patron.type]||PATRON_TYPES.laborer;
+      let value=0;
+      if(patron.food)value+=type.foodSpend*(1+0.18*(this.kitchenLevel-1));
+      if(patron.drink)value+=type.drinkSpend*(1+0.18*(this.barLevel-1));
+      return Math.max(0.5,value);
+    }
+    averageSpend(){
+      let total=0;
+      for(const id of PATRON_ROTATION){
+        const t=PATRON_TYPES[id];
+        total+=t.foodChance*t.foodSpend*(1+0.18*(this.kitchenLevel-1));
+        total+=t.drinkChance*t.drinkSpend*(1+0.18*(this.barLevel-1));
+      }
+      return total/PATRON_ROTATION.length;
+    }
+    averageCycleTime(){
+      let stay=0;
+      for(const id of PATRON_ROTATION)stay+=PATRON_TYPES[id].stay;
+      stay/=PATRON_ROTATION.length;
+      const meanItems=1.55;
+      const service=Math.max(2.8,(5.8+meanItems*1.4)*(1-0.12*(this.serviceLevel-1)));
+      return {service,stay,total:service+stay};
+    }
+    projectedGoldRate(){
+      const cycle=this.averageCycleTime();
+      const arrivalCap=1/this.arrivalInterval();
+      const serviceCap=this.serviceSlots()/cycle.service;
+      const seatingCap=this.seats/cycle.total;
+      return Math.min(arrivalCap,serviceCap,seatingCap)*this.averageSpend();
+    }
+    rollingGoldRate(windowSeconds=30){
+      const start=this.elapsed-windowSeconds;
+      this.revenueEvents=this.revenueEvents.filter(e=>e.time>=start);
+      const revenue=this.revenueEvents.reduce((n,e)=>n+e.gold,0);
+      const span=Math.min(windowSeconds,Math.max(1,this.elapsed));
+      return revenue/span;
+    }
+    createPatron(){
+      const typeId=PATRON_ROTATION[this.patronIndex++%PATRON_ROTATION.length];
+      const type=PATRON_TYPES[typeId];
+      let food=this.rng.chance(type.foodChance),drink=this.rng.chance(type.drinkChance);
+      if(!food&&!drink)(this.rng.chance(0.5)?food=true:drink=true);
+      return {id:this.nextPatronId++,type:typeId,food,drink,served:false,remainingService:0,remainingStay:0};
+    }
+    logEvent(text,type='service'){
+      this.log.push({time:this.elapsed,text,type});
+      if(this.log.length>40)this.log.shift();
+    }
+    arrive(){
+      const p=this.createPatron();
+      if(this.active.length<this.seats){
+        this.seat(p);
+      }else if(this.queue.length<this.maxQueue()){
+        this.queue.push(p);
+        this.logEvent(PATRON_TYPES[p.type].name+' waits for a seat.','arrival');
+      }else{
+        this.lost++;
+        this.logEvent(PATRON_TYPES[p.type].name+' left; the tavern was full.','lost');
+      }
+    }
+    seat(p){
+      p.remainingService=this.serviceTime(p);
+      p.remainingStay=0;
+      this.active.push(p);
+      this.logEvent(PATRON_TYPES[p.type].name+' took a seat.','arrival');
+    }
+    fillSeats(){
+      while(this.active.length<this.seats&&this.queue.length)this.seat(this.queue.shift());
+    }
+    tick(dt=1){
+      dt=clamp(dt,0.01,5);
+      this.elapsed+=dt;
+      this.arrivalClock+=dt;
+      while(this.arrivalClock>=this.arrivalInterval()){
+        this.arrivalClock-=this.arrivalInterval();
+        this.arrive();
+      }
+      this.fillSeats();
+
+      const serving=this.active.filter(p=>!p.served).slice(0,this.serviceSlots());
+      let earned=0;
+      for(const p of serving){
+        p.remainingService-=dt;
+        if(p.remainingService<=0&&!p.served){
+          p.served=true;
+          const type=PATRON_TYPES[p.type]||PATRON_TYPES.laborer;
+          p.remainingStay=type.stay;
+          const gold=this.orderValue(p);
+          earned+=gold; this.totalRevenue+=gold; this.served++;
+          if(p.food)this.foodServed++;
+          if(p.drink)this.drinksServed++;
+          this.revenueEvents.push({time:this.elapsed,gold});
+          const items=[p.food?'food':null,p.drink?'drink':null].filter(Boolean).join(' + ');
+          this.logEvent(type.name+' paid '+gold.toFixed(1)+'g for '+items+'.','sale');
+        }
+      }
+      for(const p of this.active){ if(p.served)p.remainingStay-=dt; }
+      this.active=this.active.filter(p=>!p.served||p.remainingStay>0);
+      this.fillSeats();
+      this.rollingGoldRate();
+      return earned;
+    }
+    upgradeCost(id){
+      if(id==='seats')return 18+this.seats*5;
+      if(id==='service')return 28*this.serviceLevel;
+      if(id==='kitchen')return 24*this.kitchenLevel;
+      if(id==='bar')return 20*this.barLevel;
+      return Infinity;
+    }
+    canUpgrade(id){
+      if(id==='seats')return this.seats<12;
+      if(id==='service')return this.serviceLevel<6;
+      if(id==='kitchen')return this.kitchenLevel<6;
+      if(id==='bar')return this.barLevel<6;
+      return false;
+    }
+    upgrade(id){
+      if(!this.canUpgrade(id))return false;
+      if(id==='seats')this.seats+=2;
+      else if(id==='service')this.serviceLevel++;
+      else if(id==='kitchen')this.kitchenLevel++;
+      else if(id==='bar')this.barLevel++;
+      else return false;
+      this.logEvent('Tavern upgraded: '+id+'.','upgrade');
+      return true;
+    }
+    snapshot(){
+      return {version:1,seed:this.seed,rngState:this.rng.state,seats:this.seats,serviceLevel:this.serviceLevel,kitchenLevel:this.kitchenLevel,barLevel:this.barLevel,elapsed:this.elapsed,arrivalClock:this.arrivalClock,nextPatronId:this.nextPatronId,patronIndex:this.patronIndex,queue:clone(this.queue),active:clone(this.active),served:this.served,lost:this.lost,totalRevenue:this.totalRevenue,foodServed:this.foodServed,drinksServed:this.drinksServed,revenueEvents:clone(this.revenueEvents),log:clone(this.log)};
+    }
+    static fromSnapshot(data){ return new TavernEconomy(data||{}); }
+  }
+
   class TavernRoster {
-    constructor({heroes=starterRoster(),fallen=[],funds=30,materials={},prepMinutes=0,selectedHeroId=null,history=[],settledKeys=[]}={}){
+    constructor({heroes=starterRoster(),fallen=[],funds=30,materials={},prepMinutes=0,selectedHeroId=null,history=[],settledKeys=[],tavern=null}={}){
       this.heroes=heroes.map(h=>heroTemplate(h)).filter(h=>h.alive);
       this.fallen=clone(fallen||[]);
       this.funds=Number(funds)||0; this.materials=clone(materials||{}); this.prepMinutes=Number(prepMinutes)||0;
       this.history=clone(history||[]); this.settledExpeditions=new Set(settledKeys||[]);
       this.selectedHeroId=selectedHeroId&&this.heroes.some(h=>h.id===selectedHeroId)?selectedHeroId:(this.heroes[0]?.id||null);
+      this.tavern=TavernEconomy.fromSnapshot(tavern);
     }
     aliveHeroes(){ return this.heroes.filter(h=>h.alive); }
+    tickTavern(seconds=1){
+      const earned=this.tavern.tick(seconds);
+      this.funds+=earned;
+      return earned;
+    }
+    upgradeTavern(id){
+      if(!this.tavern.canUpgrade(id))return{ok:false,reason:'maxed'};
+      const cost=this.tavern.upgradeCost(id);
+      if(this.funds<cost)return{ok:false,reason:'insufficient funds',cost};
+      this.funds-=cost;
+      this.tavern.upgrade(id);
+      return{ok:true,cost,projectedGoldRate:this.tavern.projectedGoldRate()};
+    }
     getHero(id=this.selectedHeroId){ return this.heroes.find(h=>h.id===id)||null; }
     selectHero(id){ if(this.heroes.some(h=>h.id===id)){this.selectedHeroId=id;return true;}return false; }
     syncPreparation(heroId,prep){
@@ -595,7 +780,7 @@
       return{ok:true,banked:expedition.gold,heroAlive:updated.alive,record};
     }
     snapshot(){
-      return{version:3,heroes:clone(this.heroes),fallen:clone(this.fallen),funds:this.funds,materials:clone(this.materials),prepMinutes:this.prepMinutes,selectedHeroId:this.selectedHeroId,history:clone(this.history),settledKeys:Array.from(this.settledExpeditions)};
+      return{version:4,heroes:clone(this.heroes),fallen:clone(this.fallen),funds:this.funds,materials:clone(this.materials),prepMinutes:this.prepMinutes,selectedHeroId:this.selectedHeroId,history:clone(this.history),settledKeys:Array.from(this.settledExpeditions),tavern:this.tavern.snapshot()};
     }
     serialize(){ return JSON.stringify(this.snapshot()); }
     static fromSnapshot(data){
@@ -605,5 +790,5 @@
     static deserialize(text){ return TavernRoster.fromSnapshot(JSON.parse(text)); }
   }
 
-  return {RNG,EQUIPMENT,INJURY_TYPES,PREP_EFFECTS,PREPARATION_ACTIONS,CONTRACT,ENEMIES,MATERIAL_NAMES,heroTemplate,normalizeCareer,rankFromXp,applyCareerProgress,starterRoster,deriveMoodlets,totalInjurySeverity,addInjury,reduceWorstInjury,removeWorstInjury,readinessScore,threatAssessment,PreparationState,TavernRoster,Expedition,makePreset};
+  return {RNG,EQUIPMENT,INJURY_TYPES,PREP_EFFECTS,PREPARATION_ACTIONS,CONTRACT,ENEMIES,MATERIAL_NAMES,PATRON_TYPES,heroTemplate,normalizeCareer,rankFromXp,applyCareerProgress,starterRoster,deriveMoodlets,totalInjurySeverity,addInjury,reduceWorstInjury,removeWorstInjury,readinessScore,threatAssessment,PreparationState,TavernEconomy,TavernRoster,Expedition,makePreset};
 });
