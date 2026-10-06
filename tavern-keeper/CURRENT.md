@@ -1,10 +1,10 @@
 # CURRENT — Tavern Keeper
 
 ## Current operation
-Major Change 1 — Animated Tavern Shell & Diegetic Navigation
+Major Change 2 — Spatial Tavern Simulation
 
 ## Status
-Implemented on top of the Slice 15 release simulation. Gameplay/economy/combat architecture is unchanged; presentation/navigation is intentionally reopened.
+Implemented on top of the animated tavern shell. Gameplay/economy/combat rules remain unchanged; the room itself now has persistent spatial actor simulation.
 
 ## Default experience
 - The app now opens directly into a live animated tavern room instead of a long dashboard.
@@ -22,15 +22,18 @@ Implemented on top of the Slice 15 release simulation. Gameplay/economy/combat a
 - Deploying a hero opens the Expeditions road-map screen.
 
 ## Animated tavern state
-- Seated patrons are rendered from `TavernEconomy.active`.
-- Waiting patrons are rendered from `TavernEconomy.queue` near the door.
+- Patron actors persist by TavernEconomy patron ID with coordinates, route goals and stable seat assignments.
+- New patrons originate on the exterior road.
+- Waiting patrons line up entirely outside the building.
+- Queued patrons who receive a seat walk to the exterior door, cross the interior threshold and continue to their assigned seat.
+- Patrons leaving the tavern walk back outside before their actor disappears.
 - Served patrons visually distinguish food/drink state and animate mug use.
 - Only living, non-deployed heroes appear at the heroes' table; deployed heroes are physically absent.
 - Current visiting merchant and current applicant appear in their actual room locations.
-- Server animation reflects whether unserved patrons are waiting.
+- Staff count follows `serviceSlots()`; each staff actor walks from the bar to the actual unserved patron selected by the economy service order, then returns home.
 - Scene badges mirror selected contract, active expeditions, Chronicle entries, Workshop level, home heroes, service level, merchant/applicant presence.
 - The newest tavern service event appears as an ambient room status line.
-- Fireplace, lamp, rain, patron, queue, mug and server motion are CSS animated.
+- Patron/staff translation is state-driven with `requestAnimationFrame`; CSS animation is limited to fire, lamps, rain, walking limbs, serving arms and mugs.
 - `prefers-reduced-motion` disables continuous animation.
 
 ## Rendering / phone behavior
@@ -68,9 +71,9 @@ node tests/test_scene_ui.js
 
 ## Known limitations
 - The room is CSS/DOM art rather than final illustrated sprite art.
-- Patron movement is a visual projection of authoritative seated/queued/service state; patrons do not pathfind through an independently simulated tavern floor.
+- Spatial movement is waypoint/path simulation tied to authoritative tavern states rather than collision/navmesh pathfinding.
 - Physical-device Safari/Firefox feel, object hit-box comfort and scene composition still require human playtesting.
 - Offline progression remains capped at 8 hours.
 
 ## NEXT OPERATION
-Playtest the animated tavern on phone/desktop and refine room art, animation timing, hotspot placement and navigation friction from observed use. Keep gameplay simulation unchanged unless a separate gameplay change is explicitly requested.
+Playtest the spatial tavern on phone/desktop, especially patron entry/exit flow, outside queue spacing, staff travel and door readability. Keep gameplay economy/combat unchanged unless separately requested.

@@ -1,4 +1,4 @@
-# Tavern Keeper — Animated Tavern
+# Tavern Keeper — Spatial Tavern Sim
 
 Tavern Keeper now opens inside the tavern itself.
 
@@ -19,9 +19,9 @@ Every management system is now a focused screen with **Back to Tavern** rather t
 
 ## Live room
 
-The animated room reflects real simulation state: seated/waiting patrons, food/drink service, heroes who are actually home, merchant/applicant presence, active expeditions and current tavern status. Deployed heroes disappear from the tavern until they return.
+The room now has persistent spatial actors. Patrons arrive from the exterior road, wait in a real line outside when the tavern is full, walk through the door to stable seats, get attended by moving staff, linger, then walk back outside before disappearing. Heroes who are deployed remain absent from the room; merchant/applicant presence still follows live simulation state.
 
-Fireplace, lamps, rain, people, mugs, queues and the server animate with reduced-motion support.
+Fireplace, lamps and rain remain ambient. Patron/staff translation is driven by stateful routes rather than looping position animation; walk cycles, serving arms and mugs are local animations with reduced-motion support.
 
 ## Core game
 

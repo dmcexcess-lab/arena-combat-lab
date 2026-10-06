@@ -4,7 +4,7 @@ const C=window.TavernKeeperCore;
 const $=id=>document.getElementById(id);
 const SAVE_KEY='tavernKeeper.slice3.v1';
 
-let roster=null,expeditions=null,renderedLogs={},saveClock=0,offlineReturn=null,lastCheckpointMs=Date.now(),currentScreen='scene',sceneSignature='';
+let roster=null,expeditions=null,renderedLogs={},saveClock=0,offlineReturn=null,lastCheckpointMs=Date.now(),currentScreen='scene',sceneSignature='',scenePatronActors=new Map(),sceneStaffActors=new Map(),sceneMotionRaf=0,sceneMotionLast=0;
 
 function newGame(){
   roster=new C.TavernRoster({funds:30});
@@ -12,6 +12,7 @@ function newGame(){
   renderedLogs={};
   offlineReturn=null;
   lastCheckpointMs=Date.now();
+  resetSceneMotion();
 }
 function saveGame(){
   try{
@@ -158,9 +159,194 @@ function openScreen(name){
   if(name==='scene')renderScene(true);
   window.scrollTo({top:0,left:0,behavior:'auto'});
 }
+const SCENE_GEOMETRY={
+  outsideSpawn:{x:97,y:82},
+  doorOutside:{x:88,y:61},
+  doorInside:{x:79,y:61},
+  seats:[[29,58],[40,65],[51,56],[62,66],[71,57],[34,79],[51,80],[69,79],[45,48],[59,47],[74,69],[27,72]],
+  queue:[[91,58],[94,64],[91,70],[95,76],[90,82]],
+  serverHomes:[[73,73],[67,72],[76,66]]
+};
+
 function personMarkup(kind,label,x,y,index,state){
-  return '<div class="scene-person '+kind+' '+state+'" title="'+label.replace(/"/g,'&quot;')+'" style="--x:'+x+'%;--y:'+y+'%;--delay:'+(index%7)*-0.23+'s">'+
+  return '<div class="scene-person static-person '+kind+' '+state+'" title="'+label.replace(/"/g,'&quot;')+'" style="left:'+x+'%;top:'+y+'%;--delay:'+(index%7)*-0.23+'s">'+
     '<i class="shadow"></i><i class="legs"></i><i class="body"></i><i class="head"></i><i class="arm"></i><i class="prop"></i></div>';
+}
+function sceneActorHtml(){
+  return '<i class="shadow"></i><i class="legs"></i><i class="body"></i><i class="head"></i><i class="arm"></i><i class="prop"></i>';
+}
+function reducedSceneMotion(){
+  return !!(window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+}
+function resetSceneMotion(){
+  for(const actor of scenePatronActors.values())actor.node?.remove();
+  for(const actor of sceneStaffActors.values())actor.node?.remove();
+  scenePatronActors.clear();
+  sceneStaffActors.clear();
+  sceneSignature='';
+  sceneMotionLast=0;
+}
+function createSceneMotionActor(container,key,kind,label,x,y,speed=18){
+  const node=document.createElement('div');
+  node.className='scene-person '+kind;
+  node.dataset.actorKey=key;
+  node.title=label;
+  node.innerHTML=sceneActorHtml();
+  container.appendChild(node);
+  const actor={key,kind,label,node,x,y,path:[],goalKey:'',speed,removeWhenDone:false,seatIndex:null,phase:'outside'};
+  node.style.left=x+'%'; node.style.top=y+'%';
+  return actor;
+}
+function setSceneActorClasses(actor,state){
+  actor.node.className='scene-person '+actor.kind+' '+state+(actor.path.length?' walking':' idle');
+}
+function routeSceneActor(actor,points,goalKey,removeWhenDone=false){
+  if(actor.goalKey===goalKey&&!removeWhenDone)return;
+  actor.goalKey=goalKey;
+  actor.removeWhenDone=removeWhenDone;
+  actor.path=points.map(function(p){return{x:Number(p.x),y:Number(p.y)};});
+  if(reducedSceneMotion()&&actor.path.length){
+    const last=actor.path[actor.path.length-1];
+    actor.x=last.x;actor.y=last.y;actor.path=[];
+    actor.node.style.left=actor.x+'%';actor.node.style.top=actor.y+'%';
+  }
+}
+function nextFreeSeat(activeIds){
+  const used=new Set();
+  for(const id of activeIds){
+    const a=scenePatronActors.get('patron:'+id);
+    if(a&&a.seatIndex!=null)used.add(a.seatIndex);
+  }
+  for(let i=0;i<SCENE_GEOMETRY.seats.length;i++)if(!used.has(i))return i;
+  return 0;
+}
+function ensurePatronActor(patron,state,index,activeIds){
+  const key='patron:'+patron.id;
+  let actor=scenePatronActors.get(key);
+  if(!actor){
+    actor=createSceneMotionActor($('scenePatrons'),key,'patron '+patron.type,(C.PATRON_TYPES[patron.type]||C.PATRON_TYPES.laborer).name,SCENE_GEOMETRY.outsideSpawn.x,SCENE_GEOMETRY.outsideSpawn.y,19);
+    scenePatronActors.set(key,actor);
+  }
+  actor.kind='patron '+patron.type;
+  actor.label=(C.PATRON_TYPES[patron.type]||C.PATRON_TYPES.laborer).name;
+  actor.node.title=actor.label+(state==='queue'?' waiting outside':'');
+  actor.removeWhenDone=false;
+  if(state==='queue'){
+    actor.phase='queue';
+    actor.seatIndex=null;
+    const q=SCENE_GEOMETRY.queue[Math.min(index,SCENE_GEOMETRY.queue.length-1)];
+    routeSceneActor(actor,[q],'queue:'+index);
+    setSceneActorClasses(actor,'queued outside '+(patron.food?'food ':'')+(patron.drink?'drink ':''));
+  }else{
+    if(actor.seatIndex==null)actor.seatIndex=nextFreeSeat(activeIds);
+    const seat=SCENE_GEOMETRY.seats[actor.seatIndex%SCENE_GEOMETRY.seats.length];
+    if(actor.phase!=='active'){
+      routeSceneActor(actor,[SCENE_GEOMETRY.doorOutside,SCENE_GEOMETRY.doorInside,{x:seat[0],y:seat[1]}],'seat:'+actor.seatIndex);
+      actor.phase='active';
+    }else if(actor.goalKey!=='seat:'+actor.seatIndex){
+      routeSceneActor(actor,[{x:seat[0],y:seat[1]}],'seat:'+actor.seatIndex);
+    }
+    const serviceState=(patron.served?'served ':'waiting-service ')+(patron.food?'food ':'')+(patron.drink?'drink ':'');
+    setSceneActorClasses(actor,serviceState);
+  }
+  return actor;
+}
+function sendPatronOutside(actor){
+  if(actor.removeWhenDone)return;
+  actor.phase='leaving';
+  actor.seatIndex=null;
+  const route=actor.x<82?[SCENE_GEOMETRY.doorInside,SCENE_GEOMETRY.doorOutside,SCENE_GEOMETRY.outsideSpawn]:[SCENE_GEOMETRY.outsideSpawn];
+  routeSceneActor(actor,route,'exit:'+actor.key,true);
+  setSceneActorClasses(actor,'leaving');
+}
+function syncPatronSceneActors(tavern){
+  const activeIds=tavern.active.map(p=>p.id);
+  const live=new Set();
+  tavern.queue.forEach(function(p,i){
+    live.add('patron:'+p.id);
+    ensurePatronActor(p,'queue',i,activeIds);
+  });
+  tavern.active.forEach(function(p,i){
+    live.add('patron:'+p.id);
+    ensurePatronActor(p,'active',i,activeIds);
+  });
+  for(const [key,actor] of scenePatronActors){
+    if(!live.has(key))sendPatronOutside(actor);
+  }
+}
+function ensureStaffActor(index){
+  const key='staff:'+index;
+  let actor=sceneStaffActors.get(key);
+  if(actor)return actor;
+  const home=SCENE_GEOMETRY.serverHomes[index%SCENE_GEOMETRY.serverHomes.length];
+  actor=createSceneMotionActor($('sceneStaff'),key,'server-person','Server '+(index+1),home[0],home[1],23);
+  actor.home={x:home[0],y:home[1]};
+  actor.phase='staff';
+  sceneStaffActors.set(key,actor);
+  return actor;
+}
+function syncStaffSceneActors(tavern){
+  const slots=tavern.serviceSlots();
+  const serving=tavern.active.filter(p=>!p.served).slice(0,slots);
+  for(let i=0;i<slots;i++){
+    const staff=ensureStaffActor(i);
+    const patron=serving[i];
+    const patronActor=patron?scenePatronActors.get('patron:'+patron.id):null;
+    if(patronActor&&patronActor.phase==='active'&&!patronActor.path.length){
+      routeSceneActor(staff,[{x:Math.min(78,patronActor.x+3),y:patronActor.y-1}],'serve:'+patron.id);
+      setSceneActorClasses(staff,'busy serving');
+    }else{
+      routeSceneActor(staff,[staff.home],'home:'+i);
+      setSceneActorClasses(staff,patron?'busy waiting':'resting');
+    }
+  }
+  for(const [key,staff] of sceneStaffActors){
+    const idx=Number(key.split(':')[1]);
+    if(idx>=slots){
+      routeSceneActor(staff,[staff.home],'offshift:'+idx,true);
+      setSceneActorClasses(staff,'off-shift');
+    }
+  }
+}
+function advanceSceneActor(actor,dt,map){
+  if(!actor.path.length){
+    actor.node.classList.remove('walking');
+    actor.node.classList.add('idle');
+    if(actor.removeWhenDone){
+      actor.node.remove();
+      map.delete(actor.key);
+    }
+    return;
+  }
+  const target=actor.path[0];
+  const dx=target.x-actor.x,dy=target.y-actor.y;
+  const dist=Math.hypot(dx,dy);
+  const step=actor.speed*dt;
+  actor.node.classList.add('walking');
+  actor.node.classList.remove('idle');
+  actor.node.classList.toggle('facing-left',dx<-.15);
+  actor.node.classList.toggle('facing-right',dx>.15);
+  if(dist<=step||dist<0.05){
+    actor.x=target.x;actor.y=target.y;actor.path.shift();
+  }else{
+    actor.x+=dx/dist*step;actor.y+=dy/dist*step;
+  }
+  actor.node.style.left=actor.x+'%';
+  actor.node.style.top=actor.y+'%';
+}
+function sceneMotionFrame(now){
+  if(!sceneMotionLast)sceneMotionLast=now;
+  const dt=Math.min(.05,Math.max(0,(now-sceneMotionLast)/1000));
+  sceneMotionLast=now;
+  if(currentScreen==='scene'&&!document.hidden){
+    for(const actor of Array.from(scenePatronActors.values()))advanceSceneActor(actor,dt,scenePatronActors);
+    for(const actor of Array.from(sceneStaffActors.values()))advanceSceneActor(actor,dt,sceneStaffActors);
+  }
+  sceneMotionRaf=requestAnimationFrame(sceneMotionFrame);
+}
+function ensureSceneMotionLoop(){
+  if(sceneMotionRaf)return;
+  sceneMotionRaf=requestAnimationFrame(sceneMotionFrame);
 }
 function renderScene(force=false){
   if(!$('tavernRoom'))return;
@@ -172,7 +358,7 @@ function renderScene(force=false){
   const merchant=roster.merchants.active;
   const applicant=roster.recruitment.active;
 
-  $('scenePatronStatus').textContent=t.active.length+' seated · '+t.queue.length+' waiting';
+  $('scenePatronStatus').textContent=t.active.length+' seated · '+t.queue.length+' waiting outside';
   $('sceneHeroStatus').textContent=homeHeroes.length+' hero'+(homeHeroes.length===1?'':'es')+' home';
   $('sceneExpeditionStatus').textContent=active.length+' expedition'+(active.length===1?'':'s')+' active';
   $('sceneContractBadge').textContent='Threat '+selectedContract.threat+' · '+selectedContract.name;
@@ -182,37 +368,24 @@ function renderScene(force=false){
   $('sceneHeroBadge').textContent=homeHeroes.length+' home · '+roster.fallen.length+' fallen';
   $('sceneBarBadge').textContent='Service Lv '+t.serviceLevel+' · '+t.active.length+'/'+t.seats+' seats';
   $('sceneMerchantBadge').textContent=merchant?merchant.name+' · Q'+merchant.quality:'On the road';
-  $('sceneApplicantBadge').textContent=applicant?applicant.hero.name+' · '+applicant.cost+'g':'No applicant';
+  $('sceneApplicantBadge').textContent=applicant?applicant.hero.name+' · '+applicant.cost+'g':'No applicant outside';
 
-  const latest=t.log.length?t.log[t.log.length-1].text:'Tap an object to manage the tavern.';
+  const latest=t.log.length?t.log[t.log.length-1].text:'Patrons enter from the road, queue outside, take seats, get served, and leave.';
   $('sceneToast').textContent=latest;
-  $('sceneServer').classList.toggle('busy',t.active.some(function(p){return !p.served;}));
-  $('sceneServer').classList.toggle('resting',!t.active.some(function(p){return !p.served;}));
   $('tavernRoom').dataset.service=String(t.serviceLevel);
   $('tavernRoom').dataset.bar=String(t.barLevel);
   $('tavernRoom').dataset.seats=String(t.seats);
 
+  syncPatronSceneActors(t);
+  syncStaffSceneActors(t);
+
   const sig=JSON.stringify({
-    patrons:t.active.map(p=>[p.id,p.type,p.served,p.food,p.drink]),
-    queue:t.queue.map(p=>[p.id,p.type]),
-    heroes:homeHeroes.map(h=>[h.id,h.id===roster.selectedHeroId]),
+    heroes:homeHeroes.map(h=>[h.id,h.id===roster.selectedHeroId,h.injuries.length]),
     merchant:merchant?[merchant.name,merchant.quality]:null,
     applicant:applicant?[applicant.hero.id,applicant.quality]:null
   });
   if(!force&&sig===sceneSignature)return;
   sceneSignature=sig;
-
-  const seats=[[31,58],[43,64],[54,56],[64,66],[73,57],[37,77],[55,78],[70,77],[47,48],[61,47],[79,68],[28,72]];
-  const queueSlots=[[88,62],[91,68],[88,74],[92,79],[87,84]];
-  $('scenePatrons').innerHTML=t.active.map(function(p,i){
-    const type=C.PATRON_TYPES[p.type]||C.PATRON_TYPES.laborer;
-    const pos=seats[i%seats.length];
-    const state=(p.served?'served ':'waiting-service ')+(p.food?'food ':'')+(p.drink?'drink ':'');
-    return personMarkup('patron '+p.type,type.name,pos[0],pos[1],i,state);
-  }).join('')+t.queue.map(function(p,i){
-    const type=C.PATRON_TYPES[p.type]||C.PATRON_TYPES.laborer,pos=queueSlots[i%queueSlots.length];
-    return personMarkup('patron '+p.type,type.name+' waiting',pos[0],pos[1],i+20,'queued');
-  }).join('');
 
   const heroSlots=[[24,80],[32,84],[40,80],[35,72],[28,69],[44,71]];
   $('sceneHeroes').innerHTML=homeHeroes.slice(0,6).map(function(h,i){
@@ -223,7 +396,7 @@ function renderScene(force=false){
 
   let visitors='';
   if(merchant)visitors+=personMarkup('visitor merchant-visitor',merchant.name,17,61,61,'present');
-  if(applicant)visitors+=personMarkup('visitor applicant-visitor',applicant.hero.name,86,57,62,'present');
+  if(applicant)visitors+=personMarkup('visitor applicant-visitor',applicant.hero.name,94,53,62,'present outside');
   $('sceneVisitor').innerHTML=visitors;
 }
 
@@ -820,6 +993,7 @@ loadGame();
 renderAll();
 renderOfflineReturn();
 openScreen('scene');
+ensureSceneMotionLoop();
 saveGame();
 
 document.querySelectorAll('[data-open-screen]').forEach(function(el){

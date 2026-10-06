@@ -77,7 +77,12 @@ Operational checklist for humans + AIs. Keep compact; add only behaviors whose r
 - Eight unique physical room hotspots map one-to-one to those management screens; every management screen has Back to Tavern, Escape returns to the room and deploying a hero opens Expeditions.
 - Scene projection uses authoritative tavern/roster systems: active + queued patrons, non-deployed living heroes, merchant/applicant presence, current contract, active expeditions, Chronicle count and facility/service status.
 - Animated scene membership is signature-gated so actor DOM is not rebuilt every quarter-second; hidden management screens do not repaint continuously while simulation remains active.
-- Tavern room includes fireplace/lamp/rain/person/server/mug/queue animation plus `prefers-reduced-motion` support and coarse-pointer touch-safe interaction.
+- Tavern room includes fireplace/lamp/rain/mug/local walk/serve animation plus `prefers-reduced-motion` support and coarse-pointer touch-safe interaction.
+- Spatial tavern simulation: patrons persist by authoritative patron ID with coordinates, goals, paths and seat assignment; screen refreshes must not recreate them at fixed positions.
+- New patrons originate outside; queue coordinates remain in the exterior zone; queued→active transitions route through exterior door → interior threshold → assigned seat.
+- Patrons removed from the authoritative active/queue set receive an exit route through the door and are deleted only after reaching the exterior spawn point.
+- Staff actor count follows TavernEconomy.serviceSlots(); staff target actual unserved active patrons and otherwise return to bar-home positions.
+- Exterior geometry owns the road/porch, front door, queue and applicant position; waiting patrons must never be rendered as an interior line.
 
 ### Arena
 - Main scene instantiates without script/runtime errors.

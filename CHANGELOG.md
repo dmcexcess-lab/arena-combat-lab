@@ -2,6 +2,18 @@
 
 Current truth: `PROJECT_CONTEXT.md` · Future: `ROADMAP.md`
 
+## 2026-10-05 — Tavern Keeper: Spatial Tavern Simulation
+- Replaced patron position loops with persistent stateful scene actors keyed by authoritative TavernEconomy patron IDs.
+- New patrons now originate on the exterior road and physically walk toward the tavern.
+- Waiting patrons queue outside the building; the queue no longer appears inside the tavern.
+- When a queued patron receives a seat, the visual actor walks from the outside queue through the exterior door and interior threshold to a stable assigned seat.
+- Patrons leaving the authoritative active/queue state now walk back through the door and off the road before their actor is removed.
+- Added an explicit outside road/yard/porch zone and moved the front door plus applicant presence outside the interior boundary.
+- Added stateful staff actors based on TavernEconomy.serviceSlots(); staff walk to the actual unserved patrons selected by the service order and return to bar-home positions.
+- Actor translation is now driven by requestAnimationFrame and route targets; CSS animation remains only for ambient fire/rain/lamps and local walk/serve/mug motion.
+- Preserved the existing Slice 15 economy/service timing, save format, offline progression and balance.
+- Strengthened `test_scene_ui.js` to require persistent actor maps, route simulation, exterior queue geometry and staff service routing.
+
 ## 2026-10-05 — Tavern Keeper: Animated Tavern Shell & Diegetic Navigation
 - Reopened the post-release presentation architecture while leaving the Slice 15 simulation unchanged.
 - Replaced the dashboard-first default with a full-screen animated tavern interior.

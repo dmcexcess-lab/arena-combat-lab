@@ -4,7 +4,7 @@
 
 **Play the current web alpha:** https://dmcexcess-lab.github.io/arena-combat-lab/
 
-**Play Tavern Keeper — Animated Tavern:** https://dmcexcess-lab.github.io/arena-combat-lab/tavern-keeper/
+**Play Tavern Keeper — Spatial Tavern Sim:** https://dmcexcess-lab.github.io/arena-combat-lab/tavern-keeper/
 
 ## The game
 

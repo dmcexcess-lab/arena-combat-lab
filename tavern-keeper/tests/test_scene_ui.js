@@ -19,7 +19,7 @@ assert.equal((html.match(/data-back-tavern/g)||[]).length,8);
 
 // The room itself is the default presentation and contains physical, tappable destinations.
 assert.ok(html.includes('class="tavern-room"'));
-for(const id of ['scenePatrons','sceneHeroes','sceneVisitor','sceneServer','sceneToast'])assert.ok(html.includes('id="'+id+'"'));
+for(const id of ['sceneOutside','scenePatrons','sceneHeroes','sceneVisitor','sceneStaff','sceneToast'])assert.ok(html.includes('id="'+id+'"'));
 for(const cls of ['contract-board-object','wall-map-object','ledger-object','workshop-object','hero-table-object','bar-object','merchant-object','door-object']){
   assert.ok(html.includes(cls),'missing physical scene object '+cls);
 }
@@ -44,16 +44,39 @@ assert.ok(app.includes('expeditions.activeEntries()'));
 assert.ok(app.includes('roster.aliveHeroes().filter'));
 assert.ok(app.includes('roster.merchants.active'));
 assert.ok(app.includes('roster.recruitment.active'));
-assert.ok(app.includes("t.active.map(function(p,i)"));
-assert.ok(app.includes("t.queue.map(function(p,i)"));
+assert.ok(app.includes("tavern.queue.forEach(function(p,i)"));
+assert.ok(app.includes("tavern.active.forEach(function(p,i)"));
 assert.ok(app.includes("homeHeroes.slice(0,6).map(function(h,i)"));
 
-// Scene rendering must not restart every animation tick unless live membership/state changes.
+// Patrons have persistent spatial identity and state-driven paths rather than looping position animation.
+assert.ok(app.includes('scenePatronActors=new Map()'));
+assert.ok(app.includes('sceneStaffActors=new Map()'));
+assert.ok(app.includes('function syncPatronSceneActors(tavern)'));
+assert.ok(app.includes('function syncStaffSceneActors(tavern)'));
+assert.ok(app.includes('function routeSceneActor('));
+assert.ok(app.includes('function sceneMotionFrame(now)'));
+assert.ok(app.includes('requestAnimationFrame(sceneMotionFrame)'));
+assert.ok(app.includes("phase='leaving'"));
+assert.ok(app.includes("goalKey:''"));
+assert.ok(app.includes('removeWhenDone'));
+assert.ok(app.includes('SCENE_GEOMETRY.doorOutside'));
+assert.ok(app.includes('SCENE_GEOMETRY.doorInside'));
+
+// Exterior geometry owns the door and queue.
+assert.ok(html.includes('class="outside-yard"'));
+assert.ok(html.includes('class="queue-marker"'));
+assert.ok(html.includes('exterior-door'));
+assert.ok(css.includes('.outside-yard{'));
+assert.ok(css.includes('.door-object{left:81.5%'));
+assert.ok(app.includes('queue:[[91,58],[94,64],[91,70],[95,76],[90,82]]'));
+assert.ok(app.includes("94,53,62,'present outside'"));
+
+// Scene membership rendering remains signature-gated for heroes/visitors.
 assert.ok(app.includes('sceneSignature'));
 assert.ok(app.includes('if(!force&&sig===sceneSignature)return'));
 
-// Animated tavern visual contract.
-for(const anim of ['rainDrop','fireGlow','flame','lampFlicker','personBob','mugLift','queueSway','serverWork']){
+// Animated tavern visual contract: ambience loops, people translate from simulation state.
+for(const anim of ['rainDrop','fireGlow','flame','lampFlicker','mugLift','walkBob','walkLegs','serveArm']){
   assert.ok(css.includes('@keyframes '+anim),'missing animation '+anim);
 }
 assert.ok(css.includes('@media(prefers-reduced-motion:reduce)'));
@@ -72,5 +95,7 @@ console.log('PASS scene UI',JSON.stringify({
   screens:screenNames,
   hotspots,
   animations:8,
+  spatialSimulation:true,
+  exteriorQueue:true,
   defaultScreen:'scene'
 },null,2));

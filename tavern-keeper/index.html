@@ -34,7 +34,14 @@
       </div>
     </div>
 
-    <div id="tavernRoom" class="tavern-room" aria-label="Tavern interior">
+    <div id="tavernRoom" class="tavern-room" aria-label="Tavern interior and exterior entry">
+      <div id="sceneOutside" class="outside-yard" aria-hidden="true">
+        <div class="outside-sky"></div>
+        <div class="outside-road"></div>
+        <div class="porch-roof"></div>
+        <div class="queue-marker"><span>WAIT HERE</span></div>
+      </div>
+      <div class="door-threshold" aria-hidden="true"></div>
       <div class="room-wall">
         <div class="roof-beam beam-a"></div><div class="roof-beam beam-b"></div>
         <div class="scene-window"><i></i><i></i><span></span></div>
@@ -71,14 +78,14 @@
         <span class="merchant-table-art"></span><b>Merchant Corner</b><small id="sceneMerchantBadge">On the road</small>
       </button>
 
-      <button class="scene-object hotspot door-object" data-open-screen="applicants" aria-label="Check applicants">
+      <button class="scene-object hotspot door-object exterior-door" data-open-screen="applicants" aria-label="Check applicants outside">
         <span class="door-art"><i></i></span><b>Front Door</b><small id="sceneApplicantBadge">No applicant</small>
       </button>
 
       <div id="scenePatrons" class="scene-actors patron-actors" aria-hidden="true"></div>
       <div id="sceneHeroes" class="scene-actors hero-actors" aria-hidden="true"></div>
       <div id="sceneVisitor" class="scene-actors visitor-actors" aria-hidden="true"></div>
-      <div id="sceneServer" class="scene-person server-person" aria-hidden="true"><i class="head"></i><i class="body"></i><i class="arm"></i></div>
+      <div id="sceneStaff" class="scene-actors staff-actors" aria-hidden="true"></div>
 
       <div class="scene-toast" id="sceneToast">Tap an object to manage the tavern.</div>
     </div>

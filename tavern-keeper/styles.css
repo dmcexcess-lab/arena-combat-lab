@@ -104,3 +104,66 @@ main.scene-shell{display:block;max-width:none;margin:0;padding:0}.app-screen{dis
   .scene-person{width:25px;height:45px}.scene-person .head{width:13px;height:14px}.scene-person .body{width:18px;height:22px}.scene-toast{max-width:88%;font-size:10px}
 }
 @media(prefers-reduced-motion:reduce){.tavern-room *{animation-duration:.001ms!important;animation-iteration-count:1!important}}
+
+
+/* Stateful spatial tavern simulation */
+.tavern-room{background:#13110d}
+.room-wall{right:18%}
+.wood-floor{right:18%}
+.outside-yard{position:absolute;z-index:0;right:0;top:0;bottom:0;width:18%;overflow:hidden;border-left:8px solid #1b120a;background:linear-gradient(#162232 0 45%,#25372c 46% 58%,#5a452d 59% 100%);box-shadow:inset 18px 0 25px #0008}
+.outside-sky{position:absolute;inset:0 0 44%;background:radial-gradient(circle at 72% 15%,#d1d5c8 0 3%,#56637755 4%,transparent 15%),linear-gradient(#101a29,#253649)}
+.outside-road{position:absolute;left:-8%;right:-12%;bottom:-8%;height:48%;background:repeating-linear-gradient(104deg,#5a452f 0 12%,#654e36 12% 24%,#4f3b29 24% 36%);transform:skewY(-3deg);box-shadow:inset 0 18px 28px #0004}
+.outside-road:after{content:"";position:absolute;inset:15% 8%;background:radial-gradient(ellipse at 30% 55%,#30251aaa 0 4%,transparent 5%),radial-gradient(ellipse at 70% 38%,#30251aaa 0 5%,transparent 6%)}
+.porch-roof{position:absolute;left:-5%;right:0;top:27%;height:8%;background:#24170c;border-top:6px solid #3c2714;box-shadow:0 8px 14px #0008}
+.queue-marker{position:absolute;right:7%;bottom:9%;width:72%;border-top:2px dashed #c5a66a88;text-align:center;padding-top:5px;color:#c5a66a;font-size:8px;letter-spacing:.12em;transform:rotate(-3deg)}
+.queue-marker span{background:#352619cc;padding:2px 4px;border-radius:3px}
+.door-threshold{position:absolute;z-index:2;left:80.5%;top:31%;width:3.5%;height:39%;background:linear-gradient(90deg,#1d130b,#4a2f19,#22160c);box-shadow:4px 0 14px #0008}
+.door-object{left:81.5%!important;right:auto!important;top:32%!important;width:9.5%!important;height:25%!important;z-index:8!important}
+.door-object b,.door-object small{z-index:10}
+.exterior-door .door-art{background:linear-gradient(90deg,#4f3118,#654020 55%,#402713);box-shadow:6px 8px 14px #0008}
+.bar-object{left:57%!important;right:auto!important;bottom:7%;width:22%!important}
+.ledger-object{right:auto!important;left:68%;top:38%;width:9%}
+.wall-map-object{left:58%;width:18%}
+
+.scene-person{left:50%;top:70%;animation:none!important;transition:none;will-change:left,top;transform:translate(-50%,-100%);z-index:4}
+.scene-person.static-person .body{animation:idleBreath 2.4s ease-in-out infinite}
+.scene-person.walking .body,.scene-person.walking .head{animation:walkBob .32s ease-in-out infinite alternate}
+.scene-person.walking .legs{animation:walkLegs .32s ease-in-out infinite alternate}
+.scene-person.walking.facing-left .body:before{content:"";position:absolute;left:-4px;top:7px;border-right:4px solid #241a13;border-top:3px solid transparent;border-bottom:3px solid transparent}
+.scene-person.walking.facing-right .body:before{content:"";position:absolute;right:-4px;top:7px;border-left:4px solid #241a13;border-top:3px solid transparent;border-bottom:3px solid transparent}
+.scene-person.queued{animation:none!important}
+.scene-person.queued .body{opacity:.94}
+.scene-person.outside{filter:drop-shadow(0 4px 3px #0009)}
+.scene-person.leaving{opacity:.9}
+.scene-person.server-person{z-index:6}
+.scene-person.server-person.busy{animation:none!important}
+.scene-person.server-person .body{background:#734d34}
+.scene-person.server-person.serving .arm{animation:serveArm .52s ease-in-out infinite alternate}
+.staff-actors{z-index:6}
+.visitor.applicant-visitor{z-index:6}
+.visitor.applicant-visitor .body{background:#4d5e73}
+.scene-person.served.drink .prop{display:block;animation:mugLift 2.2s ease-in-out infinite}
+.scene-person.served.food .body:after{content:"";position:absolute;left:-9px;top:20px;width:17px;height:5px;border-radius:50%;background:#d2b88c;border:2px solid #51412e}
+
+@keyframes walkBob{from{transform:translateY(0)}to{transform:translateY(-2px)}}
+@keyframes walkLegs{from{transform:skewX(-8deg)}to{transform:skewX(8deg)}}
+@keyframes idleBreath{0%,100%{transform:scaleY(1)}50%{transform:scaleY(.97)}}
+@keyframes serveArm{from{transform:rotate(-8deg)}to{transform:rotate(28deg)}}
+
+@media(max-width:900px){
+  .bar-object{left:54%!important;width:25%!important}
+  .wall-map-object{left:55%;width:22%}
+  .door-object{left:80%!important;width:11%!important}
+}
+@media(max-width:620px){
+  .room-wall{right:18%;bottom:50%}.wood-floor{right:18%;inset-block-start:50%}
+  .outside-yard{width:18%;border-left-width:5px}
+  .door-threshold{left:78.5%;width:5%;top:28%;height:38%}
+  .door-object{left:78%!important;top:29%!important;width:15%!important;height:21%!important}
+  .bar-object{left:48%!important;right:auto!important;width:31%!important}
+  .wall-map-object{left:53%;width:23%}.ledger-object{left:68%;width:10%;top:34%}
+  .queue-marker{right:2%;width:88%;font-size:6px}
+}
+@media(prefers-reduced-motion:reduce){
+  .scene-person.static-person .body,.scene-person.walking .body,.scene-person.walking .head,.scene-person.walking .legs,.scene-person.server-person.serving .arm{animation:none!important}
+}
