@@ -191,7 +191,6 @@
   };
   const CONTRACT_ORDER=['briar_farm_wolves','greymill_rats','ashroad_caravan','blackroot_mine','wren_bridge_troll'];
   const CONTRACT=CONTRACTS.greymill_rats;
-  const EXPEDITION_NEED_TIME_SCALE=1/20;
   function contractActionInterval(contract=CONTRACT){
     const explicit=Number(contract?.paceSeconds);
     if(Number.isFinite(explicit)&&explicit>0)return explicit;
@@ -789,12 +788,12 @@
       dt=clamp(dt,0.05,900);
       const interval=contractActionInterval(this.contract);
       this.elapsed+=dt;
-      this.gold+=this.goldRate*(dt/interval);
-      this.updateNeeds(dt*EXPEDITION_NEED_TIME_SCALE);
       if(this.hero.health<=0){this.finish('death','fatal injuries');return;}
       this.actionClock+=dt;
       if(this.actionClock+1e-9<interval)return;
       this.actionClock=Math.max(0,this.actionClock-interval);
+      this.gold+=this.goldRate;
+      this.updateNeeds(1);
       if(this.hero.fatigue>92 || this.hero.hunger>94 || this.hero.morale<12){
         const d=this.choose(['retreat','continue']);
         if(d.action==='retreat'&&this.canRetreat()){this.addLog(`${this.hero.name} decided to retreat.`,'decision',d.reasons);this.finish('retreat','condition collapse');return;}
@@ -1914,5 +1913,5 @@
     };
   }
 
-  return {RNG,EQUIPMENT,MAX_DURABILITY,isDurableItem,normalizeDurability,durabilityMultiplier,durabilityCondition,repairQuote,CRAFT_RECIPES,INJURY_TYPES,PREP_EFFECTS,PREPARATION_ACTIONS,normalizeFacilityLevels,preparationFacilityLevel,facilityActionMinutes,CONTRACT,CONTRACTS,CONTRACT_ORDER,contractActionInterval,EXPEDITION_NEED_TIME_SCALE,ENEMIES,MATERIAL_NAMES,PATRON_TYPES,MERCHANT_GOODS,merchantQuality,MerchantSystem,APPLICANT_TRAITS,applicantQuality,RecruitmentSystem,CHRONICLE_RECORD_LABELS,Chronicle,isLegendaryHero,heroTemplate,normalizeCareer,rankFromXp,applyCareerProgress,starterRoster,deriveMoodlets,totalInjurySeverity,addInjury,reduceWorstInjury,removeWorstInjury,readinessScore,threatAssessment,PreparationState,TavernEconomy,TavernRoster,Expedition,ExpeditionManager,OFFLINE_MAX_SECONDS,OFFLINE_QUANTUM_SECONDS,settleResolvedExpeditions,advanceOffline,makePreset};
+  return {RNG,EQUIPMENT,MAX_DURABILITY,isDurableItem,normalizeDurability,durabilityMultiplier,durabilityCondition,repairQuote,CRAFT_RECIPES,INJURY_TYPES,PREP_EFFECTS,PREPARATION_ACTIONS,normalizeFacilityLevels,preparationFacilityLevel,facilityActionMinutes,CONTRACT,CONTRACTS,CONTRACT_ORDER,contractActionInterval,ENEMIES,MATERIAL_NAMES,PATRON_TYPES,MERCHANT_GOODS,merchantQuality,MerchantSystem,APPLICANT_TRAITS,applicantQuality,RecruitmentSystem,CHRONICLE_RECORD_LABELS,Chronicle,isLegendaryHero,heroTemplate,normalizeCareer,rankFromXp,applyCareerProgress,starterRoster,deriveMoodlets,totalInjurySeverity,addInjury,reduceWorstInjury,removeWorstInjury,readinessScore,threatAssessment,PreparationState,TavernEconomy,TavernRoster,Expedition,ExpeditionManager,OFFLINE_MAX_SECONDS,OFFLINE_QUANTUM_SECONDS,settleResolvedExpeditions,advanceOffline,makePreset};
 });

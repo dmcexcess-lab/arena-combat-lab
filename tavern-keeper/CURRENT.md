@@ -45,8 +45,8 @@ Implemented on top of the spatial tavern simulation. Contract resolution now run
   - Threat 6: 2–4 hours
 - These are target bands, not fixed countdowns. Route branches, combat length, retreat and death remain simulation-driven.
 - Contract actions now mature on per-contract pacing intervals instead of once per 250 ms browser loop.
-- Expedition need/preparation decay is normalized for the longer clock so multi-hour jobs are meaningful without instantly exhausting heroes.
-- Reward accumulation is normalized per paced expedition action so longer wall-clock contracts do not inflate payouts merely because they take longer.
+- Needs, preparation decay and rewards advance per expedition action rather than per wall-clock second, preserving the established Slice 15 risk/economy balance while reports are spread across the longer contract clock.
+- Longer wall-clock contracts therefore do not become easier/harder or inflate payouts merely because they take longer.
 - ×1/×4/×12 speed controls and offline catch-up use the same pacing model.
 - Expedition snapshots persist the pacing clock; existing saves migrate without schema-reset behavior.
 
