@@ -121,7 +121,10 @@ assert.equal(recovery.ok,true);
 assert.equal(wiped.aliveHeroes().length,1);
 assert.equal(wiped.selectedHeroId,recovery.hero.id);
 
-// A recruited hero can be sent to every contract; threat remains advisory.
+// Recruited heroes can attempt every unlocked threat; readiness is advisory.
+for(const facility of ['serviceLevel','kitchenLevel','barLevel','lodgingLevel'])wiped.tavern[facility]=5;
+wiped.tavern.served=3000;
+assert.deepStrictEqual(wiped.availableContractIds(),C.CONTRACT_ORDER);
 for(const id of C.CONTRACT_ORDER){
   const e=wiped.startExpedition(recovery.hero.id,55,id);
   assert.ok(e,id);
