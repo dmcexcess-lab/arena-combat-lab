@@ -34,7 +34,7 @@ const rates=C.CONTRACT_ORDER.map(id=>aggregate(id));
 console.log('Release threat balance',JSON.stringify({
   rates:Object.fromEntries(C.CONTRACT_ORDER.map((id,i)=>[id,rates[i]])),
   outcomes:Object.fromEntries(C.CONTRACT_ORDER.map(id=>[id,Object.fromEntries(FOUNDERS.map(p=>[p,{
-    success:matrix[id][p].successPct,death:matrix[id][p].deathPct,averageScore:matrix[id][p].avgScore
+    success:matrix[id][p].successPct,death:matrix[id][p].deathPct,retreat:matrix[id][p].retreat/SEEDS*100,failure:matrix[id][p].failure/SEEDS*100,averageScore:matrix[id][p].avgScore
   }]))]))
 },null,2));
 
