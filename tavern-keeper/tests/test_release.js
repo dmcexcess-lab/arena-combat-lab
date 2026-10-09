@@ -31,6 +31,12 @@ for(const id of C.CONTRACT_ORDER){
 }
 const aggregate=id=>FOUNDERS.reduce((n,p)=>n+matrix[id][p].successPct,0)/FOUNDERS.length;
 const rates=C.CONTRACT_ORDER.map(id=>aggregate(id));
+console.log('Release threat balance',JSON.stringify({
+  rates:Object.fromEntries(C.CONTRACT_ORDER.map((id,i)=>[id,rates[i]])),
+  outcomes:Object.fromEntries(C.CONTRACT_ORDER.map(id=>[id,Object.fromEntries(FOUNDERS.map(p=>[p,{
+    success:matrix[id][p].successPct,death:matrix[id][p].deathPct,averageScore:matrix[id][p].avgScore
+  }]))]))
+},null,2));
 
 // Release threat curve: introductory jobs are reliable, upper board is risky, Threat 6 hardest.
 assert.ok(rates[0]>=95,'Threat 1 should be a reliable starter contract');
