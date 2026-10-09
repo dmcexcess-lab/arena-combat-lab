@@ -8,7 +8,7 @@ Instead of one long management dashboard, the live tavern room is the home scree
 
 - **Bar counter** — patrons, income, facilities and tavern upgrades
 - **Contract board** — choose contracts and threat
-- **Heroes' table** — roster, preparation, equipment and deployment
+- **Heroes' table** — roster, preparation, equipment and career management (deploy from the Contract Board)
 - **Workbench** — stash, crafting and repairs
 - **Merchant corner** — buy current visiting stock
 - **Front door** — inspect/recruit applicants
@@ -45,6 +45,12 @@ Gold accrues continuously while the hero is away. Autonomous travel, combat and 
 ## Core game
 
 The underlying simulation remains: persistent autonomous heroes, permanent death, preparation, five contract types, concurrent expeditions, crafting, merchants, recruitment, facilities, equipment durability, 8-hour offline progress and the persistent Chronicle.
+
+## Verified release checkpoint
+
+The October 8 CI recovery completed all 16 Tavern Keeper suites, the headless Arena smoke test, web export and GitHub Pages deployment. Aggregate success rates across 250 seeded runs per hero profile/contract were 100% / 99.07% / 27.07% / 24.93% / 15.20% for Threats 1 / 2 / 3 / 4 / 6 after restoring suitable mid-tier action pacing.
+
+Physical-device Safari/Firefox and portrait touch feel remain to be playtested.
 
 ## Tests
 

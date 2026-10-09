@@ -2,6 +2,15 @@
 
 Current truth: `PROJECT_CONTEXT.md` · Future: `ROADMAP.md`
 
+## 2026-10-08 — Tavern Keeper: CI Repair & Contract Release Balance
+- Repaired post-reset tests to use the single-founder initial state and explicit multi-hero fixtures for multi-hero scenarios.
+- Corrected contracts and recruitment tests to respect reputation/tavern-level board access while preserving unrestricted hero risk choice for unlocked contracts.
+- Corrected Chronicle offline contract settlement tests for real 15-minute duration; expanded roster regression coverage across all five board tiers.
+- Found and corrected a long-form pacing balance regression: mid-tier encounter-heavy contracts now perform actions every 120s (Threat 3) / 300s (Threat 4), without changing listed durations or base contract income.
+- Verified 250-seed/profile aggregates of 100% / 99.07% / 27.07% / 24.93% / 15.20% success across Threats 1 / 2 / 3 / 4 / 6.
+- All 16 Tavern Keeper Node suites, headless Arena smoke test, web export and GitHub Pages deployment passed in Actions run 37894123434 at commit fc110efbc6bef3f7f3ff0f1ba1a3294c48b6bf25.
+- Next: physical phone/desktop playtest of the fresh-start contract board, patron spatial movement, and eight-hour offline behavior.
+
 ## 2026-10-05 — Tavern Keeper: Spatial Tavern Simulation
 - Replaced patron position loops with persistent stateful scene actors keyed by authoritative TavernEconomy patron IDs.
 - New patrons now originate on the exterior road and physically walk toward the tavern.

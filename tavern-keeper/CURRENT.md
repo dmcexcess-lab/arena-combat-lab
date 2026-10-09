@@ -99,5 +99,14 @@ node tests/test_scene_ui.js
 - Physical-device Safari/Firefox feel, object hit-box comfort and scene composition still require human playtesting.
 - Offline progression remains capped at 8 hours.
 
+## 2026-10-08 CI recovery and release acceptance
+- Fixed obsolete regression fixtures that assumed the previous three-founder tavern or universal contract-board access. Multi-hero concurrency, recruiting, crafting, offline, and Chronicle coverage is preserved using explicit test heroes.
+- Added job-board regression checks for dual level/reputation gates and the 2 → 3 → 4 → 4 → 5 job ladder.
+- Corrected timed Chronicle acceptance to respect the new 15-minute minimum contract.
+- Rebalanced Threat 3 / Threat 4 internal action pacing to 120s / 300s per action. Advertised 90-minute / 4-hour durations and +3 / +5 g/s base income are unchanged.
+- Release acceptance across 250 seeded runs per profile/contract now measures aggregate founding-profile success at 100%, 99.07%, 27.07%, 24.93%, and 15.20% for Threat 1 / 2 / 3 / 4 / 6.
+- The full 16-suite Tavern Keeper gate, headless Arena smoke test, web exports, and GitHub Pages deployment passed on commit `fc110efbc6bef3f7f3ff0f1ba1a3294c48b6bf25` (Actions run `37894123434`).
+- Remaining acceptance: hands-on Safari/Firefox and small-screen touch playtesting. No real-device session was performed in this CI recovery.
+
 ## NEXT OPERATION
 Playtest the forced fresh-start progression on phone/desktop: one founder, two starting low-threat jobs, Contract Board hero assignment, reputation/level unlocks through five jobs, single-speed expeditions, 15m→8h contract timing, g/s accrual, offline continuation, and spatial tavern flow.
