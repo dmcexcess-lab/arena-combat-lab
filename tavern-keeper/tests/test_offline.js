@@ -49,7 +49,7 @@ assert.ok(settleRoster.funds>fundsBefore);
 assert.equal(result.objectiveScore,settleManager.get(deployed.entry.id).expedition.summary().objectiveScore);
 
 // Existing resolved-but-unsettled entries settle even with zero offline seconds.
-const zeroRoster=new C.TavernRoster({funds:0});
+const zeroRoster=new C.TavernRoster({heroes:[C.makePreset('prepared'),C.makePreset('ranged')],funds:0});
 const zeroManager=new C.ExpeditionManager();
 const z=zeroManager.deploy({hero:zeroRoster.getHero('mara'),seed:5,contract:C.CONTRACTS.greymill_rats});
 z.entry.expedition.objectiveProgress=40;
@@ -94,7 +94,7 @@ assert.ok(tavernSummary.applicantVisits>0);
 assert.equal(Number((tavernRoster.funds).toFixed(4)),Number((tavernSummary.totalFundsGained).toFixed(4)));
 
 // Multi-expedition objective/durability/RNG state remains deterministic across offline save/resume.
-const detRosterA=new C.TavernRoster({funds:0});
+const detRosterA=new C.TavernRoster({heroes:[C.makePreset('prepared'),C.makePreset('ranged')],funds:0});
 const detManagerA=new C.ExpeditionManager();
 detManagerA.deploy({hero:detRosterA.getHero('edrin'),seed:321,contract:C.CONTRACTS.blackroot_mine});
 detManagerA.deploy({hero:detRosterA.getHero('mara'),seed:654,contract:C.CONTRACTS.wren_bridge_troll});

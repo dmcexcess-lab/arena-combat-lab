@@ -21,7 +21,7 @@ function forcedSuccess(roster,heroId,contractId,seed,gold=20,kills=3){
 const fresh=new C.TavernRoster({funds:500});
 let summary=fresh.chronicleSummary();
 assert.ok(summary.entries.some(e=>e.type==='milestone'&&e.meta.milestoneKey==='tavern_opened'));
-assert.equal(summary.entries.filter(e=>e.type==='founder').length,3);
+assert.equal(summary.entries.filter(e=>e.type==='founder').length,1);
 assert.equal(summary.totals.contracts,0);
 assert.equal(summary.legends.length,0);
 
@@ -62,7 +62,7 @@ assert.ok(upgradeSummary.milestones.some(m=>m.key==='revenue_500'));
 assert.equal(new Set(upgradeSummary.milestones.map(m=>m.key)).size,upgradeSummary.milestones.length);
 
 // Contract settlement writes readable history and updates record holders.
-const career=new C.TavernRoster({funds:0});
+const career=new C.TavernRoster({heroes:[C.makePreset('prepared'),C.makePreset('ranged')],funds:0});
 const first=forcedSuccess(career,'edrin','briar_farm_wolves',101,31.5,4);
 const firstSettle=career.settle('edrin',first,'chronicle_contract_1');
 assert.equal(firstSettle.ok,true);
@@ -101,7 +101,7 @@ assert.ok(careerSummary.entries.some(e=>e.type==='career'&&e.heroId==='edrin'));
 assert.equal(careerSummary.records.contracts.heroId,'edrin');
 
 // Death becomes a memorial and the fallen hero remains eligible for records/legend status.
-const deathRoster=new C.TavernRoster({funds:0});
+const deathRoster=new C.TavernRoster({heroes:[C.makePreset('prepared'),C.makePreset('reckless')],funds:0});
 const deathExp=new C.Expedition({hero:deathRoster.getHero('borin'),seed:303,contract:C.CONTRACTS.ashroad_caravan});
 deathExp.objectiveProgress=58;
 deathExp.objectiveScore=62;
@@ -156,9 +156,9 @@ assert.ok(migratedDeath.chronicleSummary().entries.some(e=>e.type==='death'&&e.h
 // Offline resolution uses the same settlement path and therefore writes Chronicle history.
 const offlineRoster=new C.TavernRoster({funds:0});
 const offlineManager=new C.ExpeditionManager();
-const od=offlineManager.deploy({hero:offlineRoster.getHero('edrin'),seed:7,contract:C.CONTRACTS.briar_farm_wolves,speed:12});
+const od=offlineManager.deploy({hero:offlineRoster.getHero('edrin'),seed:7,contract:C.CONTRACTS.briar_farm_wolves});
 assert.equal(od.ok,true);
-const offline=C.advanceOffline(offlineRoster,offlineManager,90);
+const offline=C.advanceOffline(offlineRoster,offlineManager,16*60);
 assert.ok(offline.settlements.some(x=>x.id===od.entry.id));
 assert.ok(offlineRoster.chronicleSummary().entries.some(e=>e.type==='contract'&&e.heroId==='edrin'));
 

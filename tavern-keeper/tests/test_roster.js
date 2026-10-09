@@ -18,6 +18,24 @@ assert.deepStrictEqual(roster.availableContractIds(),['briar_farm_wolves','greym
 assert.equal(roster.tavernLevel(),1);
 assert.equal(roster.tavernReputation(),0);
 
+// Job-board unlocks require BOTH tavern investment and a matching reputation tier.
+const board=new C.TavernRoster();
+board.tavern.served=3000;
+assert.equal(board.jobBoardTier(),1,'reputation alone cannot unlock jobs');
+board.tavern.served=0;
+for(const facility of ['serviceLevel','kitchenLevel','barLevel','lodgingLevel'])board.tavern[facility]=5;
+assert.equal(board.tavernLevel(),5);
+assert.equal(board.jobBoardTier(),1,'tavern level alone cannot unlock jobs');
+const thresholds=[0,20,60,140,300],expectedCounts=[2,3,4,4,5],expectedThreats=[2,3,4,4,6];
+for(let i=0;i<thresholds.length;i++){
+  board.tavern.served=thresholds[i]*10;
+  assert.equal(board.jobBoardTier(),i+1);
+  const jobs=board.availableContractIds();
+  assert.equal(jobs.length,expectedCounts[i]);
+  assert.equal(Math.max(...jobs.map(id=>C.CONTRACTS[id].threat)),expectedThreats[i]);
+}
+assert.equal(board.availableContractIds().length,5,'job board never exceeds five jobs');
+
 // Preparing one hero spends shared tavern money but does not mutate another hero.
 roster.heroes.push(C.makePreset('ranged'));
 const edrinBefore=JSON.parse(JSON.stringify(roster.getHero('edrin')));

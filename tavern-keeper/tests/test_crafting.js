@@ -14,6 +14,8 @@ assert.equal(C.EQUIPMENT.field_bandage.slot,'consumable');
 
 // Crafting consumes exact materials, advances preparation time and creates tavern stock.
 const roster=new C.TavernRoster({materials:stash(),funds:0});
+assert.equal(roster.aliveHeroes().length,1,'fresh tavern has one founder');
+roster.heroes.push(C.makePreset('reckless')); // Explicit multi-hero fixture for supply transfers.
 const iron0=roster.materialCount('scrap_iron');
 const tail0=roster.materialCount('rat_tail');
 const prep0=roster.prepMinutes;
@@ -89,7 +91,7 @@ assert.ok(bandageUsed.hero.health>54);
 assert.equal(C.totalInjurySeverity(bandageUsed.hero),0);
 
 // Potion stock has a hero carrying cap; overflow remains in tavern stock.
-const capRoster=new C.TavernRoster({materials:stash(),inventory:{healing_potion:5}});
+const capRoster=new C.TavernRoster({heroes:[C.makePreset('prepared'),C.makePreset('ranged')],materials:stash(),inventory:{healing_potion:5}});
 const mara=capRoster.getHero('mara');
 mara.supplies.healing_potion=2;
 const capGive=capRoster.giveConsumable('mara','healing_potion',5);
