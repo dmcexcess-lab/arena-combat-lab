@@ -1,4 +1,4 @@
-# Tavern Keeper — Spatial Tavern Sim
+# Tavern Keeper — Illustrated Top-Down Fantasy Tavern Sim
 
 Tavern Keeper now opens inside the tavern itself.
 
@@ -16,6 +16,13 @@ Instead of one long management dashboard, the live tavern room is the home scree
 - **Wall map** — follow concurrent expeditions and reports
 
 Every management system is now a focused screen with **Back to Tavern** rather than part of one giant scrolling page.
+
+## Illustrated top-down graphics
+The actual browser game ships a standalone vector art pack in `art/`: overhead tavern floor and exterior yard (`room.svg`), eight physical management prop sprites (`props.svg`), and nine fantasy-character sprites (`figures.svg`). Styles and animations are in `art/scene.css`.
+
+The sprites are separate from the simulation. Patrons walk on their real spatial paths, wait on the exterior road, enter through the threshold, take permanent seat assignments until departure, and are served by staffed actors. The same physical scene objects remain tappable navigation targets.
+
+On phones the 900px-wide map can be swiped horizontally, with Interior/Outside shortcut buttons. The graphics have a reduced-motion mode. The eight management screens, contracts, save key and game economy are not replaced.
 
 ## Live room
 

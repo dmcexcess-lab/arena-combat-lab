@@ -1,10 +1,10 @@
 # CURRENT — Tavern Keeper
 
 ## Current operation
-Major Change 4 — Reputation-Gated Job Board Reset
+Major Change 5 — Illustrated 2D Top-Down Fantasy Scene (following Major Change 4)
 
 ## Status
-Implemented as a deliberate new progression generation. The browser save key changes, so this build force-starts Tavern Keeper from a fresh tavern rather than importing the prior three-founder/speed-control economy.
+Major Change 4 was implemented as a deliberate new progression generation. The browser save key changes, so this build force-starts Tavern Keeper from a fresh tavern rather than importing the prior three-founder/speed-control economy.
 
 ## Progression reset
 - New tavern starts with exactly one founding hero: Edrin Vale.
@@ -108,5 +108,15 @@ node tests/test_scene_ui.js
 - The full 16-suite Tavern Keeper gate, headless Arena smoke test, web exports, and GitHub Pages deployment passed on commit `fc110efbc6bef3f7f3ff0f1ba1a3294c48b6bf25` (Actions run `37894123434`).
 - Remaining acceptance: hands-on Safari/Firefox and small-screen touch playtesting. No real-device session was performed in this CI recovery.
 
+## Major Change 5 — illustrated 2D fantasy presentation
+- The real playable room now uses a purpose-built 1200×760 overhead illustrated SVG terrain/floor plan, wooden planks, stone foundation, tavern tables, hearth, barrels, lanterns, garden and the exterior road/queue, aligned to unchanged simulated world coordinates.
+- Eight separate overhead prop sprites are mounted on the original physical buttons. Selecting the objects still opens the same dedicated systems.
+- Patron/server/hero/merchant/applicant figures use reusable fantasy-character SVG sprites; their positions, seat assignments, walking and serving continue to follow TavernEconomy rather than a decorative animation.
+- The existing single-founder reset, threat/reputation job board, contract pacing, saves, offline progression and expedition rules remain unchanged.
+- On small screens the scene becomes a 900px-wide side-scrollable stage with an Interior/Outside shortcut; objects and patrons retain legible touch sizes rather than being miniature.
+- Illustrated art files are included in the GitHub Pages web bundle. The scene UI acceptance gate checks art and animation wiring; CI also parses all three SVG files as XML.
+- Reduced-motion users receive static figure visuals while simulated state changes remain active.
+- Known limitation: sprite styling is custom vector art, not a hand-painted raster atlas; Safari/Firefox real-device visual and touch QA is still needed.
+
 ## NEXT OPERATION
-Playtest the forced fresh-start progression on phone/desktop: one founder, two starting low-threat jobs, Contract Board hero assignment, reputation/level unlocks through five jobs, single-speed expeditions, 15m→8h contract timing, g/s accrual, offline continuation, and spatial tavern flow.
+Playtest the illustrated tavern scene on phone/desktop: verify image loading, correct prop hitboxes, clear exterior queue and walking routes, Interior/Outside camera panning, iOS Safari touch/scale and reduced-motion. Then replay one-founder job-board and long-contract/offline acceptance.

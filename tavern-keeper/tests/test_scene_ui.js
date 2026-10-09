@@ -95,6 +95,35 @@ assert.ok(css.includes('@media(max-width:620px)'));
 assert.ok(css.includes('@media(hover:none),(pointer:coarse)'));
 assert.ok(css.includes('button{min-height:44px}'));
 
+
+// The published illustrated scene is assembled from real independent vector sprites,
+// not a static screenshot pretending to animate. Actor positions still come from the simulation.
+const sceneCss=fs.readFileSync(path.join(root,'art','scene.css'),'utf8');
+const roomArt=fs.readFileSync(path.join(root,'art','room.svg'),'utf8');
+const propArt=fs.readFileSync(path.join(root,'art','props.svg'),'utf8');
+const figureArt=fs.readFileSync(path.join(root,'art','figures.svg'),'utf8');
+assert.ok(html.includes('href="art/scene.css"'));
+assert.ok(html.includes('id="sceneViewport"'));
+assert.ok(html.includes('data-scene-pan="interior"'));
+assert.ok(html.includes('data-scene-pan="outside"'));
+assert.equal((html.match(/class="prop-sprite"/g)||[]).length,8);
+for(const prop of ['contracts','map','chronicle','workshop','heroes','bar','merchant','door']){
+  assert.ok(propArt.includes('id="prop-'+prop+'"'),'missing illustrated prop '+prop);
+  assert.ok(html.includes('href="art/props.svg#prop-'+prop+'"'),'missing live prop rendering '+prop);
+}
+for(const figure of ['laborer','traveler','adventurer','merchant','hero','server','applicant','mage','dwarf']){
+  assert.ok(figureArt.includes('id="figure-'+figure+'"'),'missing fantasy character sprite '+figure);
+}
+assert.ok(roomArt.includes('viewBox="0 0 1200 760"'));
+assert.ok(sceneCss.includes('url("room.svg")'),'scene must use illustrated art as its floor and exterior');
+assert.ok(sceneCss.includes('.scene-viewport{'),'room must support camera scrolling');
+assert.ok(sceneCss.includes('width:900px'),'phone needs a readable stable-scale world');
+assert.ok(sceneCss.includes('@media(prefers-reduced-motion:reduce)'));
+assert.ok(app.includes('function sceneFigure(kind,index=0)'));
+assert.ok(app.includes('sceneActorHtml(kind,Number(String(key)'));
+assert.ok(app.includes("viewport.scrollTo({left:right?viewport.scrollWidth"));
+assert.ok(html.includes('aria-label="Scrollable top-down tavern and exterior"'));
+
 console.log('PASS scene UI',JSON.stringify({
   screens:screenNames,
   hotspots,

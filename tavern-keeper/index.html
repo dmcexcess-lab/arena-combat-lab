@@ -3,8 +3,9 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-  <title>Tavern Keeper — Animated Tavern</title>
+  <title>Tavern Keeper — Illustrated Fantasy Tavern</title>
   <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="art/scene.css">
 </head>
 <body class="scene-mode">
 <header class="game-header">
@@ -32,8 +33,13 @@
         <span id="sceneHeroStatus">0 heroes home</span>
         <span id="sceneExpeditionStatus">0 expeditions</span>
       </div>
+      <nav class="scene-pan" aria-label="Explore the tavern scene">
+        <button type="button" data-scene-pan="interior">Interior</button>
+        <button type="button" data-scene-pan="outside">Outside queue →</button>
+      </nav>
     </div>
 
+    <div id="sceneViewport" class="scene-viewport" tabindex="0" aria-label="Scrollable top-down tavern and exterior">
     <div id="tavernRoom" class="tavern-room" aria-label="Tavern interior and exterior entry">
       <div id="sceneOutside" class="outside-yard" aria-hidden="true">
         <div class="outside-sky"></div>
@@ -51,35 +57,35 @@
       <div class="wood-floor"></div>
 
       <button class="scene-object hotspot contract-board-object" data-open-screen="contracts" aria-label="Open contract board">
-        <span class="object-art"><i></i><i></i><i></i></span><b>Contract Board</b><small id="sceneContractBadge">Threat 2 selected</small>
+        <svg class="prop-sprite" viewBox="0 0 180 112" preserveAspectRatio="none" aria-hidden="true" focusable="false"><use href="art/props.svg#prop-contracts"></use></svg><b>Contract Board</b><small id="sceneContractBadge">Threat 2 selected</small>
       </button>
 
       <button class="scene-object hotspot wall-map-object" data-open-screen="expeditions" aria-label="Open expeditions">
-        <span class="map-art"></span><b>Road Map</b><small id="sceneExpeditionBadge">No expeditions</small>
+        <svg class="prop-sprite" viewBox="0 0 180 112" preserveAspectRatio="none" aria-hidden="true" focusable="false"><use href="art/props.svg#prop-map"></use></svg><b>Road Map</b><small id="sceneExpeditionBadge">No expeditions</small>
       </button>
 
       <button class="scene-object hotspot ledger-object" data-open-screen="chronicle" aria-label="Open tavern chronicle">
-        <span class="book-art"></span><b>Chronicle</b><small id="sceneChronicleBadge">0 entries</small>
+        <svg class="prop-sprite" viewBox="0 0 180 112" preserveAspectRatio="none" aria-hidden="true" focusable="false"><use href="art/props.svg#prop-chronicle"></use></svg><b>Chronicle</b><small id="sceneChronicleBadge">0 entries</small>
       </button>
 
       <button class="scene-object hotspot workshop-object" data-open-screen="workshop" aria-label="Open workshop">
-        <span class="workbench-art"><i></i></span><b>Workshop</b><small id="sceneWorkshopBadge">Lv 1</small>
+        <svg class="prop-sprite" viewBox="0 0 180 112" preserveAspectRatio="none" aria-hidden="true" focusable="false"><use href="art/props.svg#prop-workshop"></use></svg><b>Workshop</b><small id="sceneWorkshopBadge">Lv 1</small>
       </button>
 
       <button class="scene-object hotspot hero-table-object" data-open-screen="heroes" aria-label="Open hero roster and preparation">
-        <span class="table-art"></span><b>Heroes' Table</b><small id="sceneHeroBadge">0 home</small>
+        <svg class="prop-sprite" viewBox="0 0 180 112" preserveAspectRatio="none" aria-hidden="true" focusable="false"><use href="art/props.svg#prop-heroes"></use></svg><b>Heroes' Table</b><small id="sceneHeroBadge">0 home</small>
       </button>
 
       <button class="scene-object hotspot bar-object" data-open-screen="tavern" aria-label="Manage tavern">
-        <span class="bar-art"><i></i><i></i><i></i></span><b>Bar & Tavern</b><small id="sceneBarBadge">Lv 1 service</small>
+        <svg class="prop-sprite" viewBox="0 0 180 112" preserveAspectRatio="none" aria-hidden="true" focusable="false"><use href="art/props.svg#prop-bar"></use></svg><b>Bar & Tavern</b><small id="sceneBarBadge">Lv 1 service</small>
       </button>
 
       <button class="scene-object hotspot merchant-object" data-open-screen="merchant" aria-label="Visit merchant">
-        <span class="merchant-table-art"></span><b>Merchant Corner</b><small id="sceneMerchantBadge">On the road</small>
+        <svg class="prop-sprite" viewBox="0 0 180 112" preserveAspectRatio="none" aria-hidden="true" focusable="false"><use href="art/props.svg#prop-merchant"></use></svg><b>Merchant Corner</b><small id="sceneMerchantBadge">On the road</small>
       </button>
 
       <button class="scene-object hotspot door-object exterior-door" data-open-screen="applicants" aria-label="Check applicants outside">
-        <span class="door-art"><i></i></span><b>Front Door</b><small id="sceneApplicantBadge">No applicant</small>
+        <svg class="prop-sprite" viewBox="0 0 180 112" preserveAspectRatio="none" aria-hidden="true" focusable="false"><use href="art/props.svg#prop-door"></use></svg><b>Front Door</b><small id="sceneApplicantBadge">No applicant</small>
       </button>
 
       <div id="scenePatrons" class="scene-actors patron-actors" aria-hidden="true"></div>
@@ -88,6 +94,7 @@
       <div id="sceneStaff" class="scene-actors staff-actors" aria-hidden="true"></div>
 
       <div class="scene-toast" id="sceneToast">Tap an object to manage the tavern.</div>
+    </div>
     </div>
   </section>
 

@@ -1,0 +1,77 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="760" viewBox="0 0 1200 760" preserveAspectRatio="none">
+<defs>
+<linearGradient id="wood" x2=".1" y2="1"><stop stop-color="#956039"/><stop offset=".45" stop-color="#754324"/><stop offset="1" stop-color="#4c2d1b"/></linearGradient>
+<linearGradient id="stone" x2="0" y2="1"><stop stop-color="#90816a"/><stop offset=".5" stop-color="#635f52"/><stop offset="1" stop-color="#393d36"/></linearGradient>
+<linearGradient id="brass" x2="0" y2="1"><stop stop-color="#fff1b1"/><stop offset=".45" stop-color="#d69a40"/><stop offset="1" stop-color="#764821"/></linearGradient>
+<radialGradient id="glow"><stop stop-color="#f8bb57" stop-opacity=".5"/><stop offset="1" stop-color="#f7a237" stop-opacity="0"/></radialGradient>
+<radialGradient id="hearth"><stop stop-color="#ffdd7e"/><stop offset=".25" stop-color="#fca444"/><stop offset=".65" stop-color="#b64624"/><stop offset="1" stop-color="#3c1c14"/></radialGradient>
+<pattern id="planks" width="98" height="32" patternUnits="userSpaceOnUse"><rect width="98" height="32" fill="#85512d"/><path d="M0 2H98M0 30H98M48 0V2M79 30V32" stroke="#43291d" stroke-width="2" opacity=".65"/><path d="M2 9C28 7 57 11 96 9M12 22C34 20 62 23 92 22" fill="none" stroke="#b77a42" stroke-width="1" opacity=".4"/><circle cx="65" cy="15" r="2" fill="#3b251a" opacity=".7"/></pattern>
+<pattern id="stones" width="80" height="56" patternUnits="userSpaceOnUse"><rect width="80" height="56" fill="#666b5d"/><path d="M0 25H80M27 0V25M58 25V56" stroke="#42473f" stroke-width="4"/><path d="M2 4H23M32 5H72M5 31H52" stroke="#a9a18a" stroke-opacity=".5" stroke-width="2"/></pattern>
+<pattern id="gravel" width="82" height="75" patternUnits="userSpaceOnUse"><rect width="82" height="75" fill="#87704d"/><g fill="#bca57c" opacity=".9"><ellipse cx="12" cy="12" rx="8" ry="5"/><ellipse cx="41" cy="37" rx="12" ry="7"/><ellipse cx="68" cy="13" rx="9" ry="6"/><ellipse cx="26" cy="66" rx="7" ry="4"/></g><g fill="#4b4234" opacity=".55"><ellipse cx="61" cy="54" rx="9" ry="4"/><ellipse cx="5" cy="49" rx="4" ry="3"/></g></pattern>
+<pattern id="weave" width="24" height="24" patternUnits="userSpaceOnUse"><rect width="24" height="24" fill="#76362c"/><path d="M12 0L24 12 12 24 0 12Z" stroke="#d19b60" stroke-width="2" fill="#8c4430"/><path d="M12 6L18 12 12 18 6 12Z" stroke="#c89149" fill="#453627"/></pattern>
+<g id="chair"><ellipse cx="0" cy="10" rx="24" ry="9" fill="#190e0a" opacity=".6"/><rect x="-17" y="-19" width="34" height="37" rx="5" fill="#3a2418" stroke="#21140c" stroke-width="4"/><rect x="-12" y="-15" width="24" height="27" rx="4" fill="#9b6036" stroke="#d4a06d" stroke-width="2"/><path d="M-18 -20V16M18 -20V16" stroke="#27170d" stroke-width="5"/></g>
+<g id="table"><ellipse cy="16" rx="83" ry="49" fill="#0d0c0a" opacity=".4"/><ellipse cy="0" rx="80" ry="44" fill="#392216" stroke="#1f140c" stroke-width="8"/><ellipse cy="-5" rx="74" ry="40" fill="url(#wood)" stroke="#d39756" stroke-width="4"/><path d="M-45 -35Q-38 0 -45 33M0 -42V33M45 -35Q38 0 45 33" fill="none" stroke="#482d19" stroke-width="2"/><g fill="#edc17d" stroke="#57341d" stroke-width="3"><circle cx="-25" cy="-9" r="11"/><circle cx="28" cy="-18" r="10"/><ellipse cx="5" cy="16" rx="20" ry="9"/></g><circle cx="-25" cy="-9" r="5" fill="#7c4033"/><path d="M-3 14h16" stroke="#ab4f22" stroke-width="5"/></g>
+<g id="barrel"><ellipse cy="12" rx="25" ry="12" fill="#140d08" opacity=".55"/><rect x="-19" y="-27" width="38" height="50" rx="8" fill="#5f381e" stroke="#2b1e18" stroke-width="4"/><path d="M-19 -18H19M-19 13H19" stroke="#c08e4d" stroke-width="5"/><ellipse cy="-26" rx="19" ry="9" fill="#976037" stroke="#2b1e18" stroke-width="4"/><ellipse cy="-26" rx="10" ry="5" fill="#4a301f"/></g>
+<g id="plant"><path d="M-12 6H12L9 23H-9Z" fill="#a55e34" stroke="#442b1b" stroke-width="3"/><g fill="#426b36" stroke="#283d2b" stroke-width="1.5"><ellipse cx="-9" cy="-9" rx="8" ry="14" transform="rotate(-35 -9 -9)"/><ellipse cx="7" cy="-12" rx="10" ry="16" transform="rotate(31 7 -12)"/><ellipse cx="0" cy="-19" rx="7" ry="17"/></g><g fill="#e7b35c"><circle cx="-8" cy="-11" r="2.5"/><circle cx="6" cy="-19" r="2.5"/></g></g>
+<g id="lamp"><circle cy="0" r="28" fill="url(#glow)"/><path d="M-12 -10L0 -18 12 -10 9 13H-9Z" fill="#4d3323" stroke="#d3a15b" stroke-width="4"/><ellipse cy="1" rx="7" ry="10" fill="#ffce69"/><path d="M-9 -9L9 12M9 -9L-9 12" stroke="#a56f36" stroke-width="2"/></g>
+<g id="shrub"><g fill="#254b31" stroke="#18372c" stroke-width="3"><circle cx="-26" cy="6" r="18"/><circle cx="0" cy="-9" r="23"/><circle cx="27" cy="5" r="20"/><circle cx="-6" cy="18" r="20"/></g><g fill="#4b8044" opacity=".8"><circle cx="-24" cy="-1" r="11"/><circle cx="1" cy="-19" r="13"/><circle cx="28" cy="-1" r="9"/></g><g fill="#ebb15d"><circle cx="-7" cy="-1" r="3"/><circle cx="22" cy="15" r="3"/></g></g>
+</defs>
+<!-- Exterior of the cutaway inn, always outdoors and east of the entrance -->
+<rect width="1200" height="760" fill="#2d4633"/><rect x="978" width="222" height="760" fill="#405c3d"/>
+<path d="M1085 -25C1020 100 1145 158 1083 270S1014 502 1150 792" fill="none" stroke="#6d6245" stroke-width="155"/>
+<path d="M1085 -25C1020 100 1145 158 1083 270S1014 502 1150 792" fill="none" stroke="url(#gravel)" stroke-width="136"/>
+<g opacity=".9"><use href="#shrub" x="1047" y="45"/><use href="#shrub" x="1192" y="128"/><use href="#shrub" x="1142" y="310"/><use href="#shrub" x="1036" y="698"/><use href="#shrub" x="1170" y="725"/><use href="#shrub" x="1187" y="500"/></g>
+<g fill="#ddd1a9" opacity=".55"><circle cx="1078" cy="178" r="6"/><circle cx="1103" cy="361" r="7"/><circle cx="1179" cy="605" r="5"/><circle cx="1090" cy="700" r="9"/></g>
+<!-- Stone foundation and oak floor -->
+<rect x="0" y="0" width="986" height="760" fill="#18120f"/>
+<rect x="0" y="0" width="986" height="760" fill="url(#stones)" stroke="#342c22" stroke-width="18"/>
+<rect x="34" y="32" width="918" height="694" fill="url(#planks)" stroke="#382216" stroke-width="11"/>
+<path d="M28 52H964M28 720H964M30 50V728M956 50V729" stroke="#c29556" stroke-width="10" opacity=".55"/>
+<path d="M90 51V718M298 51V718M532 51V718M765 51V718" stroke="#52301c" stroke-width="6" opacity=".55"/>
+<path d="M38 248H947M38 515H947" stroke="#3a251b" stroke-width="4" opacity=".35"/>
+<!-- North wall and beams with timber joins -->
+<rect x="12" y="5" width="954" height="37" rx="8" fill="#3c261b" stroke="#241a14" stroke-width="8"/>
+<path d="M13 36H956" stroke="#b37e41" stroke-width="6"/><rect x="16" y="44" width="23" height="670" fill="#322217"/><rect x="933" y="40" width="27" height="693" fill="#3c281a"/>
+<g fill="#cf9a52" stroke="#4b3020" stroke-width="3"><circle cx="95" cy="25" r="5"/><circle cx="315" cy="25" r="5"/><circle cx="552" cy="25" r="5"/><circle cx="798" cy="25" r="5"/></g>
+<!-- Rich tapestries -->
+<path d="M332 45H387V148L360 129L332 148Z" fill="#713a35" stroke="#d59a50" stroke-width="4"/>
+<path d="M360 60L373 92 360 114 347 92Z" fill="#e3bf7a"/>
+<path d="M660 44H695V128L678 113L660 128Z" fill="#284f53" stroke="#bf8a49" stroke-width="4"/>
+<path d="M668 77L678 58 688 77 678 104Z" fill="#d2a65f"/>
+<!-- Roofless kitchen/storage alcove upper left: stove, supplies -->
+<rect x="53" y="65" width="236" height="210" rx="9" fill="#4d3524" opacity=".45"/>
+<rect x="73" y="83" width="173" height="38" rx="10" fill="#51301d" stroke="#bc874f" stroke-width="6"/>
+<rect x="91" y="90" width="96" height="25" rx="9" fill="#272120" stroke="#ce9852" stroke-width="4"/>
+<ellipse cx="138" cy="102" rx="34" ry="12" fill="url(#hearth)"/>
+<path d="M120 108Q109 83 128 74L142 99Q155 69 163 95L166 110" fill="#f5c25b" opacity=".9"/>
+<path d="M110 86H140M110 92H140" stroke="#3d2d28" stroke-width="4" transform="translate(65 0)"/>
+<use href="#barrel" x="249" y="153"/><use href="#barrel" x="252" y="220"/>
+<use href="#plant" x="75" y="211"/>
+<g fill="#a96b3d" stroke="#3c2115" stroke-width="4"><rect x="73" y="160" width="113" height="40" rx="5"/><rect x="79" y="202" width="104" height="9" rx="3"/></g>
+<g fill="#d3aa67"><circle cx="102" cy="179" r="8"/><ellipse cx="135" cy="178" rx="18" ry="8"/><circle cx="157" cy="180" r="9"/></g>
+<!-- Dining rugs, carved large shared tables, actual service destination seats nearby -->
+<rect x="288" y="337" width="319" height="205" rx="8" fill="#42261e" stroke="#c39459" stroke-width="9"/>
+<rect x="300" y="349" width="295" height="180" fill="url(#weave)" opacity=".75" stroke="#49221c" stroke-width="3"/>
+<g transform="translate(467 435)"><use href="#table"/><use href="#chair" x="-117" y="-13" transform="rotate(-10 -117 -13)"/><use href="#chair" x="110" y="5" transform="rotate(18 110 5)"/></g>
+<g transform="translate(455 600) scale(.83)"><use href="#table"/></g>
+<g transform="translate(700 376) scale(.72)"><use href="#table"/></g>
+<g transform="translate(192 555) scale(.58)"><use href="#table"/></g>
+<!-- Additional benches and low lit candles -->
+<rect x="264" y="542" width="245" height="22" rx="5" fill="#53321e" stroke="#20150c" stroke-width="5"/>
+<rect x="643" y="490" width="156" height="17" rx="5" fill="#744323" stroke="#372015" stroke-width="4"/>
+<use href="#lamp" x="322" y="302"/><use href="#lamp" x="805" y="286"/><use href="#lamp" x="572" y="566"/><use href="#lamp" x="131" y="450"/>
+<!-- Small crates, shelves, green life -->
+<use href="#plant" x="282" y="310"/><use href="#plant" x="907" y="325"/><use href="#plant" x="105" y="683"/><use href="#plant" x="851" y="696"/>
+<use href="#barrel" x="867" y="472"/><use href="#barrel" x="917" y="470"/>
+<rect x="814" y="96" width="96" height="27" rx="3" fill="#55341f" stroke="#c3925e" stroke-width="4"/>
+<g fill="#b99966"><circle cx="828" cy="109" r="8"/><circle cx="852" cy="109" r="8"/><circle cx="879" cy="108" r="9"/></g>
+<!-- Ground threshold and outside fence posts -->
+<rect x="951" y="216" width="40" height="325" fill="url(#stone)" stroke="#29231b" stroke-width="6"/>
+<path d="M966 250V508" stroke="#c99a5b" stroke-width="6"/>
+<g stroke="#4d3824" stroke-width="6"><path d="M1063 445V705M1190 445V704" stroke-dasharray="4 49"/></g>
+<g fill="#b88a53" stroke="#37241a" stroke-width="4"><circle cx="1063" cy="475" r="9"/><circle cx="1063" cy="581" r="9"/><circle cx="1063" cy="692" r="9"/><circle cx="1190" cy="475" r="9"/><circle cx="1190" cy="581" r="9"/><circle cx="1190" cy="692" r="9"/></g>
+<g stroke="#d4ae68" stroke-width="4" stroke-dasharray="5 7" opacity=".6"><path d="M1075 475H1178M1075 581H1178M1075 692H1178"/></g>
+<use href="#lamp" x="993" y="220"/><use href="#lamp" x="993" y="535"/>
+<!-- corners and vignette -->
+<rect width="1200" height="760" fill="none" stroke="#20170e" stroke-width="18"/>
+</svg>

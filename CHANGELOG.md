@@ -2,6 +2,13 @@
 
 Current truth: `PROJECT_CONTEXT.md` · Future: `ROADMAP.md`
 
+## 2026-10-08 — Tavern Keeper: Illustrated 2D Top-Down Graphics
+- Replaced the visual room presentation with an illustrated overhead tavern map and exterior road, keeping authoritative spatial paths and actors.
+- Added eight separate interactive illustrated prop sprites for the physical management destinations.
+- Added reusable overhead patron, hero, server, and visitor character sprites; serving and walking remain driven by the real game simulation.
+- Added horizontally scrollable phone staging and explicit Interior/Outside camera controls, plus reduced-motion styling.
+- Added SVG bundle/XML verification and scene-art acceptance checks to the deployment gate; no changes to save data or progression.
+
 ## 2026-10-08 — Tavern Keeper: CI Repair & Contract Release Balance
 - Repaired post-reset tests to use the single-founder initial state and explicit multi-hero fixtures for multi-hero scenarios.
 - Corrected contracts and recruitment tests to respect reputation/tavern-level board access while preserving unrestricted hero risk choice for unlocked contracts.

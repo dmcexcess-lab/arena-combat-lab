@@ -170,12 +170,27 @@ const SCENE_GEOMETRY={
   serverHomes:[[73,73],[67,72],[76,66]]
 };
 
-function personMarkup(kind,label,x,y,index,state){
-  return '<div class="scene-person static-person '+kind+' '+state+'" title="'+label.replace(/"/g,'&quot;')+'" style="left:'+x+'%;top:'+y+'%;--delay:'+(index%7)*-0.23+'s">'+
-    '<i class="shadow"></i><i class="legs"></i><i class="body"></i><i class="head"></i><i class="arm"></i><i class="prop"></i></div>';
+// Reusable vector sprites preserve actor identity and the authoritative navigation model.
+function figureIdFor(kind,index=0){
+  if(kind.includes('server-person'))return 'server';
+  if(kind.includes('merchant-visitor'))return 'merchant';
+  if(kind.includes('applicant-visitor'))return 'applicant';
+  if(kind.includes('hero'))return 'hero';
+  if(kind.includes('traveler'))return 'traveler';
+  if(kind.includes('adventurer'))return 'adventurer';
+  if(kind.includes('merchant'))return 'merchant';
+  if(kind.includes('laborer'))return index%7===0?'dwarf':'laborer';
+  return 'laborer';
 }
-function sceneActorHtml(){
-  return '<i class="shadow"></i><i class="legs"></i><i class="body"></i><i class="head"></i><i class="arm"></i><i class="prop"></i>';
+function sceneFigure(kind,index=0){
+  const sprite=figureIdFor(kind,index);
+  return '<svg class="person-sprite" viewBox="0 0 48 68" aria-hidden="true" focusable="false"><use href="art/figures.svg#figure-'+sprite+'"></use></svg><i class="prop"></i>';
+}
+function personMarkup(kind,label,x,y,index,state){
+  return '<div class="scene-person static-person '+kind+' '+state+'" title="'+label.replace(/"/g,'&quot;')+'" style="left:'+x+'%;top:'+y+'%;--delay:'+(index%7)*-0.23+'s">'+sceneFigure(kind,index)+'</div>';
+}
+function sceneActorHtml(kind,index=0){
+  return sceneFigure(kind,index);
 }
 function reducedSceneMotion(){
   return !!(window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches);
@@ -193,7 +208,7 @@ function createSceneMotionActor(container,key,kind,label,x,y,speed=18){
   node.className='scene-person '+kind;
   node.dataset.actorKey=key;
   node.title=label;
-  node.innerHTML=sceneActorHtml();
+  node.innerHTML=sceneActorHtml(kind,Number(String(key).replace(/\D/g,''))||0);
   container.appendChild(node);
   const actor={key,kind,label,node,x,y,path:[],goalKey:'',speed,removeWhenDone:false,seatIndex:null,phase:'outside'};
   node.style.left=x+'%'; node.style.top=y+'%';
@@ -1005,6 +1020,13 @@ document.querySelectorAll('[data-open-screen]').forEach(function(el){
 });
 document.querySelectorAll('[data-back-tavern]').forEach(function(el){
   el.addEventListener('click',function(){openScreen('scene');});
+});
+document.querySelectorAll('[data-scene-pan]').forEach(function(button){
+  button.addEventListener('click',function(){
+    const viewport=$('sceneViewport');
+    const right=button.dataset.scenePan==='outside';
+    viewport.scrollTo({left:right?viewport.scrollWidth-viewport.clientWidth:0,behavior:reducedSceneMotion()?'auto':'smooth'});
+  });
 });
 document.querySelector('.brand')?.addEventListener('click',function(){openScreen('scene');});
 document.addEventListener('keydown',function(e){

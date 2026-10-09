@@ -64,6 +64,7 @@ jobs:
           set -euxo pipefail
           node --check tavern-keeper/core.js
           node --check tavern-keeper/app.js
+          python3 -c 'import xml.etree.ElementTree as ET; [ET.parse("tavern-keeper/art/"+f) for f in ("room.svg","props.svg","figures.svg")]'
           node tavern-keeper/tests/test_core.js
           node tavern-keeper/tests/test_preparation.js
           node tavern-keeper/tests/test_roster.js
@@ -102,6 +103,11 @@ jobs:
           test -f "build/web/${ARENA_BASENAME}.pck"
 
           cp tavern-keeper/index.html tavern-keeper/app.js tavern-keeper/core.js tavern-keeper/styles.css build/web/tavern-keeper/
+          cp -R tavern-keeper/art build/web/tavern-keeper/
+          test -s build/web/tavern-keeper/art/room.svg
+          test -s build/web/tavern-keeper/art/props.svg
+          test -s build/web/tavern-keeper/art/figures.svg
+          test -s build/web/tavern-keeper/art/scene.css
           test -f build/web/tavern-keeper/index.html
           test -f build/web/tavern-keeper/core.js
           touch build/web/.nojekyll
