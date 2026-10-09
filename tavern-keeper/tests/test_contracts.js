@@ -61,8 +61,16 @@ for(let i=1;i<ids.length;i++){
   assert.ok(C.CONTRACTS[ids[i]].incomeMult>C.CONTRACTS[ids[i-1]].incomeMult);
 }
 
-// Every living hero can be sent to every contract. Risk is advisory, never an eligibility gate.
+// The new tavern's board is initially low-threat only; unavailable jobs cannot be selected.
+const fresh=new C.TavernRoster();
+assert.deepStrictEqual(fresh.availableContractIds(),ids.slice(0,2));
+assert.equal(fresh.selectContract('blackroot_mine'),false);
+
+// At a fully developed tavern all threats unlock, but hero readiness is still advisory.
 const roster=new C.TavernRoster();
+for(const facility of ['serviceLevel','kitchenLevel','barLevel','lodgingLevel'])roster.tavern[facility]=5;
+roster.tavern.served=3000;
+assert.deepStrictEqual(roster.availableContractIds(),ids);
 for(const hero of roster.aliveHeroes()){
   for(const id of ids){
     assert.equal(roster.selectContract(id),true);
@@ -75,7 +83,7 @@ for(const hero of roster.aliveHeroes()){
   }
 }
 
-// Contract selection persists and invalid legacy/missing selection safely defaults to Greymill.
+// Contract selection persists; an old save with missing selection starts at the first board job.
 roster.selectContract('blackroot_mine');
 const saved=C.TavernRoster.deserialize(roster.serialize());
 assert.equal(saved.selectedContractId,'blackroot_mine');
@@ -84,7 +92,7 @@ const legacy=roster.snapshot();
 delete legacy.selectedContractId;
 legacy.version=6;
 const migrated=C.TavernRoster.fromSnapshot(legacy);
-assert.equal(migrated.selectedContractId,'greymill_rats');
+assert.equal(migrated.selectedContractId,'briar_farm_wolves');
 
 // Each contract is deterministic for equal hero/seed.
 for(const id of ids){
