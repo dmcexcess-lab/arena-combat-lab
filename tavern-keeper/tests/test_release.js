@@ -98,7 +98,7 @@ const root=path.join(__dirname,'..');
 const html=fs.readFileSync(path.join(root,'index.html'),'utf8');
 const css=fs.readFileSync(path.join(root,'styles.css'),'utf8');
 const app=fs.readFileSync(path.join(root,'app.js'),'utf8');
-assert.ok(html.includes('<title>Tavern Keeper — Animated Tavern</title>'));
+assert.ok(html.includes('<title>Tavern Keeper — Illustrated Fantasy Tavern</title>'));
 assert.ok(html.includes('id="sceneScreen"'));
 assert.ok(html.includes('Your tavern is the menu.'));
 assert.ok((html.match(/data-open-screen=/g)||[]).length>=8);
