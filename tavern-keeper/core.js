@@ -148,7 +148,7 @@
       }
     },
     ashroad_caravan:{
-      id:'ashroad_caravan',name:'Ashroad Caravan',threat:3,kind:'Escort',paceSeconds:180,durationSeconds:90*60,durationHint:'1h 30m',jobGps:3,
+      id:'ashroad_caravan',name:'Ashroad Caravan',threat:3,kind:'Escort',paceSeconds:120,durationSeconds:90*60,durationHint:'1h 30m',jobGps:3,
       objective:'Break the ambushes and get the caravan through Ashroad.',brief:'A longer escort through repeated human ambushes and a risky ravine shortcut.',
       incomeMult:1.28,materialProfile:['scrap_iron','medicinal_herb'],start:'west_marker',subObjectives:['Survive the first ambush','Get the caravan across the bridge','Reach the last ridge','Preserve caravan integrity'],objectiveRules:{startingIntegrity:100,checkpointLocations:['first_ambush','old_bridge','last_ridge']},
       locations:{
@@ -162,7 +162,7 @@
       }
     },
     blackroot_mine:{
-      id:'blackroot_mine',name:'Blackroot Mine',threat:4,kind:'Delve',paceSeconds:480,durationSeconds:4*60*60,durationHint:'4 hr',jobGps:5,
+      id:'blackroot_mine',name:'Blackroot Mine',threat:4,kind:'Delve',paceSeconds:300,durationSeconds:4*60*60,durationHint:'4 hr',jobGps:5,
       objective:'Find the missing miners and break the infestation in Blackroot Mine.',brief:'A deep underground contract with dangerous optional chambers and rare glands.',
       incomeMult:1.58,materialProfile:['strange_gland','scrap_iron','medicinal_herb'],start:'mine_mouth',subObjectives:['Survey deep mine chambers','Find the missing miners','Rescue as many miners as possible'],objectiveRules:{discoveryLocations:['fungus_cave','collapsed_lift','brood_chamber'],rescueLocation:'miner_gallery',rescueMax:3},
       locations:{

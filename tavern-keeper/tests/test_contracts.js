@@ -6,7 +6,7 @@ assert.deepStrictEqual(ids,['briar_farm_wolves','greymill_rats','ashroad_caravan
 assert.equal(new Set(ids).size,ids.length);
 assert.deepStrictEqual(ids.map(id=>C.CONTRACTS[id].threat),[1,2,3,4,6]);
 assert.equal(C.CONTRACT,C.CONTRACTS.greymill_rats);
-assert.deepStrictEqual(ids.map(id=>C.CONTRACTS[id].paceSeconds),[30,60,180,480,960]);
+assert.deepStrictEqual(ids.map(id=>C.CONTRACTS[id].paceSeconds),[30,60,120,300,960]);
 assert.deepStrictEqual(ids.map(id=>C.CONTRACTS[id].durationHint),['15 min','30 min','1h 30m','4 hr','8 hr']);
 assert.deepStrictEqual(ids.map(id=>C.CONTRACTS[id].jobGps),[1,2,3,5,8]);
 assert.deepStrictEqual(ids.map(id=>C.CONTRACTS[id].durationSeconds),[900,1800,5400,14400,28800]);
