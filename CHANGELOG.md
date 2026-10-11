@@ -2,9 +2,17 @@
 
 Current truth: `PROJECT_CONTEXT.md` · Future: `ROADMAP.md`
 
+## 2026-10-11 — Tavern Keeper: Mercenary Risk/Reward and Bankruptcy Recovery
+- Preserved patron food/drink g/s as the recovery floor; made risky, longer expedition salaries the principal high-end income driver. Later contract potential is +1.5 / +4 / +9 g/s at 3h / 5h / 8h, while easy 1h/2h jobs stay +0.3/+0.5 g/s.
+- Made actual starting hard-contract income depend on hero readiness, so an underprepared recruit does not profitably earn the top wage just by waiting to die. The contract board quotes the selected hero's actual g/s and the posted potential.
+- Repriced mercenary recruitment with five meaningful quality tiers and scaled stat/gear/readiness: low-tier recruits can be hired on service earnings, while top-tier recruits can cost ~30k gold and still suffer permadeath.
+- Raised ordinary and premium weapon/armor prices to make re-equipping a veteran a real capital choice; preserved durability and partial gear recovery on death.
+- Preserved rebuilding after total wipe: automatic low-cost applicant access even when the upgraded tavern normally attracts elites; added a capped 10% after-hour offline tavern recovery trickle only if no mercenaries remain.
+- Added risk / income / elite death / recovery simulation coverage and kept all prior contract and snapshot checks.
+
 ## 2026-10-11 — Tavern Keeper: Two Income Streams & Longer Quests
 - Split the treasury into food/drink patron sales and continuously credited adventurer salaries, each shown as a distinct g/s source.
-- Increased easy quests to 1h and 2h at +0.30 / +0.50 g/s. Scaled later contracts to 3h/5h/8h with slower +0.75/+1.0/+1.5 g/s.
+- Increased easy quests to 1h and 2h at +0.30 / +0.50 g/s. Scaled later contracts to 3h/5h/8h; the mercenary risk/reward revision immediately above replaces their initial provisional +0.75/+1.0/+1.5 rates.
 - Added success return bounties of ~260g and ~420g for the easy quests (higher for dangerous runs) plus mission materials. Partial/failed journeys still pay proportional completion compensation.
 - Updated live/offline pay ledgers so hero wages are added each tick and are not duplicated on settlement, reload or completion. Persisted wage-credit and bonus fields in expedition save snapshots.
 - Updated contract board, header stats, return summary, acceptance assertions, and added deterministic CI coverage for separate salary and return reward streams.

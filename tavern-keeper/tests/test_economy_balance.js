@@ -60,6 +60,12 @@ const capped=C.Expedition.fromSnapshot(legacy);
 assert.equal(capped.goldRate,t2.jobGps*C.CONTRACT_PERFORMANCE_RATE_CAP);
 assert.deepStrictEqual(C.TAVERN_UPGRADE_BASE,starterCosts);
 
+// High-tier g/s is a substantial financial engine, unlike ordinary patron sales.
+const developed=new C.TavernEconomy({seats:12,serviceLevel:6,kitchenLevel:6,barLevel:6,lodgingLevel:6,infirmaryLevel:6,workshopLevel:6});
+assert.ok(C.CONTRACTS.blackroot_mine.jobGps>=5*developed.projectedGoldRate());
+assert.ok(C.CONTRACTS.wren_bridge_troll.jobGps>=10*developed.projectedGoldRate());
+assert.ok(C.CONTRACTS.wren_bridge_troll.jobGps>C.CONTRACTS.briar_farm_wolves.jobGps*20);
+
 // Away-time revenue is intentionally less than full open-tavern income.
 assert.equal(C.offlineTavernIncomeScale(0),1);
 assert.equal(C.offlineTavernIncomeScale(899.75),1);

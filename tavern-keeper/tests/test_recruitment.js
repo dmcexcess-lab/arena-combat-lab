@@ -4,7 +4,9 @@ const C=require('../core.js');
 function tavernForQuality(q){
   if(q===1)return new C.TavernEconomy({seats:2,serviceLevel:1,kitchenLevel:1,barLevel:1});
   if(q===2)return new C.TavernEconomy({seats:4,serviceLevel:2,kitchenLevel:2,barLevel:2});
-  return new C.TavernEconomy({seats:4,serviceLevel:3,kitchenLevel:3,barLevel:3});
+  if(q===3)return new C.TavernEconomy({seats:4,serviceLevel:3,kitchenLevel:3,barLevel:3});
+  if(q===4)return new C.TavernEconomy({seats:10,serviceLevel:4,kitchenLevel:4,barLevel:4});
+  return new C.TavernEconomy({seats:12,serviceLevel:6,kitchenLevel:6,barLevel:6});
 }
 function spawnApplicant(seed,quality){
   const r=new C.RecruitmentSystem({seed,nextArrival:0});
@@ -17,6 +19,8 @@ function spawnApplicant(seed,quality){
 assert.equal(C.applicantQuality(tavernForQuality(1)),1);
 assert.equal(C.applicantQuality(tavernForQuality(2)),2);
 assert.equal(C.applicantQuality(tavernForQuality(3)),3);
+assert.equal(C.applicantQuality(tavernForQuality(4)),4);
+assert.equal(C.applicantQuality(tavernForQuality(5)),5);
 
 // Equal seed/tavern/ticks generate the exact same applicant.
 const d1=spawnApplicant(1234,2);
@@ -25,10 +29,10 @@ assert.deepStrictEqual(d1.snapshot(),d2.snapshot());
 assert.equal(d1.active.quality,2);
 
 // Applicant records are complete persistent heroes with bounded quality-scaled stats/condition/gear.
-for(const q of [1,2,3]){
+for(const q of [1,2,3,4,5]){
   const r=spawnApplicant(800+q,q);
   const a=r.active,h=a.hero;
-  const ranges={1:[3,6],2:[4,7],3:[5,8]}[q];
+  const ranges={1:[3,6],2:[4,7],3:[5,8],4:[6,9],5:[7,10]}[q];
   for(const v of Object.values(h.stats))assert.ok(v>=ranges[0]&&v<=ranges[1]);
   assert.equal(h.career.rank,1);
   assert.equal(h.career.contracts,0);
@@ -44,6 +48,12 @@ for(const q of [1,2,3]){
 const q1=spawnApplicant(44,1).active;
 const q3=spawnApplicant(44,3).active;
 assert.ok(q3.cost>q1.cost);
+assert.ok(q1.cost<200,'tavern service must eventually finance a recovery recruit');
+const q4=spawnApplicant(44,4).active,q5=spawnApplicant(44,5).active;
+assert.ok(q4.cost>q3.cost*2);
+assert.ok(q5.cost>q4.cost*2);
+assert.equal(q5.hero.equipment.armor,'chain_mail');
+assert.equal(q5.hero.supplies.healing_potion,1,'elite still needs player-supplied protection for the hardest jobs');
 assert.ok(Object.values(q3.hero.stats).reduce((a,b)=>a+b,0)>Object.values(q1.hero.stats).reduce((a,b)=>a+b,0));
 
 // Generation varies between applicants rather than cloning one template.
@@ -66,7 +76,7 @@ assert.ok(expiry.log.some(e=>e.text.includes(expiredName)&&e.type==='departure')
 
 // Hiring spends exact shared gold and transfers the exact inspected person into the roster.
 const roster=new C.TavernRoster({
-  funds:200,
+  funds:2000,
   tavern:tavernForQuality(2).snapshot(),
   recruitment:{seed:42,nextArrival:0}
 });
@@ -131,6 +141,18 @@ for(const id of C.CONTRACT_ORDER){
   assert.equal(e.contract.id,id);
 }
 
+// With no heroes left, even the richest tavern attracts affordable novice recruits.
+const collapsed=new C.TavernRoster({heroes:[],funds:0,tavern:tavernForQuality(5).snapshot(),recruitment:{seed:24,nextArrival:0}});
+collapsed.tickTavern(.25);
+assert.equal(collapsed.recruitment.active.quality,1);
+assert.ok(collapsed.recruitment.active.cost<200);
+assert.equal(collapsed.recruitApplicant().ok,false);
+const restoredCollapsed=C.TavernRoster.deserialize(collapsed.serialize());
+assert.equal(restoredCollapsed.recruitment.active.quality,1);
+const priorElite=C.RecruitmentSystem.fromSnapshot({active:q5,nextArrival:20,seed:26});
+priorElite.tick(0.25,tavernForQuality(5),true);
+assert.equal(priorElite.active.quality,1,'recovery replaces an unaffordable visiting elite');
+
 // Recruited heroes participate in the same permanent-death/fallen settlement flow.
 // Combat lethality is covered elsewhere; this integration test isolates recruited-hero death archival.
 const deathRoster=new C.TavernRoster({heroes:[C.heroTemplate(recovery.hero)],funds:0});
@@ -146,7 +168,7 @@ assert.equal(deathRoster.fallen[0].hero.recruitment.quality,recovery.hero.recrui
 
 // Recruitment state/history round-trip with the rest of the tavern.
 const persistRoster=new C.TavernRoster({
-  funds:300,
+  funds:5000,
   tavern:tavernForQuality(3).snapshot(),
   recruitment:{seed:333,nextArrival:0}
 });

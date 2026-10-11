@@ -7,14 +7,14 @@ assert.equal(new Set(ids).size,ids.length);
 assert.deepStrictEqual(ids.map(id=>C.CONTRACTS[id].threat),[1,2,3,4,6]);
 assert.equal(C.CONTRACT,C.CONTRACTS.greymill_rats);
 assert.deepStrictEqual(ids.map(id=>C.CONTRACTS[id].paceSeconds),[120,240,250,375,960]);
-assert.deepStrictEqual(ids.map(id=>C.CONTRACTS[id].durationHint),['15 min','30 min','1h 30m','4 hr','8 hr']);
-assert.deepStrictEqual(ids.map(id=>C.CONTRACTS[id].jobGps),[0.3,0.5,0.75,1,1.5]);
+assert.deepStrictEqual(ids.map(id=>C.CONTRACTS[id].durationHint),['1 hr','2 hr','3 hr','5 hr','8 hr']);
+assert.deepStrictEqual(ids.map(id=>C.CONTRACTS[id].jobGps),[0.3,0.5,1.5,4,9]);
 assert.deepStrictEqual(ids.map(id=>C.CONTRACTS[id].durationSeconds),[3600,7200,10800,18000,28800]);
 for(let i=1;i<ids.length;i++)assert.ok(C.contractActionInterval(C.CONTRACTS[ids[i]])>C.contractActionInterval(C.CONTRACTS[ids[i-1]]));
 
 // Contract state only advances when its real-time pacing interval matures.
 const pacing=new C.Expedition({hero:C.makePreset('prepared'),seed:1,contract:C.CONTRACTS.briar_farm_wolves});
-pacing.tick(29);
+pacing.tick(119);
 assert.equal(pacing.areasExplored.length,0);
 pacing.tick(1);
 assert.ok(pacing.areasExplored.length>0);

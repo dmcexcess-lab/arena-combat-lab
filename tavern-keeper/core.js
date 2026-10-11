@@ -148,7 +148,7 @@
       }
     },
     ashroad_caravan:{
-      id:'ashroad_caravan',name:'Ashroad Caravan',threat:3,kind:'Escort',paceSeconds:250,durationSeconds:3*60*60,durationHint:'3 hr',jobGps:0.75,returnGold:850,
+      id:'ashroad_caravan',name:'Ashroad Caravan',threat:3,kind:'Escort',paceSeconds:250,durationSeconds:3*60*60,durationHint:'3 hr',jobGps:1.5,returnGold:850,
       objective:'Break the ambushes and get the caravan through Ashroad.',brief:'A longer escort through repeated human ambushes and a risky ravine shortcut.',
       incomeMult:1.28,materialProfile:['scrap_iron','medicinal_herb'],start:'west_marker',subObjectives:['Survive the first ambush','Get the caravan across the bridge','Reach the last ridge','Preserve caravan integrity'],objectiveRules:{startingIntegrity:100,checkpointLocations:['first_ambush','old_bridge','last_ridge']},
       locations:{
@@ -162,7 +162,7 @@
       }
     },
     blackroot_mine:{
-      id:'blackroot_mine',name:'Blackroot Mine',threat:4,kind:'Delve',paceSeconds:375,durationSeconds:5*60*60,durationHint:'5 hr',jobGps:1,returnGold:1400,
+      id:'blackroot_mine',name:'Blackroot Mine',threat:4,kind:'Delve',paceSeconds:375,durationSeconds:5*60*60,durationHint:'5 hr',jobGps:4,returnGold:1400,
       objective:'Find the missing miners and break the infestation in Blackroot Mine.',brief:'A deep underground contract with dangerous optional chambers and rare glands.',
       incomeMult:1.58,materialProfile:['strange_gland','scrap_iron','medicinal_herb'],start:'mine_mouth',subObjectives:['Survey deep mine chambers','Find the missing miners','Rescue as many miners as possible'],objectiveRules:{discoveryLocations:['fungus_cave','collapsed_lift','brood_chamber'],rescueLocation:'miner_gallery',rescueMax:3},
       locations:{
@@ -177,7 +177,7 @@
       }
     },
     wren_bridge_troll:{
-      id:'wren_bridge_troll',name:'The Wren Bridge Troll',threat:6,kind:'Boss Hunt',paceSeconds:960,durationSeconds:8*60*60,durationHint:'8 hr',jobGps:1.5,returnGold:2600,
+      id:'wren_bridge_troll',name:'The Wren Bridge Troll',threat:6,kind:'Boss Hunt',paceSeconds:960,durationSeconds:8*60*60,durationHint:'8 hr',jobGps:9,returnGold:2600,
       objective:'Open Wren Bridge by killing the troll that has claimed it.',brief:'A short, brutal boss contract with a dangerous lair detour and the highest income potential.',
       incomeMult:2.08,materialProfile:['strange_gland','scrap_iron'],start:'roadblock',subObjectives:['Reach Wren Bridge','Wound the bridge troll','Kill the bridge troll'],objectiveRules:{approachLocation:'bridge_approach',bossLocation:'bridge',bossEnemy:'troll'},
       locations:{
@@ -426,6 +426,14 @@
     return 'Likely Fatal';
   }
 
+  // All heroes can attempt any unlocked job; the posted maximum g/s is
+  // earned by a suitably prepared mercenary, not by suicidal throwaways.
+  function contractHeroIncomeMultiplier(hero,contract=CONTRACT){
+    if((contract.threat||1)<=2)return 1;
+    const risk=threatAssessment(hero,contract);
+    return ({'Comfortable':1,'Reasonable':1,'Risky':0.9,'Extremely Dangerous':0.65,'Likely Fatal':0.02})[risk]||0.02;
+  }
+
   function trait(hero,t){ return hero.traits.includes(t); }
   function effectiveDefense(hero){
     const armor=EQUIPMENT[hero.equipment.armor];
@@ -501,7 +509,7 @@
     constructor({hero=heroTemplate(),seed=1,contract=CONTRACT,debug=false}={}){
       this.rng=new RNG(seed); this.seed=seed; this.hero=heroTemplate(hero); this.contract=contract; this.debug=debug;
       deriveMoodlets(this.hero);
-      this.state='deployed'; this.locationId=contract.start; this.elapsed=0; this.goldRate=Math.max(0,Number(contract.jobGps)||1); this.peakGoldRate=this.goldRate; this.gold=0; this.wageGold=0; this.creditedWages=0; this.returnGold=0;
+      this.state='deployed'; this.locationId=contract.start; this.elapsed=0; this.goldRate=Math.max(0,(Number(contract.jobGps)||1)*contractHeroIncomeMultiplier(this.hero,contract)); this.peakGoldRate=this.goldRate; this.gold=0; this.wageGold=0; this.creditedWages=0; this.returnGold=0;
       this.enemiesDefeated=0; this.areasExplored=[]; this.objectiveProgress=0; this.materials={}; this.log=[]; this.decisionDebug=[]; this.injuriesSuffered=0;
       this.objectiveScore=0; this.objectiveMax=100; this.objectiveBonusGold=0; this.objectiveEvents=[]; this.objectiveAwards={};
       this.objectiveState=this.makeObjectiveState();
@@ -929,14 +937,14 @@
     rat_tail:{id:'rat_tail',name:'Rat Tail',type:'material',minQuality:1,price:3,maxQty:4},
     medicinal_herb:{id:'medicinal_herb',name:'Medicinal Herb',type:'material',minQuality:1,price:5,maxQty:3},
     strange_gland:{id:'strange_gland',name:'Strange Gland',type:'material',minQuality:2,price:11,maxQty:2},
-    wood_axe:{id:'wood_axe',name:'Wood Axe',type:'item',minQuality:1,price:8,maxQty:1},
-    rusty_sword:{id:'rusty_sword',name:'Rusty Sword',type:'item',minQuality:1,price:14,maxQty:1},
-    padded_armor:{id:'padded_armor',name:'Padded Armor',type:'item',minQuality:1,price:17,maxQty:1},
-    hunting_bow:{id:'hunting_bow',name:'Hunting Bow',type:'item',minQuality:2,price:23,maxQty:1},
-    leather_armor:{id:'leather_armor',name:'Leather Armor',type:'item',minQuality:2,price:29,maxQty:1},
-    healing_potion:{id:'healing_potion',name:'Healing Potion',type:'item',minQuality:2,price:13,maxQty:2},
-    steel_sword:{id:'steel_sword',name:'Steel Sword',type:'item',minQuality:3,price:44,maxQty:1},
-    chain_mail:{id:'chain_mail',name:'Chain Mail',type:'item',minQuality:3,price:52,maxQty:1}
+    wood_axe:{id:'wood_axe',name:'Wood Axe',type:'item',minQuality:1,price:85,maxQty:1},
+    rusty_sword:{id:'rusty_sword',name:'Rusty Sword',type:'item',minQuality:1,price:155,maxQty:1},
+    padded_armor:{id:'padded_armor',name:'Padded Armor',type:'item',minQuality:1,price:165,maxQty:1},
+    hunting_bow:{id:'hunting_bow',name:'Hunting Bow',type:'item',minQuality:2,price:390,maxQty:1},
+    leather_armor:{id:'leather_armor',name:'Leather Armor',type:'item',minQuality:2,price:400,maxQty:1},
+    healing_potion:{id:'healing_potion',name:'Healing Potion',type:'item',minQuality:2,price:45,maxQty:2},
+    steel_sword:{id:'steel_sword',name:'Steel Sword',type:'item',minQuality:3,price:2400,maxQty:1},
+    chain_mail:{id:'chain_mail',name:'Chain Mail',type:'item',minQuality:3,price:3100,maxQty:1}
   };
   const MERCHANT_NAMES=['Mira the Peddler','Orren of the Road','Kestra Provisioner','Dain Copperhand'];
 
@@ -953,6 +961,8 @@
 
   function applicantQuality(tavern){
     const score=tavern.serviceLevel+tavern.kitchenLevel+tavern.barLevel+Math.floor(tavern.seats/2);
+    if(score>=21)return 5;
+    if(score>=16)return 4;
     if(score>=11)return 3;
     if(score>=7)return 2;
     return 1;
@@ -985,31 +995,35 @@
       const weaponPools={
         1:['wood_axe','rusty_sword'],
         2:['rusty_sword','hunting_bow'],
-        3:['hunting_bow','steel_sword']
+        3:['hunting_bow','steel_sword'],
+        4:['steel_sword','hunting_bow'],
+        5:['steel_sword']
       };
       const armorPools={
         1:[null,'padded_armor'],
         2:['padded_armor','leather_armor'],
-        3:['leather_armor','chain_mail']
+        3:['leather_armor','chain_mail'],
+        4:['chain_mail','leather_armor'],
+        5:['chain_mail']
       };
       return {weapon:this.rng.pick(weaponPools[quality]),armor:this.rng.pick(armorPools[quality])};
     }
     generateHero(quality){
-      const ranges={1:[3,6],2:[4,7],3:[5,8]};
+      const ranges={1:[3,6],2:[4,7],3:[5,8],4:[6,9],5:[7,10]};
       const [lo,hi]=ranges[quality];
       const stats={might:this.rng.int(lo,hi),finesse:this.rng.int(lo,hi),endurance:this.rng.int(lo,hi),wits:this.rng.int(lo,hi),resolve:this.rng.int(lo,hi)};
-      const traitCount=quality>=3?2:1;
+      const traitCount=quality>=4?3:quality>=3?2:1;
       const traitPool=APPLICANT_TRAITS.slice(),traits=[];
       while(traits.length<traitCount&&traitPool.length){
         const idx=this.rng.int(0,traitPool.length-1);
         traits.push(traitPool.splice(idx,1)[0]);
       }
-      const health=this.rng.int(quality===1?64:quality===2?70:78,100);
-      const hunger=this.rng.int(quality===1?18:quality===2?12:8,quality===1?62:quality===2?50:38);
-      const fatigue=this.rng.int(quality===1?12:quality===2?8:4,quality===1?58:quality===2?46:34);
-      const morale=this.rng.int(quality===1?38:quality===2?46:55,quality===1?76:quality===2?82:90);
+      const health=this.rng.int(quality===1?64:quality===2?70:quality===3?78:quality===4?85:90,100);
+      const hunger=this.rng.int(quality===1?18:quality===2?12:quality===3?8:4,quality===1?62:quality===2?50:quality===3?38:24);
+      const fatigue=this.rng.int(quality===1?12:quality===2?8:4,quality===1?58:quality===2?46:quality===3?34:20);
+      const morale=this.rng.int(quality===1?38:quality===2?46:quality===3?55:quality===4?64:72,quality===1?76:quality===2?82:quality===3?90:96);
       const equipment=this.gearFor(quality);
-      const potionChance=quality===1?0.12:quality===2?0.38:0.65;
+      const potionChance=quality===1?0.12:quality===2?0.38:quality===3?0.65:1;
       const supplies={healing_potion:this.rng.chance(potionChance)?1:0,field_bandage:0};
       const id='recruit_'+this.visitIndex+'_'+this.rng.nextU32().toString(36);
       return heroTemplate({id,name:this.uniqueName(),stats,health,hunger,fatigue,morale,traits,equipment,supplies,career:normalizeCareer(),history:[],titles:[],recruitment:{quality,visitIndex:this.visitIndex}});
@@ -1019,11 +1033,15 @@
       const w=EQUIPMENT[hero.equipment.weapon]||EQUIPMENT.wood_axe;
       const a=EQUIPMENT[hero.equipment.armor]||{defense:0};
       const gearValue=(w.damage||0)*0.7+(a.defense||0)*2.1+(hero.supplies.healing_potion||0)*5;
-      return Math.max(12,Math.round(7+quality*6+statTotal*0.42+gearValue));
+      // Each higher baseline mercenary is a major capital investment.
+      const baseFees={1:70,2:440,3:2300,4:8500,5:26000};
+      const statFactors={1:1.8,2:3,3:12,4:35,5:80};
+      const gearFactors={1:2,2:3,3:10,4:25,5:75};
+      return Math.round(baseFees[quality]+statTotal*statFactors[quality]+gearValue*gearFactors[quality]);
     }
-    arrive(tavern){
+    arrive(tavern,recovery=false){
       this.visitIndex++;
-      const quality=this.qualityFor(tavern);
+      const quality=recovery?1:this.qualityFor(tavern);
       const hero=this.generateHero(quality);
       const cost=this.costFor(hero,quality);
       this.active={quality,cost,remaining:80,hero};
@@ -1048,15 +1066,20 @@
       this.nextArrival=48;
       return a;
     }
-    tick(dt,tavern){
+    tick(dt,tavern,recovery=false){
       dt=clamp(dt,0.01,5);
       this.elapsed+=dt;
+      // After the last merc dies, guarantee an affordable recovery applicant.
+      if(recovery&&this.active?.quality>1){
+        this.logEvent(this.active.hero.name+' moved on; the tavern needs a recovery hire.','recovery');
+        this.active=null; this.nextArrival=0;
+      }
       if(this.active){
         this.active.remaining-=dt;
         if(this.active.remaining<=0)this.depart('moved on');
       }else{
         this.nextArrival=Math.max(0,this.nextArrival-dt);
-        if(this.nextArrival<=0)this.arrive(tavern);
+        if(this.nextArrival<=0)this.arrive(tavern,recovery);
       }
     }
     snapshot(){
@@ -1471,7 +1494,7 @@
     tickTavern(seconds=1,incomeScale=1){
       const earned=this.tavern.tick(seconds,incomeScale);
       this.merchants.tick(seconds,this.tavern);
-      this.recruitment.tick(seconds,this.tavern);
+      this.recruitment.tick(seconds,this.tavern,this.heroes.length===0);
       this.funds+=earned;
       if(earned>0)this.checkTavernMilestones();
       return earned;
@@ -1814,6 +1837,7 @@
   const OFFLINE_TAVERN_FULL_SECONDS=15*60;
   const OFFLINE_TAVERN_END_SECONDS=60*60;
   const OFFLINE_TAVERN_REDUCED_RATE=0.25;
+  const OFFLINE_REBUILD_RATE=0.10; // Capped recovery after total party wipe
   function offlineTavernIncomeScale(elapsed){
     if(elapsed<OFFLINE_TAVERN_FULL_SECONDS)return 1;
     if(elapsed<OFFLINE_TAVERN_END_SECONDS)return OFFLINE_TAVERN_REDUCED_RATE;
@@ -1892,7 +1916,8 @@
     const settlements=[];
     settlements.push(...settleResolvedExpeditions(roster,manager));
     for(let i=0;i<steps;i++){
-      tavernGold+=roster.tickTavern(quantum,offlineTavernIncomeScale(i*quantum));
+      const salesScale=Math.max(offlineTavernIncomeScale(i*quantum),roster.aliveHeroes().length?0:OFFLINE_REBUILD_RATE);
+      tavernGold+=roster.tickTavern(quantum,salesScale);
       const beforeWages=roster.funds;
       manager.tickAll(quantum,roster);
       adventurerGold+=roster.funds-beforeWages;
@@ -1932,6 +1957,7 @@
       offlineTavernFullSeconds:OFFLINE_TAVERN_FULL_SECONDS,
       offlineTavernEndSeconds:OFFLINE_TAVERN_END_SECONDS,
       offlineTavernReducedRate:OFFLINE_TAVERN_REDUCED_RATE,
+      offlineRebuildRate:OFFLINE_REBUILD_RATE,
       tavernGold:Number(tavernGold.toFixed(4)),
       adventurerGold:Number(adventurerGold.toFixed(4)),
       expeditionGold:Number(expeditionGold.toFixed(4)),
@@ -1949,5 +1975,5 @@
     };
   }
 
-  return {RNG,EQUIPMENT,MAX_DURABILITY,isDurableItem,normalizeDurability,durabilityMultiplier,durabilityCondition,repairQuote,CRAFT_RECIPES,INJURY_TYPES,PREP_EFFECTS,PREPARATION_ACTIONS,normalizeFacilityLevels,preparationFacilityLevel,facilityActionMinutes,CONTRACT,CONTRACTS,CONTRACT_ORDER,contractActionInterval,ENEMIES,MATERIAL_NAMES,PATRON_TYPES,MERCHANT_GOODS,merchantQuality,MerchantSystem,APPLICANT_TRAITS,applicantQuality,RecruitmentSystem,CHRONICLE_RECORD_LABELS,Chronicle,isLegendaryHero,heroTemplate,normalizeCareer,rankFromXp,applyCareerProgress,starterRoster,deriveMoodlets,totalInjurySeverity,addInjury,reduceWorstInjury,removeWorstInjury,readinessScore,threatAssessment,PreparationState,TavernEconomy,TavernRoster,Expedition,ExpeditionManager,TAVERN_UPGRADE_BASE,TAVERN_UPGRADE_COST_MULTIPLIER,CONTRACT_PERFORMANCE_RATE_CAP,OFFLINE_MAX_SECONDS,OFFLINE_QUANTUM_SECONDS,OFFLINE_TAVERN_FULL_SECONDS,OFFLINE_TAVERN_END_SECONDS,OFFLINE_TAVERN_REDUCED_RATE,offlineTavernIncomeScale,settleResolvedExpeditions,advanceOffline,makePreset};
+  return {RNG,EQUIPMENT,MAX_DURABILITY,isDurableItem,normalizeDurability,durabilityMultiplier,durabilityCondition,repairQuote,CRAFT_RECIPES,INJURY_TYPES,PREP_EFFECTS,PREPARATION_ACTIONS,normalizeFacilityLevels,preparationFacilityLevel,facilityActionMinutes,CONTRACT,CONTRACTS,CONTRACT_ORDER,contractActionInterval,ENEMIES,MATERIAL_NAMES,PATRON_TYPES,MERCHANT_GOODS,merchantQuality,MerchantSystem,APPLICANT_TRAITS,applicantQuality,RecruitmentSystem,CHRONICLE_RECORD_LABELS,Chronicle,isLegendaryHero,heroTemplate,normalizeCareer,rankFromXp,applyCareerProgress,starterRoster,deriveMoodlets,totalInjurySeverity,addInjury,reduceWorstInjury,removeWorstInjury,readinessScore,threatAssessment,contractHeroIncomeMultiplier,PreparationState,TavernEconomy,TavernRoster,Expedition,ExpeditionManager,TAVERN_UPGRADE_BASE,TAVERN_UPGRADE_COST_MULTIPLIER,CONTRACT_PERFORMANCE_RATE_CAP,OFFLINE_MAX_SECONDS,OFFLINE_QUANTUM_SECONDS,OFFLINE_TAVERN_FULL_SECONDS,OFFLINE_TAVERN_END_SECONDS,OFFLINE_TAVERN_REDUCED_RATE,OFFLINE_REBUILD_RATE,offlineTavernIncomeScale,settleResolvedExpeditions,advanceOffline,makePreset};
 });

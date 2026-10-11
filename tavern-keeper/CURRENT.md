@@ -1,7 +1,7 @@
 # CURRENT — Tavern Keeper
 
 ## Current operation
-Major Change 7 — Two Income Streams, Long Quests and Return Bounties
+Major Change 8 — Tavern Recovery Floor, Mercenary Capital and Risk-Scaled G/s
 
 ## Status
 Major Change 4 was implemented as a deliberate new progression generation. The browser save key changes, so this build force-starts Tavern Keeper from a fresh tavern rather than importing the prior three-founder/speed-control economy.
@@ -140,5 +140,15 @@ node tests/test_scene_ui.js
 - Contract state snapshots evolve to version 7 and load older data. Existing saves are preserved; currently deployed quests adopt the new listed durations when restored from contract IDs.
 - CI adds `test_income_streams.js` with wage-credit, snapshot, once-only settlement, offline revenue accounting and guaranteed return-reward regressions.
 
+## Major Change 8 — the tavern floor and mercenary economy (2026-10-11)
+- Economic hierarchy: patron food/drink sales are the durable minimum income. A high-tier mercenary on a dangerous contract is the engine of major wealth; permanently losing that mercenary eliminates their ongoing g/s and may cost their expensive equipment.
+- Threat 1 and 2 remain 1h / 2h at +0.30 / +0.50 g/s. The three harder quests last 3h / 5h / 8h and advertise **up to +1.50 / +4.00 / +9.00 g/s**. Completion bonuses and loot remain separate on return.
+- High-tier pay depends on the *assigned mercenary's threat assessment*: Comfortable/Reasonable = 100%, Risky = 90%, Extremely Dangerous = 65%, Likely Fatal = 2% of the listed base g/s. Every living hero remains selectable for any **unlocked** job. The board shows actual selected-hero starting rate as well as contract potential. Tactical objective performance can still raise g/s, capped at 1.5× posted base.
+- Expanded recruitment from three to five quality tiers, unlocked by tavern investment: stat ranges Q1 3–6, Q2 4–7, Q3 5–8, Q4 6–9, Q5 7–10. Higher-tier recruits arrive with stronger equipment, healthier needs, and traits, and cost orders of magnitude more. First-tier rescue recruits remain affordable from ordinary food/drink sales even with no heroes alive.
+- Gear prices better reflect capital at risk: ordinary replacement weapons/armor cost roughly 85–400g; steel sword 2400g, chain mail 3100g. Permanent death and existing gear-recovery/durability rules remain authoritative.
+- Total party wipe does not require reset: if no heroes remain, a Tier-1 recruit replaces any visiting expensive elite. Tavern services keep operating. After the first offline hour, a **10% recovery-only service trickle** persists until the existing eight-hour cap; normal active-roster saves still have zero unattended sales after hour one.
+- Founders and previously hired recruits, equipped gear, saves, upgrade ownership and earlier progression are preserved. The new rates, prices and recovery policy apply going forward.
+- Seeded risk/regression coverage protects meaningful late-tier payout contrast, the still-possible permanent death of an expensive starting mercenary, one-time pay settlement, and post-wipe recruitment.
+
 ## NEXT OPERATION
-Playtest first 1–2h contracts on iPhone and desktop, returning gold/material amounts, simultaneous tavern and adventurer treasury growth, save/return idempotence, and longer jobs through the offline cap. Tune late-tier rates and bonus amounts based on measured upgrade purchase cadence.
+Test the actual economy on desktop and phone: 1h/2h base income + return rewards, high-tier selected-hero salary quotes, expensive starter equipment/recruitment, death terminating income, and bankruptcy recovery from patron sales with 8h offline limits. Continue balancing upper-tier outcome rates and upgrade cadence only from measured results.

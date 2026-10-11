@@ -90,6 +90,16 @@ assert.ok(C.offlineTavernIncomeScale(15*60-0.25)===1);
 assert.ok(C.offlineTavernIncomeScale(15*60)===0.25);
 assert.ok(C.offlineTavernIncomeScale(60*60)===0);
 
+// A fully wiped tavern earns a tiny, capped offline recovery trickle after hour one.
+const wipedHourRoster=new C.TavernRoster({heroes:[],funds:0});
+const wipedHour=C.advanceOffline(wipedHourRoster,new C.ExpeditionManager(),60*60);
+const wipedLongRoster=new C.TavernRoster({heroes:[],funds:0});
+const wipedLong=C.advanceOffline(wipedLongRoster,new C.ExpeditionManager(),70*60);
+assert.ok(wipedLong.tavernGold>wipedHour.tavernGold);
+assert.ok(wipedLong.tavernGold-wipedHour.tavernGold<250,'recovery earnings must not runaway');
+assert.equal(wipedLong.offlineRebuildRate,C.OFFLINE_REBUILD_RATE);
+assert.equal(C.OFFLINE_REBUILD_RATE,0.1);
+
 // Negative/backward-clock time never rewinds or mutates simulation.
 const negRoster=new C.TavernRoster({funds:12});
 const negManager=new C.ExpeditionManager();

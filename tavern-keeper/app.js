@@ -429,7 +429,7 @@ function renderOfflineReturn(){
   panel.classList.remove('hidden');
   $('offlineDuration').textContent=fmtAwayTime(r.appliedSeconds)+(r.capped?' · 8h cap':'');
   const capNote=(r.capped?'<p class="offline-cap">Offline catch-up is capped at 8 hours. '+fmtAwayTime(r.cappedSeconds)+' beyond the cap was not simulated.</p>':'')+
-    '<p class="offline-cap">Unattended tavern receipts: full for 15m, 25% until 1h, then no further tavern gold. Adventuring g/s reaches your treasury while away for up to 8h. Bonus gold and materials arrive when heroes return.</p>';
+    '<p class="offline-cap">Unattended tavern receipts: full for 15m, 25% until 1h; after a total party wipe, a small 10% recovery trickle remains until the 8h cap. Adventuring g/s reaches your treasury while away for up to 8h. Bonus gold and materials arrive when heroes return.</p>';
   const resolved=r.settlements.map(function(x){
     const mats=Object.entries(x.materials||{}).map(function(kv){return kv[1]+' '+(C.MATERIAL_NAMES[kv[0]]||kv[0]);}).join(', ')||'no materials';
     const gear=x.gearOutcome?(' · gear: '+(x.gearOutcome.recovered||[]).length+' recovered / '+(x.gearOutcome.lost||[]).length+' lost'):'';
@@ -564,7 +564,7 @@ function renderMerchants(){
 
 function renderApplicants(){
   const r=roster.recruitment;
-  const draw=C.applicantQuality(roster.tavern);
+  const draw=roster.aliveHeroes().length?C.applicantQuality(roster.tavern):1;
   $('applicantDraw').textContent='Quality '+draw;
   if(!r.active){
     $('applicantStatus').textContent='WAITING';
@@ -572,7 +572,7 @@ function renderApplicants(){
     $('applicantQuality').textContent='—';
     $('applicantCost').textContent='—';
     $('applicantTimer').textContent=Math.ceil(r.nextArrival)+'s';
-    $('applicantBody').innerHTML='<p class="empty">Next applicant expected in about '+Math.ceil(r.nextArrival)+'s. Tavern development improves applicant quality.</p>';
+    $('applicantBody').innerHTML='<p class="empty">Next applicant expected in about '+Math.ceil(r.nextArrival)+'s. '+(roster.aliveHeroes().length?'Tavern development improves applicant quality.':'With your roster wiped out, novice mercenaries will arrive at affordable rates so tavern sales can fund a restart.')+'</p>';
     $('recruitApplicant').disabled=true;
   }else{
     const a=r.active,h=a.hero;
@@ -690,7 +690,7 @@ function renderContractBoard(){
   $('selectedContractThreat').textContent='Threat '+selectedContract.threat;
   $('selectedContractObjective').textContent=selectedContract.objective;
   $('selectedContractRisk').textContent=(h?C.threatAssessment(h,selectedContract)+' for '+h.name+' · ':'')+
-    selectedContract.kind+' · +'+selectedContract.jobGps.toFixed(2)+' g/s while away · '+selectedContract.durationHint+' · +'+selectedContract.returnGold+'g on success';
+    selectedContract.kind+' · up to +'+selectedContract.jobGps.toFixed(2)+' g/s · '+(h?'starts +'+(selectedContract.jobGps*C.contractHeroIncomeMultiplier(h,selectedContract)).toFixed(2)+' g/s for '+h.name+' · ':'')+selectedContract.durationHint+' · +'+selectedContract.returnGold+'g on success';
   $('jobBoardProgress').textContent='Tavern Lv '+roster.tavernLevel()+' · Rep '+roster.tavernReputation()+' · '+availableIds.length+'/5 jobs';
 
   $('contractBoard').innerHTML=availableIds.map(function(id){
@@ -699,7 +699,7 @@ function renderContractBoard(){
     const mats=c.materialProfile.map(function(mat){return C.MATERIAL_NAMES[mat]||mat;}).join(' · ');
     return '<button class="board-contract '+(id===roster.selectedContractId?'selected':'')+'" data-contract="'+id+'">'+
       '<div><strong>'+c.name+'</strong><span>Threat '+c.threat+'</span></div>'+
-      '<em>+'+c.jobGps.toFixed(2)+' g/s while away · '+c.durationHint+' · +'+c.returnGold+'g reward on success · '+assessment+'</em>'+
+      '<em>Up to +'+c.jobGps.toFixed(2)+' g/s · '+(h?'with '+h.name+': +'+(c.jobGps*C.contractHeroIncomeMultiplier(h,c)).toFixed(2)+' g/s · ':'')+c.durationHint+' · +'+c.returnGold+'g reward on success · '+assessment+'</em>'+
       '<p>'+c.brief+'</p>'+
       '<small>Objectives: '+c.subObjectives.join(' · ')+'</small>'+
       '<small>'+mats+'</small></button>';

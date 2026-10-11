@@ -3,7 +3,7 @@ const C=require('../core.js');
 
 const ids=C.CONTRACT_ORDER;
 assert.deepStrictEqual(ids.map(id=>C.CONTRACTS[id].durationSeconds),[3600,7200,10800,18000,28800]);
-assert.deepStrictEqual(ids.map(id=>C.CONTRACTS[id].jobGps),[0.3,0.5,0.75,1,1.5]);
+assert.deepStrictEqual(ids.map(id=>C.CONTRACTS[id].jobGps),[0.3,0.5,1.5,4,9]);
 assert.deepStrictEqual(ids.map(id=>C.CONTRACTS[id].returnGold),[260,420,850,1400,2600]);
 
 // Tavern service and adventurer salaries enter the same bank as distinct sources.

@@ -54,13 +54,17 @@ Existing saves and purchased upgrades are preserved; to evaluate the new startup
 | --- | --- | --- | --- |
 | 1 | 1 hour | +0.30 g/s | ~260g |
 | 2 | 2 hours | +0.50 g/s | ~420g |
-| 3 | 3 hours | +0.75 g/s | ~850g |
-| 4 | 5 hours | +1.00 g/s | ~1,400g |
-| 6 | 8 hours | +1.50 g/s | ~2,600g |
+| 3 | 3 hours | Up to +1.50 g/s | ~850g |
+| 4 | 5 hours | Up to +4.00 g/s | ~1,400g |
+| 6 | 8 hours | Up to +9.00 g/s | ~2,600g |
 
 Successful quests also guarantee at least one relevant crafting material in addition to anything found on the route. Objective quality and events alter wages and bonus payouts. Heroes stay unavailable until the journey ends or they die/retreat.
 
-The offline cap remains eight hours. The unattended tavern-sales taper applies only to patron sales, **not** adventurer g/s. Save/reload never double-credits earned wages. Existing saves are preserved.
+For Threat 3+, the posted g/s is a **potential** rate. The selected mercenary's actual starting rate depends on readiness versus threat: Comfortable/Reasonable (100%), Risky (90%), Extremely Dangerous (65%), or Likely Fatal (2%). A low-quality recruit cannot profitably suicide-farm the hardest board slots; a geared veteran can become the main income producer. All heroes remain eligible for any unlocked job, and mission decisions still influence survival and performance pay.
+
+Recruitment quality grows through **five tiers**, from affordable Q1 recovery mercenaries (roughly 100–160g) to prestigious Q5 elite hires (roughly 30,000g), with better baseline stats, equipment, and starting condition. Weapons and armor cost real money to replace. Hero death is permanent, and gear may be lost or returned damaged. Expensive recruits can still die even on the top contract.
+
+The offline cap remains eight hours. The normal tavern-sales taper applies only to patrons, not adventurer pay. **After a complete party wipe**, the tavern retains a 10% offline service-income safety trickle through that cap and attracts low-cost recruits regardless of its upgrade tier. Save/reload never double-credits wages. Existing saves are preserved.
 
 ## Contract economy and time
 
@@ -69,9 +73,9 @@ There is one authoritative speed. Pause, ×4, ×12 and manual-step controls are 
 Jobs advertise a base contract income rate and listed duration:
 - Threat 1: +0.30 g/s for 1 hour
 - Threat 2: +0.50 g/s for 2 hours
-- Threat 3: +0.75 g/s for 3 hours
-- Threat 4: +1.00 g/s for 5 hours
-- Threat 6: +1.50 g/s for 8 hours
+- Threat 3: up to +1.50 g/s for 3 hours
+- Threat 4: up to +4.00 g/s for 5 hours
+- Threat 6: up to +9.00 g/s for 8 hours
 
 Adventurer salary enters the tavern treasury continuously while the hero is away. Extra gold and materials come back only upon expedition settlement. Autonomous travel, combat and objective events still occur during the job and can affect performance rewards. Death or retreat ends the job early. Once the route is complete, a surviving hero remains away on the return journey until the listed duration completes. The hardest 8-hour job matches the offline progression cap.
 
