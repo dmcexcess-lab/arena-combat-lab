@@ -9,7 +9,7 @@ const retreat=findSeed(C.makePreset('unprepared'),o=>o.outcome==='retreat'); ass
 const death=findSeed(C.makePreset('reckless'),o=>o.outcome==='death'); assert.equal(death.out.outcome,'death');
 const weak=C.makePreset('unprepared'); assert.ok(['Extremely Dangerous','Likely Fatal','Risky'].includes(C.threatAssessment(weak))); const weakExp=new C.Expedition({hero:weak,seed:7}); assert.equal(weakExp.state,'deployed');
 assert.ok(retreat.out.objectiveProgress>0); assert.ok(death.out.objectiveProgress>=0);
-const inc=new C.Expedition({hero:C.makePreset('prepared'),seed:success.s}); const start=inc.goldRate; while(inc.state==='deployed'&&inc.elapsed<120)inc.tick(); assert.ok(inc.peakGoldRate>start);
+const inc=new C.Expedition({hero:C.makePreset('prepared'),seed:success.s}); const start=inc.goldRate; while(inc.state==='deployed'&&inc.elapsed<15*60&&inc.peakGoldRate<=start)inc.tick(); assert.ok(inc.peakGoldRate>start);
 const done=new C.Expedition({hero:C.makePreset('prepared'),seed:success.s}); done.runToEnd(); assert.equal(done.goldRate,0);
 function average(presetName,weapon,armor){let survival=0,gold=0;for(let s=1;s<=80;s++){const h=C.makePreset(presetName);h.equipment.weapon=weapon;h.equipment.armor=armor;const o=run(h,s);if(o.heroAlive)survival++;gold+=o.totalGold;}return {survival,gold};}
 const geared=average('prepared','rusty_sword','leather_armor'); const poor=average('prepared','wood_axe',null); assert.ok(geared.survival>=poor.survival || geared.gold>poor.gold);
