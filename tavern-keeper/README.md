@@ -36,6 +36,15 @@ A new tavern starts over with one founding hero and two low-threat jobs on the b
 
 Heroes are assigned from a dropdown on the Contract Board. The Heroes' Table is preparation, equipment and career management only.
 
+## Permanent-investment economy (October 2026)
+Short absences should not bankroll the entire tavern. Base contracts still advertise +1/+2/+3/+5/+8 gold per second for 15 minutes through eight hours, but performance-rate improvements can add at most 50% beyond the listed rate. The hero's accumulated contract pay arrives on settlement, never as instantly spendable tavern funds.
+
+Permanent upgrades now start at 700–1,300g and multiply in price by three per purchased level (seating also upgrades in pairs). Upgrade affordability is intentionally measured in completed contracts, not seconds of idle tavern trade.
+
+While away, unattended **tavern** receipts accrue at full value for the first 15 minutes, one-quarter value through one hour, then stop. Patron and visitor simulation may still progress; expedition clocks and earnings continue up to the existing eight-hour offline limit, so a long contract remains worthwhile. The return summary identifies this policy.
+
+Existing saves and purchased upgrades are preserved; to evaluate the new startup curve, select New Tavern.
+
 ## Contract economy and time
 
 There is one authoritative speed. Pause, ×4, ×12 and manual-step controls are removed.
@@ -47,7 +56,7 @@ Jobs advertise a base contract income rate and listed duration:
 - Threat 4: +5 g/s for 4 hours
 - Threat 6: +8 g/s for 8 hours
 
-Gold accrues continuously while the hero is away. Autonomous travel, combat and objective events still occur during the job and can affect performance rewards. Death or retreat ends the job early. Once the route is complete, a surviving hero remains away on the return journey until the listed duration completes. The hardest 8-hour job matches the offline progression cap.
+Gold accrues continuously in the hero's expedition escrow while the hero is away. Autonomous travel, combat and objective events still occur during the job and can affect performance rewards. Death or retreat ends the job early. Once the route is complete, a surviving hero remains away on the return journey until the listed duration completes. The hardest 8-hour job matches the offline progression cap.
 
 ## Core game
 

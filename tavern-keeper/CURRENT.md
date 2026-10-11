@@ -1,7 +1,7 @@
 # CURRENT — Tavern Keeper
 
 ## Current operation
-Major Change 5 — Illustrated 2D Top-Down Fantasy Scene (following Major Change 4)
+Major Change 6 — Long-Contract Economy and Offline Earnings Rebalance
 
 ## Status
 Major Change 4 was implemented as a deliberate new progression generation. The browser save key changes, so this build force-starts Tavern Keeper from a fresh tavern rather than importing the prior three-founder/speed-control economy.
@@ -118,5 +118,16 @@ node tests/test_scene_ui.js
 - Reduced-motion users receive static figure visuals while simulated state changes remain active.
 - Known limitation: sprite styling is custom vector art, not a hand-painted raster atlas; Safari/Firefox real-device visual and touch QA is still needed.
 
+## Major Change 6 — sustained progression economics (2026-10-11)
+- Root cause: five minutes of ordinary tavern sales previously generated about 77g, versus 20–34g for the first permanent improvements. A 30-minute successful contract could deliver around 5,600g, financing essentially the upgrade tree.
+- Contract BASE rates and listed lengths remain +1 / +2 / +3 / +5 / +8 g/s at 15m / 30m / 90m / 4h / 8h. Gold remains held with the hero until contract resolution; poor returns still bank partial performance income.
+- Actual contract performance g/s now caps at 150% of the listed rate (and loaded in-progress expeditions respect that cap). Objectives still add small one-off bonuses.
+- Tavern permanent improvements have starting costs of 700–1,300g and triple on each successive tier. Five tiers for each of seven upgrade types require sustained reinvestment; the short-away payoff cannot buy all first tiers.
+- Unattended **tavern** service receives 100% of earned receipts through 15m, 25% for minutes 15–60, then no more idle tavern gold. Patrons and visitors continue simulating; offline revenue records and funds use the same scaled payouts.
+- Expeditions keep their full simulated time and contract payout up to the preexisting **8-hour** offline simulation cap. A long contract is not artificially shortened or penalized for being completed offline.
+- Existing saves remain intact: no forced restart, prior upgrades are not revoked, current treasury remains unchanged. Economy rules apply to future activity. For fresh pacing use New Tavern.
+- Added `test_economy_balance.js` to enforce affordability windows, exponential upgrade capital, contract g/s ceiling and offline yield tiers. Updated offline, release, tavern, facility checks plus the return summary.
+- Maintain the illustrated scene and all existing acceptance checks.
+
 ## NEXT OPERATION
-Playtest the illustrated tavern scene on phone/desktop: verify image loading, correct prop hitboxes, clear exterior queue and walking routes, Interior/Outside camera panning, iOS Safari touch/scale and reduced-motion. Then replay one-founder job-board and long-contract/offline acceptance.
+Validate the live/phone experience of the revised economy: fresh game 5m/15m/30m earnings, purchase gating, 1h+ offline taper, 8h expedition payout, and the illustrated scene's exterior queue/touch targets. Account for pre-rebalance saves when judging the new curve.

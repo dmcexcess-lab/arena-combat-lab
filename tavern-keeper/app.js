@@ -427,7 +427,8 @@ function renderOfflineReturn(){
   const r=offlineReturn;
   panel.classList.remove('hidden');
   $('offlineDuration').textContent=fmtAwayTime(r.appliedSeconds)+(r.capped?' · 8h cap':'');
-  const capNote=r.capped?'<p class="offline-cap">Offline catch-up is capped at 8 hours. '+fmtAwayTime(r.cappedSeconds)+' beyond the cap was not simulated.</p>':'';
+  const capNote=(r.capped?'<p class="offline-cap">Offline catch-up is capped at 8 hours. '+fmtAwayTime(r.cappedSeconds)+' beyond the cap was not simulated.</p>':'')+
+    '<p class="offline-cap">Unattended tavern receipts: full for 15m, 25% until 1h, then no further tavern gold. Contracts still progress up to the 8h cap and pay when settled.</p>';
   const resolved=r.settlements.map(function(x){
     const mats=Object.entries(x.materials||{}).map(function(kv){return kv[1]+' '+(C.MATERIAL_NAMES[kv[0]]||kv[0]);}).join(', ')||'no materials';
     const gear=x.gearOutcome?(' · gear: '+(x.gearOutcome.recovered||[]).length+' recovered / '+(x.gearOutcome.lost||[]).length+' lost'):'';

@@ -27,7 +27,7 @@ assert.equal(defaultTavern.workshopLevel,1);
 assert.deepStrictEqual(defaultTavern.facilityLevels(),{kitchen:1,bar:1,lodging:1,infirmary:1,workshop:1});
 
 // New permanent facilities participate in the same upgrade transaction/cost system.
-const upgradeRoster=new C.TavernRoster({funds:1000});
+const upgradeRoster=new C.TavernRoster({funds:5000});
 for(const id of ['lodging','infirmary','workshop']){
   const before=upgradeRoster.funds;
   const cost=upgradeRoster.tavern.upgradeCost(id);

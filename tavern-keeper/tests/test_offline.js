@@ -74,6 +74,22 @@ assert.deepStrictEqual(capRosterA.snapshot(),capRosterB.snapshot());
 assert.deepStrictEqual(capManagerA.snapshot(),capManagerB.snapshot());
 assert.equal(C.OFFLINE_MAX_SECONDS,8*60*60);
 
+// Unattended service revenue is front-loaded, then capped. Simulation clocks still advance.
+const hourRoster=new C.TavernRoster({funds:0});
+const hourManager=new C.ExpeditionManager();
+const fullHour=C.advanceOffline(hourRoster,hourManager,60*60);
+const fifteenRoster=new C.TavernRoster({funds:0});
+const fifteenManager=new C.ExpeditionManager();
+const ninetyMinutes=C.advanceOffline(fifteenRoster,fifteenManager,75*60);
+assert.ok(fullHour.tavernGold>0);
+assert.ok(ninetyMinutes.appliedSeconds>fullHour.appliedSeconds);
+assert.ok(ninetyMinutes.patronsServed>fullHour.patronsServed);
+assert.ok(Math.abs(ninetyMinutes.tavernGold-fullHour.tavernGold)<0.0001,
+  'tavern must not mint more unattended gold after one hour');
+assert.ok(C.offlineTavernIncomeScale(15*60-0.25)===1);
+assert.ok(C.offlineTavernIncomeScale(15*60)===0.25);
+assert.ok(C.offlineTavernIncomeScale(60*60)===0);
+
 // Negative/backward-clock time never rewinds or mutates simulation.
 const negRoster=new C.TavernRoster({funds:12});
 const negManager=new C.ExpeditionManager();

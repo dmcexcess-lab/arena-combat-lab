@@ -2,6 +2,14 @@
 
 Current truth: `PROJECT_CONTEXT.md` · Future: `ROADMAP.md`
 
+## 2026-10-11 — Tavern Keeper: Long-Contract & Offline Economy Rebalance
+- Corrected runaway affordability: baseline five-minute tavern income was ~77g against 20–34g upgrade costs, while half-hour contract settlements routinely paid thousands.
+- Changed first permanent-improvement costs to 700–1,300g, with 3× cost per subsequent level; all seven upgrade lines now represent longer-term capital investments.
+- Capped positive expedition performance-rate bonuses to 1.5× the advertised base g/s, without altering contract lengths, base rates, risk, objective-score rules or partial-payment policy.
+- Added an offline tavern cashbox policy: 100% receipts in the first 15 minutes, 25% through 60 minutes, then no additional idle tavern sales gold. All service/revenue ledger amounts match the actual awarded amount.
+- Preserved uninterrupted expedition simulation and earned contract escrow through the existing eight-hour offline limit; no save wipe or automatic repricing of already-owned upgrades.
+- Added explicit affordability/pay-ceiling tests, offline cap boundaries, and updated release tests; extended CI's Tavern Keeper test suite to 17.
+
 ## 2026-10-08 — Tavern Keeper: Illustrated 2D Top-Down Graphics
 - Replaced the visual room presentation with an illustrated overhead tavern map and exterior road, keeping authoritative spatial paths and actors.
 - Added eight separate interactive illustrated prop sprites for the physical management destinations.

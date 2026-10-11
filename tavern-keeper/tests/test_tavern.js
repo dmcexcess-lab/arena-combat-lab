@@ -62,7 +62,7 @@ assert.ok(roster.funds>funds0);
 assert.ok(Math.abs((roster.funds-funds0)-rosterEarned)<1e-8);
 
 // Upgrades spend shared funds and alter the authoritative economy state.
-const rich=new C.TavernRoster({funds:500});
+const rich=new C.TavernRoster({funds:2000});
 const richFunds0=rich.funds;
 const seatCost=rich.tavern.upgradeCost('seats');
 const up=rich.upgradeTavern('seats');

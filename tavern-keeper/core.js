@@ -615,7 +615,7 @@
       if(afterCondition!==beforeCondition)this.addLog(`${EQUIPMENT[itemId].name} is now ${afterCondition.toLowerCase()} (${Math.round(after)}%).`,'gear');
       return before-after;
     }
-    bumpRate(amount,reason){ const before=this.goldRate; const scaled=amount*(this.contract.incomeMult||1); this.goldRate=clamp(this.goldRate+scaled,0,50); this.peakGoldRate=Math.max(this.peakGoldRate,this.goldRate); if(Math.abs(this.goldRate-before)>=0.009)this.addLog(`Performance ${before.toFixed(2)} → ${this.goldRate.toFixed(2)} reward rate — ${reason}.`,'income'); }
+    bumpRate(amount,reason){ const before=this.goldRate; const scaled=amount*(this.contract.incomeMult||1); this.goldRate=clamp(this.goldRate+scaled,0,(this.contract.jobGps||1)*CONTRACT_PERFORMANCE_RATE_CAP); this.peakGoldRate=Math.max(this.peakGoldRate,this.goldRate); if(Math.abs(this.goldRate-before)>=0.009)this.addLog(`Performance ${before.toFixed(2)} → ${this.goldRate.toFixed(2)} reward rate — ${reason}.`,'income'); }
     updateNeeds(dt){
       const hungerMult=prepEffectRateMultiplier(this.hero,'hearty_meal','hungerRateMult');
       const fatigueMult=prepEffectRateMultiplier(this.hero,'good_sleep','fatigueRateMult');
@@ -840,7 +840,7 @@
       const e=new Expedition({hero:data.hero,seed:data.seed||1,contract,debug});
       e.rng.state=(data.rngState>>>0)||e.rng.state;
       e.state=data.state||'deployed'; e.locationId=data.locationId||contract.start; e.elapsed=Number(data.elapsed)||0; e.actionClock=Math.max(0,Number(data.actionClock)||0); e.missionComplete=!!data.missionComplete;
-      e.goldRate=Number(data.goldRate)||0; e.peakGoldRate=Number(data.peakGoldRate)||0; e.gold=Number(data.gold)||0;
+      e.goldRate=clamp(Number(data.goldRate)||0,0,(contract.jobGps||1)*CONTRACT_PERFORMANCE_RATE_CAP); e.peakGoldRate=Number(data.peakGoldRate)||0; e.gold=Number(data.gold)||0;
       e.enemiesDefeated=Number(data.enemiesDefeated)||0; e.areasExplored=clone(data.areasExplored||[]); e.objectiveProgress=Number(data.objectiveProgress)||0;
       e.objectiveScore=data.objectiveScore==null?Math.min(95,Math.round(e.objectiveProgress)):Number(data.objectiveScore)||0;
       e.objectiveMax=Number(data.objectiveMax)||100; e.objectiveBonusGold=Number(data.objectiveBonusGold)||0;
@@ -1120,6 +1120,12 @@
     static fromSnapshot(data){ return new MerchantSystem(data||{}); }
   }
 
+  // Permanent improvements are capital investments, not a few minutes of bar receipts.
+  // Each price is the NEXT tier's cost; seats advance in pairs just like facility levels.
+  const TAVERN_UPGRADE_BASE={seats:700,service:1200,kitchen:900,bar:850,lodging:1100,infirmary:1300,workshop:1150};
+  const TAVERN_UPGRADE_COST_MULTIPLIER=3;
+  const CONTRACT_PERFORMANCE_RATE_CAP=1.5;
+
   class TavernEconomy {
     constructor(data={}){
       this.seed=Number(data.seed)||73129;
@@ -1224,8 +1230,9 @@
     fillSeats(){
       while(this.active.length<this.seats&&this.queue.length)this.seat(this.queue.shift());
     }
-    tick(dt=1){
+    tick(dt=1,incomeScale=1){
       dt=clamp(dt,0.01,5);
+      incomeScale=clamp(Number(incomeScale)||0,0,1);
       this.elapsed+=dt;
       this.arrivalClock+=dt;
       while(this.arrivalClock>=this.arrivalInterval()){
@@ -1242,7 +1249,7 @@
           p.served=true;
           const type=PATRON_TYPES[p.type]||PATRON_TYPES.laborer;
           p.remainingStay=type.stay;
-          const gold=this.orderValue(p);
+          const gold=this.orderValue(p)*incomeScale;
           earned+=gold; this.totalRevenue+=gold; this.served++;
           if(p.food)this.foodServed++;
           if(p.drink)this.drinksServed++;
@@ -1258,14 +1265,10 @@
       return earned;
     }
     upgradeCost(id){
-      if(id==='seats')return 18+this.seats*5;
-      if(id==='service')return 28*this.serviceLevel;
-      if(id==='kitchen')return 24*this.kitchenLevel;
-      if(id==='bar')return 20*this.barLevel;
-      if(id==='lodging')return 26*this.lodgingLevel;
-      if(id==='infirmary')return 34*this.infirmaryLevel;
-      if(id==='workshop')return 30*this.workshopLevel;
-      return Infinity;
+      const base=TAVERN_UPGRADE_BASE[id];
+      if(!base)return Infinity;
+      const tier=id==='seats'?Math.floor((this.seats-2)/2):this[id+'Level']-1;
+      return Math.round(base*Math.pow(TAVERN_UPGRADE_COST_MULTIPLIER,Math.max(0,tier)));
     }
     canUpgrade(id){
       if(id==='seats')return this.seats<12;
@@ -1451,8 +1454,8 @@
       }
     }
     aliveHeroes(){ return this.heroes.filter(h=>h.alive); }
-    tickTavern(seconds=1){
-      const earned=this.tavern.tick(seconds);
+    tickTavern(seconds=1,incomeScale=1){
+      const earned=this.tavern.tick(seconds,incomeScale);
       this.merchants.tick(seconds,this.tavern);
       this.recruitment.tick(seconds,this.tavern);
       this.funds+=earned;
@@ -1793,6 +1796,14 @@
 
   const OFFLINE_MAX_SECONDS=8*60*60;
   const OFFLINE_QUANTUM_SECONDS=0.25;
+  const OFFLINE_TAVERN_FULL_SECONDS=15*60;
+  const OFFLINE_TAVERN_END_SECONDS=60*60;
+  const OFFLINE_TAVERN_REDUCED_RATE=0.25;
+  function offlineTavernIncomeScale(elapsed){
+    if(elapsed<OFFLINE_TAVERN_FULL_SECONDS)return 1;
+    if(elapsed<OFFLINE_TAVERN_END_SECONDS)return OFFLINE_TAVERN_REDUCED_RATE;
+    return 0;
+  }
 
   function settlementSummary(entry,result){
     const exp=entry.expedition,s=exp.summary();
@@ -1863,7 +1874,7 @@
     const settlements=[];
     settlements.push(...settleResolvedExpeditions(roster,manager));
     for(let i=0;i<steps;i++){
-      tavernGold+=roster.tickTavern(quantum);
+      tavernGold+=roster.tickTavern(quantum,offlineTavernIncomeScale(i*quantum));
       manager.tickAll(quantum);
       settlements.push(...settleResolvedExpeditions(roster,manager));
     }
@@ -1898,6 +1909,9 @@
       cappedSeconds:Math.max(0,requested-maxSeconds),
       quantum,
       steps,
+      offlineTavernFullSeconds:OFFLINE_TAVERN_FULL_SECONDS,
+      offlineTavernEndSeconds:OFFLINE_TAVERN_END_SECONDS,
+      offlineTavernReducedRate:OFFLINE_TAVERN_REDUCED_RATE,
       tavernGold:Number(tavernGold.toFixed(4)),
       expeditionGold:Number(expeditionGold.toFixed(4)),
       totalFundsGained:Number((roster.funds-before.funds).toFixed(4)),
@@ -1914,5 +1928,5 @@
     };
   }
 
-  return {RNG,EQUIPMENT,MAX_DURABILITY,isDurableItem,normalizeDurability,durabilityMultiplier,durabilityCondition,repairQuote,CRAFT_RECIPES,INJURY_TYPES,PREP_EFFECTS,PREPARATION_ACTIONS,normalizeFacilityLevels,preparationFacilityLevel,facilityActionMinutes,CONTRACT,CONTRACTS,CONTRACT_ORDER,contractActionInterval,ENEMIES,MATERIAL_NAMES,PATRON_TYPES,MERCHANT_GOODS,merchantQuality,MerchantSystem,APPLICANT_TRAITS,applicantQuality,RecruitmentSystem,CHRONICLE_RECORD_LABELS,Chronicle,isLegendaryHero,heroTemplate,normalizeCareer,rankFromXp,applyCareerProgress,starterRoster,deriveMoodlets,totalInjurySeverity,addInjury,reduceWorstInjury,removeWorstInjury,readinessScore,threatAssessment,PreparationState,TavernEconomy,TavernRoster,Expedition,ExpeditionManager,OFFLINE_MAX_SECONDS,OFFLINE_QUANTUM_SECONDS,settleResolvedExpeditions,advanceOffline,makePreset};
+  return {RNG,EQUIPMENT,MAX_DURABILITY,isDurableItem,normalizeDurability,durabilityMultiplier,durabilityCondition,repairQuote,CRAFT_RECIPES,INJURY_TYPES,PREP_EFFECTS,PREPARATION_ACTIONS,normalizeFacilityLevels,preparationFacilityLevel,facilityActionMinutes,CONTRACT,CONTRACTS,CONTRACT_ORDER,contractActionInterval,ENEMIES,MATERIAL_NAMES,PATRON_TYPES,MERCHANT_GOODS,merchantQuality,MerchantSystem,APPLICANT_TRAITS,applicantQuality,RecruitmentSystem,CHRONICLE_RECORD_LABELS,Chronicle,isLegendaryHero,heroTemplate,normalizeCareer,rankFromXp,applyCareerProgress,starterRoster,deriveMoodlets,totalInjurySeverity,addInjury,reduceWorstInjury,removeWorstInjury,readinessScore,threatAssessment,PreparationState,TavernEconomy,TavernRoster,Expedition,ExpeditionManager,TAVERN_UPGRADE_BASE,TAVERN_UPGRADE_COST_MULTIPLIER,CONTRACT_PERFORMANCE_RATE_CAP,OFFLINE_MAX_SECONDS,OFFLINE_QUANTUM_SECONDS,OFFLINE_TAVERN_FULL_SECONDS,OFFLINE_TAVERN_END_SECONDS,OFFLINE_TAVERN_REDUCED_RATE,offlineTavernIncomeScale,settleResolvedExpeditions,advanceOffline,makePreset};
 });

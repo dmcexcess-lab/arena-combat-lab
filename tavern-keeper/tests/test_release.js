@@ -86,10 +86,13 @@ assert.ok(maxFive>baseFive*2,'tavern upgrades should materially improve income')
 assert.ok(maxFive<baseFive*4,'max tavern income is growing too explosively');
 for(const id of ['service','kitchen','bar','lodging','infirmary','workshop']){
   const cost=new C.TavernEconomy().upgradeCost(id);
-  assert.ok(cost>=15&&cost<=40,'starting '+id+' upgrade cost outside release band');
+  assert.ok(cost>=850&&cost<=1300,'starting '+id+' upgrade cost outside release band');
 }
 
 // Idle safety remains explicit.
+assert.equal(C.OFFLINE_TAVERN_FULL_SECONDS,15*60);
+assert.equal(C.OFFLINE_TAVERN_END_SECONDS,60*60);
+assert.equal(C.OFFLINE_TAVERN_REDUCED_RATE,0.25);
 assert.equal(C.OFFLINE_MAX_SECONDS,8*60*60);
 assert.equal(C.OFFLINE_QUANTUM_SECONDS,0.25);
 
