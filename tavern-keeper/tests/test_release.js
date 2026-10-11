@@ -118,7 +118,9 @@ assert.ok(html.includes('id="jobHeroSelect"'));
 assert.ok(html.includes('id="jobDeploy"'));
 assert.ok(!html.includes('data-speed='));
 assert.ok(!html.includes('id="deploy"'));
-assert.ok(app.includes("const SAVE_KEY='tavernKeeper.reputationBoard.v1'"));
+assert.ok(html.includes('<script src="profiles.js"></script>'));
+assert.ok(app.includes('profileStore.write(profileStore.activeId()'));
+assert.ok(app.includes('function initializeProfiles()'));
 
 console.log('PASS release acceptance',JSON.stringify({
   seedsPerBuildPerContract:SEEDS,
