@@ -1,7 +1,7 @@
 # CURRENT — Tavern Keeper
 
 ## Current operation
-Major Change 6 — Long-Contract Economy and Offline Earnings Rebalance
+Major Change 7 — Two Income Streams, Long Quests and Return Bounties
 
 ## Status
 Major Change 4 was implemented as a deliberate new progression generation. The browser save key changes, so this build force-starts Tavern Keeper from a fresh tavern rather than importing the prior three-founder/speed-control economy.
@@ -129,5 +129,16 @@ node tests/test_scene_ui.js
 - Added `test_economy_balance.js` to enforce affordability windows, exponential upgrade capital, contract g/s ceiling and offline yield tiers. Updated offline, release, tavern, facility checks plus the return summary.
 - Maintain the illustrated scene and all existing acceptance checks.
 
+## Major Change 7 — two income streams and adventure homecoming (2026-10-11)
+- The tavern has two treasury income sources: customers buying food/drink (actual patron sales), and active hero salaries (g/s while deployed). Both are spendable as earned.
+- A hero's hourly-rate salary is credited directly to shared funds via `ExpeditionManager.tickAll(dt, roster)` during online AND offline simulation. `wageGold` and `creditedWages` are persisted with each expedition; reloading, recurring ticks, and settlement cannot duplicate wages. Older expeditions missing a salary ledger still receive outstanding accumulated pay upon settlement.
+- Job ladder: Threat 1 = 1h at 0.3 g/s + ~260g success reward; Threat 2 = 2h at 0.5 g/s + ~420g; Threat 3 = 3h at 0.75 g/s + ~850g; Threat 4 = 5h at 1.0 g/s + ~1,400g; Threat 6 = 8h at 1.5 g/s + ~2,600g. Combat/action intervals grow with each longer adventure; threat and combat remain authoritative.
+- On returning, an expedition adds separately tracked `returnGold` plus any objective gold and collected crafting materials. Unsuccessful runs bring back a smaller payment proportional to performance; salary already earned is retained. Successful contracts guarantee one primary material besides route scavenging.
+- Settlement deposits only unpaid salary and return reward; `Expedition.gold` still records lifetime total for career statistics/Chronicle, and return rewards are paid once only.
+- 8-hour offline simulation cap and 15m/60m unattended **tavern-sales** taper remain; the taper does not reduce hero salary. Offline summary now shows tavern receipts, hero g/s earned, and completed-quest rewards separately.
+- UI now labels food/drink g/s and adventurer g/s in the top bar and quotes the time-based income and completion reward on each contract.
+- Contract state snapshots evolve to version 7 and load older data. Existing saves are preserved; currently deployed quests adopt the new listed durations when restored from contract IDs.
+- CI adds `test_income_streams.js` with wage-credit, snapshot, once-only settlement, offline revenue accounting and guaranteed return-reward regressions.
+
 ## NEXT OPERATION
-Validate the live/phone experience of the revised economy: fresh game 5m/15m/30m earnings, purchase gating, 1h+ offline taper, 8h expedition payout, and the illustrated scene's exterior queue/touch targets. Account for pre-rebalance saves when judging the new curve.
+Playtest first 1–2h contracts on iPhone and desktop, returning gold/material amounts, simultaneous tavern and adventurer treasury growth, save/return idempotence, and longer jobs through the offline cap. Tune late-tier rates and bonus amounts based on measured upgrade purchase cadence.

@@ -37,6 +37,8 @@ assert.ok(app.includes("openScreen('scene')"));
 assert.ok(app.includes("openScreen('expeditions')"));
 assert.ok(html.includes('id="jobHeroSelect"'));
 assert.ok(html.includes('id="jobDeploy"'));
+assert.ok(html.includes('id="adventurerGps"'));
+assert.ok(app.includes("expeditions.tickAll(0.25,roster)"));
 assert.ok(!html.includes('data-speed='));
 assert.ok(!html.includes('id="deploy"'));
 assert.ok(app.includes("document.querySelectorAll('[data-open-screen]')"));

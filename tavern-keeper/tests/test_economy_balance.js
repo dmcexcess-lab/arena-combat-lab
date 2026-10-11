@@ -34,7 +34,7 @@ for(const id of keys){
 }
 assert.ok(totalCapital>500000,'full development should take sustained contracting');
 
-// Fifteen minutes of low-threat work can fund a starter investment, not the whole tavern.
+// One hour of low-threat work can fund a starter investment, not the whole tavern.
 const t1=C.CONTRACTS.briar_farm_wolves;
 const t2=C.CONTRACTS.greymill_rats;
 const early=new C.Expedition({hero:C.makePreset('prepared'),contract:t1,seed:1});
@@ -44,7 +44,7 @@ assert.ok(early.gold>=t1.jobGps*t1.durationSeconds);
 assert.ok(early.peakGoldRate<=t1.jobGps*C.CONTRACT_PERFORMANCE_RATE_CAP);
 assert.ok(early.gold<starterTotal/3);
 
-// Half an hour is worthwhile, but cannot finance every first-level improvement.
+// Two hours is worthwhile, but cannot finance every first-level improvement.
 const intermediate=new C.Expedition({hero:C.makePreset('prepared'),contract:t2,seed:1});
 intermediate.runToEnd();
 assert.equal(intermediate.elapsed,t2.durationSeconds);
@@ -71,8 +71,8 @@ assert.equal(C.offlineTavernIncomeScale(28800),0);
 console.log('PASS economy balance',JSON.stringify({
   starterCosts,firstFiveMinutes:Number(shortSession.funds.toFixed(2)),
   starterCapital:starterTotal,fullCapital:totalCapital,
-  fifteenMinuteContract:Number(early.gold.toFixed(2)),
-  thirtyMinuteContract:Number(intermediate.gold.toFixed(2)),
+  oneHourContract:Number(early.gold.toFixed(2)),
+  twoHourContract:Number(intermediate.gold.toFixed(2)),
   maximumPerformanceMultiplier:C.CONTRACT_PERFORMANCE_RATE_CAP,
   unattendedRevenue:'100% for 15m, 25% until 1h, 0% afterward',
   expeditionOfflineCapHours:C.OFFLINE_MAX_SECONDS/3600

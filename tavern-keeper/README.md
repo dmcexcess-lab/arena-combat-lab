@@ -37,7 +37,7 @@ A new tavern starts over with one founding hero and two low-threat jobs on the b
 Heroes are assigned from a dropdown on the Contract Board. The Heroes' Table is preparation, equipment and career management only.
 
 ## Permanent-investment economy (October 2026)
-Short absences should not bankroll the entire tavern. Base contracts still advertise +1/+2/+3/+5/+8 gold per second for 15 minutes through eight hours, but performance-rate improvements can add at most 50% beyond the listed rate. The hero's accumulated contract pay arrives on settlement, never as instantly spendable tavern funds.
+Short absences should not bankroll the entire tavern. Salaries are deliberately modest and heroes stay away for one to eight hours; performance-rate improvements can add at most 50% beyond the listed rate. Salaries are spendable as earned, while objective bonuses, completion gold and recovered materials are paid when the expedition returns.
 
 Permanent upgrades now start at 700–1,300g and multiply in price by three per purchased level (seating also upgrades in pairs). Upgrade affordability is intentionally measured in completed contracts, not seconds of idle tavern trade.
 
@@ -45,18 +45,35 @@ While away, unattended **tavern** receipts accrue at full value for the first 15
 
 Existing saves and purchased upgrades are preserved; to evaluate the new startup curve, select New Tavern.
 
+## Two distinct income streams (October 2026)
+**1. Tavern sales:** patrons pay for actual meals and drinks, with capacity, service speed and facilities influencing revenue.
+
+**2. Adventurer salaries:** a hero away on a contract adds spendable gold to the same treasury every second. The expedition also brings **separate bonus gold and materials when it returns**, with reduced rewards for failure/retreat and partial compensation after death. These homecoming rewards are distinct from the salary already paid.
+
+| Threat | Time away | Adventurer salary | Gold bonus on successful return |
+| --- | --- | --- | --- |
+| 1 | 1 hour | +0.30 g/s | ~260g |
+| 2 | 2 hours | +0.50 g/s | ~420g |
+| 3 | 3 hours | +0.75 g/s | ~850g |
+| 4 | 5 hours | +1.00 g/s | ~1,400g |
+| 6 | 8 hours | +1.50 g/s | ~2,600g |
+
+Successful quests also guarantee at least one relevant crafting material in addition to anything found on the route. Objective quality and events alter wages and bonus payouts. Heroes stay unavailable until the journey ends or they die/retreat.
+
+The offline cap remains eight hours. The unattended tavern-sales taper applies only to patron sales, **not** adventurer g/s. Save/reload never double-credits earned wages. Existing saves are preserved.
+
 ## Contract economy and time
 
 There is one authoritative speed. Pause, ×4, ×12 and manual-step controls are removed.
 
 Jobs advertise a base contract income rate and listed duration:
-- Threat 1: +1 g/s for 15 minutes
-- Threat 2: +2 g/s for 30 minutes
-- Threat 3: +3 g/s for 1h 30m
-- Threat 4: +5 g/s for 4 hours
-- Threat 6: +8 g/s for 8 hours
+- Threat 1: +0.30 g/s for 1 hour
+- Threat 2: +0.50 g/s for 2 hours
+- Threat 3: +0.75 g/s for 3 hours
+- Threat 4: +1.00 g/s for 5 hours
+- Threat 6: +1.50 g/s for 8 hours
 
-Gold accrues continuously in the hero's expedition escrow while the hero is away. Autonomous travel, combat and objective events still occur during the job and can affect performance rewards. Death or retreat ends the job early. Once the route is complete, a surviving hero remains away on the return journey until the listed duration completes. The hardest 8-hour job matches the offline progression cap.
+Adventurer salary enters the tavern treasury continuously while the hero is away. Extra gold and materials come back only upon expedition settlement. Autonomous travel, combat and objective events still occur during the job and can affect performance rewards. Death or retreat ends the job early. Once the route is complete, a surviving hero remains away on the return journey until the listed duration completes. The hardest 8-hour job matches the offline progression cap.
 
 ## Core game
 
@@ -74,6 +91,7 @@ Run all existing simulation suites plus:
 
 ```bash
 node tests/test_release.js
+node tests/test_income_streams.js
 node tests/test_scene_ui.js
 ```
 

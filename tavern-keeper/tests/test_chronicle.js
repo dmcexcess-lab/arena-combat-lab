@@ -158,7 +158,7 @@ const offlineRoster=new C.TavernRoster({funds:0});
 const offlineManager=new C.ExpeditionManager();
 const od=offlineManager.deploy({hero:offlineRoster.getHero('edrin'),seed:7,contract:C.CONTRACTS.briar_farm_wolves});
 assert.equal(od.ok,true);
-const offline=C.advanceOffline(offlineRoster,offlineManager,16*60);
+const offline=C.advanceOffline(offlineRoster,offlineManager,61*60);
 assert.ok(offline.settlements.some(x=>x.id===od.entry.id));
 assert.ok(offlineRoster.chronicleSummary().entries.some(e=>e.type==='contract'&&e.heroId==='edrin'));
 

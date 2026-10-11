@@ -2,6 +2,14 @@
 
 Current truth: `PROJECT_CONTEXT.md` · Future: `ROADMAP.md`
 
+## 2026-10-11 — Tavern Keeper: Two Income Streams & Longer Quests
+- Split the treasury into food/drink patron sales and continuously credited adventurer salaries, each shown as a distinct g/s source.
+- Increased easy quests to 1h and 2h at +0.30 / +0.50 g/s. Scaled later contracts to 3h/5h/8h with slower +0.75/+1.0/+1.5 g/s.
+- Added success return bounties of ~260g and ~420g for the easy quests (higher for dangerous runs) plus mission materials. Partial/failed journeys still pay proportional completion compensation.
+- Updated live/offline pay ledgers so hero wages are added each tick and are not duplicated on settlement, reload or completion. Persisted wage-credit and bonus fields in expedition save snapshots.
+- Updated contract board, header stats, return summary, acceptance assertions, and added deterministic CI coverage for separate salary and return reward streams.
+- Preserved the offline patron-receipts taper, eight-hour mission simulation cap, one-founder start, navigation and graphics.
+
 ## 2026-10-11 — Tavern Keeper: Long-Contract & Offline Economy Rebalance
 - Corrected runaway affordability: baseline five-minute tavern income was ~77g against 20–34g upgrade costs, while half-hour contract settlements routinely paid thousands.
 - Changed first permanent-improvement costs to 700–1,300g, with 3× cost per subsequent level; all seven upgrade lines now represent longer-term capital investments.

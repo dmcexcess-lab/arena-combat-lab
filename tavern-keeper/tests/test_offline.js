@@ -7,7 +7,7 @@ function manualAdvance(roster,manager,seconds){
   const steps=Math.floor(seconds/C.OFFLINE_QUANTUM_SECONDS);
   for(let i=0;i<steps;i++){
     roster.tickTavern(C.OFFLINE_QUANTUM_SECONDS);
-    manager.tickAll(C.OFFLINE_QUANTUM_SECONDS);
+    manager.tickAll(C.OFFLINE_QUANTUM_SECONDS,roster);
     C.settleResolvedExpeditions(roster,manager);
   }
 }
@@ -38,7 +38,7 @@ const settleManager=new C.ExpeditionManager();
 const deployed=settleManager.deploy({hero:settleRoster.getHero('edrin'),seed:7,contract:C.CONTRACTS.briar_farm_wolves});
 assert.equal(deployed.ok,true);
 const fundsBefore=settleRoster.funds;
-const settledSummary=C.advanceOffline(settleRoster,settleManager,16*60);
+const settledSummary=C.advanceOffline(settleRoster,settleManager,61*60);
 assert.ok(settledSummary.settlements.length>=1);
 const result=settledSummary.settlements.find(x=>x.id===deployed.entry.id);
 assert.ok(result);
@@ -134,7 +134,7 @@ if(account.settlements.length){
   assert.ok(account.expeditionGold>0);
   assert.equal(
     Number(account.totalFundsGained.toFixed(4)),
-    Number((account.tavernGold+account.expeditionGold).toFixed(4))
+    Number((account.tavernGold+account.adventurerGold+account.expeditionGold).toFixed(4))
   );
 }
 

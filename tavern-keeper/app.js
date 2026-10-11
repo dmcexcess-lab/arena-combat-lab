@@ -135,6 +135,7 @@ function screenExists(name){
 function renderHeader(){
   $('funds').textContent=roster.funds.toFixed(1)+'g';
   $('tavernGps').textContent=roster.tavern.projectedGoldRate().toFixed(2);
+  $('adventurerGps').textContent=expeditions.activeEntries().reduce((sum,e)=>sum+e.expedition.goldRate,0).toFixed(2);
   $('prepTime').textContent=fmtPrepTime(roster.prepMinutes);
 }
 function renderVisibleScreen(name=currentScreen){
@@ -428,12 +429,12 @@ function renderOfflineReturn(){
   panel.classList.remove('hidden');
   $('offlineDuration').textContent=fmtAwayTime(r.appliedSeconds)+(r.capped?' · 8h cap':'');
   const capNote=(r.capped?'<p class="offline-cap">Offline catch-up is capped at 8 hours. '+fmtAwayTime(r.cappedSeconds)+' beyond the cap was not simulated.</p>':'')+
-    '<p class="offline-cap">Unattended tavern receipts: full for 15m, 25% until 1h, then no further tavern gold. Contracts still progress up to the 8h cap and pay when settled.</p>';
+    '<p class="offline-cap">Unattended tavern receipts: full for 15m, 25% until 1h, then no further tavern gold. Adventuring g/s reaches your treasury while away for up to 8h. Bonus gold and materials arrive when heroes return.</p>';
   const resolved=r.settlements.map(function(x){
     const mats=Object.entries(x.materials||{}).map(function(kv){return kv[1]+' '+(C.MATERIAL_NAMES[kv[0]]||kv[0]);}).join(', ')||'no materials';
     const gear=x.gearOutcome?(' · gear: '+(x.gearOutcome.recovered||[]).length+' recovered / '+(x.gearOutcome.lost||[]).length+' lost'):'';
     return '<div class="offline-resolution '+x.outcome+'"><div><strong>'+x.heroName+' — '+x.contract+'</strong><span>'+x.outcome.toUpperCase()+'</span></div>'+
-      '<small>+'+x.banked.toFixed(1)+'g · objective '+Math.round(x.objectiveScore)+'/100 · '+mats+gear+'</small></div>';
+      '<small>+'+x.banked.toFixed(1)+'g return · objective '+Math.round(x.objectiveScore)+'/100 · '+mats+gear+'</small></div>';
   }).join('')||'<p class="empty">No expedition resolved while you were away.</p>';
   const progress=r.progress.filter(function(p){return p.endState==='deployed';}).map(function(p){
     if(p.paused)return '<div><strong>'+p.heroName+' — '+p.contract+'</strong><span>Paused; no offline progress.</span></div>';
@@ -442,7 +443,8 @@ function renderOfflineReturn(){
   $('offlineSummary').innerHTML=capNote+
     '<div class="offline-metrics">'+
       '<div><span>Tavern income</span><strong>+'+r.tavernGold.toFixed(1)+'g</strong></div>'+
-      '<div><span>Expedition payouts</span><strong>+'+r.expeditionGold.toFixed(1)+'g</strong></div>'+
+      '<div><span>Adventurer wages earned</span><strong>+'+r.adventurerGold.toFixed(1)+'g</strong></div>'+
+      '<div><span>Return gold rewards</span><strong>+'+r.expeditionGold.toFixed(1)+'g</strong></div>'+
       '<div><span>Patrons served</span><strong>'+r.patronsServed+'</strong></div>'+
       '<div><span>Visitors</span><strong>'+r.merchantVisits+' merchants · '+r.applicantVisits+' applicants</strong></div>'+
       '<div><span>Resolved</span><strong>'+r.settlements.length+'</strong></div>'+
@@ -688,7 +690,7 @@ function renderContractBoard(){
   $('selectedContractThreat').textContent='Threat '+selectedContract.threat;
   $('selectedContractObjective').textContent=selectedContract.objective;
   $('selectedContractRisk').textContent=(h?C.threatAssessment(h,selectedContract)+' for '+h.name+' · ':'')+
-    selectedContract.kind+' · base +'+selectedContract.jobGps.toFixed(1)+' g/s · '+selectedContract.durationHint;
+    selectedContract.kind+' · +'+selectedContract.jobGps.toFixed(2)+' g/s while away · '+selectedContract.durationHint+' · +'+selectedContract.returnGold+'g on success';
   $('jobBoardProgress').textContent='Tavern Lv '+roster.tavernLevel()+' · Rep '+roster.tavernReputation()+' · '+availableIds.length+'/5 jobs';
 
   $('contractBoard').innerHTML=availableIds.map(function(id){
@@ -697,7 +699,7 @@ function renderContractBoard(){
     const mats=c.materialProfile.map(function(mat){return C.MATERIAL_NAMES[mat]||mat;}).join(' · ');
     return '<button class="board-contract '+(id===roster.selectedContractId?'selected':'')+'" data-contract="'+id+'">'+
       '<div><strong>'+c.name+'</strong><span>Threat '+c.threat+'</span></div>'+
-      '<em>Base +'+c.jobGps.toFixed(1)+' g/s · '+c.durationHint+' · '+assessment+'</em>'+
+      '<em>+'+c.jobGps.toFixed(2)+' g/s while away · '+c.durationHint+' · +'+c.returnGold+'g reward on success · '+assessment+'</em>'+
       '<p>'+c.brief+'</p>'+
       '<small>Objectives: '+c.subObjectives.join(' · ')+'</small>'+
       '<small>'+mats+'</small></button>';
@@ -930,7 +932,7 @@ function renderSummary(entry){
     '<div class="summary-grid"><div>Time<br><strong>'+fmtTime(s.time)+'</strong></div><div>Areas<br><strong>'+s.areasExplored+'/'+s.totalAreas+'</strong></div>'+
     '<div>Enemies<br><strong>'+s.enemiesDefeated+'</strong></div><div>Route progress<br><strong>'+s.objectiveProgress+'%</strong></div>'+
     '<div>Objective score<br><strong>'+s.objectiveScore+'/'+s.objectiveMax+'</strong></div><div>Objective bonus<br><strong>'+s.objectiveBonusGold.toFixed(2)+'g</strong></div>'+
-    '<div>Peak hero income<br><strong>'+s.peakGoldRate.toFixed(2)+' g/s</strong></div><div>Hero gold<br><strong>'+s.totalGold.toFixed(1)+'</strong></div>'+
+    '<div>Peak hero income<br><strong>'+s.peakGoldRate.toFixed(2)+' g/s</strong></div><div>Wages paid<br><strong>'+s.creditedWages.toFixed(1)+'g</strong></div><div>Return reward<br><strong>'+s.returnGold.toFixed(1)+'g</strong></div><div>Total hero earnings<br><strong>'+s.totalGold.toFixed(1)+'g</strong></div>'+
     '<div>Hero<br><strong>'+(s.heroAlive?'Alive':'Dead')+'</strong></div><div>Injuries<br><strong>'+s.injuries.length+'</strong></div></div>'+
     '<h3>Objective Scorecard</h3><div class="objective-events">'+objectiveEvents+'</div>'+
     progression+gearResult+'<h3>Recovered Materials</h3><div class="materials">'+mats+'</div><p class="banked">Current tavern funds: '+roster.funds.toFixed(1)+'g. Objective bonuses and performance pay earned before failure remain banked.</p>';
@@ -1067,7 +1069,7 @@ window.addEventListener('pagehide',function(){saveGame();});
 setInterval(function(){
   if(document.hidden)return;
   roster.tickTavern(0.25);
-  expeditions.tickAll(0.25);
+  expeditions.tickAll(0.25,roster);
   const settledCount=settleResolved();
   if(settledCount)selectAvailableHero();
   renderVisibleScreen();
