@@ -6,6 +6,7 @@
   <title>Tavern Keeper — Illustrated Fantasy Tavern</title>
   <link rel="stylesheet" href="styles.css">
   <link rel="stylesheet" href="art/scene.css">
+  <link rel="stylesheet" href="art/boss.css">
 </head>
 <body class="scene-mode">
 <header class="game-header">
@@ -17,6 +18,7 @@
     <div><span>Prep time</span><strong id="prepTime">0m</strong></div>
     <div><span>Save</span><strong id="saveState">Local</strong></div>
   </div>
+  <button id="bossAlert" class="boss-alert" type="button" hidden>Boss awaiting orders — Open Battle</button>
 </header>
 
 <section id="offlineReturn" class="panel offline-return hidden overlay-panel">
@@ -293,7 +295,33 @@
     <div class="bars"><label>Health<div><i id="hpBar"></i></div></label><label>Fatigue<div><i id="fatigueBar"></i></div></label><label>Hunger<div><i id="hungerBar"></i></div></label><label>Morale<div><i id="moraleBar"></i></div></label></div>
     <div class="current"><div><span>Location</span><strong id="location">—</strong></div><div><span>Moodlets</span><strong id="moodlets">—</strong></div></div>
     <div class="current"><div><span>Injuries</span><strong id="fieldInjuries">None</strong></div><div><span>Potions</span><strong id="fieldPotions">—</strong></div></div><div class="current"><div><span>Weapon condition</span><strong id="fieldWeapon">—</strong></div><div><span>Armor condition</span><strong id="fieldArmor">—</strong></div></div><div class="current"><div><span>Objective score</span><strong id="fieldObjectiveScore">—</strong></div><div><span>Objective state</span><strong id="fieldObjectiveState">—</strong></div></div>
-    <p class="economy-note">Expeditions run at one authoritative real-time speed. Tavern service, merchants and applicants continue while heroes are away.</p>
+    <p class="economy-note">Expeditions run at one authoritative real-time speed. Tavern service, merchants and applicants continue while heroes are away. Boss battles require your commands and pause only that expedition's clock and wages.</p>
+    <section id="bossBattle" class="boss-battle" aria-label="JRPG boss encounter" hidden>
+      <div class="boss-heading"><h3 id="bossTitle">BOSS BATTLE</h3><span id="bossRound">TURN 1</span></div>
+      <p id="bossHint" class="boss-hint">A powerful foe blocks the route. This expedition will wait for your commands.</p>
+      <div class="battle-stage">
+        <div class="battle-fighter battle-hero">
+          <svg class="battle-sprite" viewBox="0 0 160 160" aria-hidden="true"><use href="art/bosses.svg#battle-hero"></use></svg>
+          <strong id="bossHeroName">Mercenary</strong>
+          <div class="battle-health"><i id="bossHeroHpBar"></i></div><small id="bossHeroHp">—</small>
+        </div>
+        <div class="battle-vs">VS</div>
+        <div class="battle-fighter battle-enemy">
+          <svg id="bossEnemyArt" class="battle-sprite" viewBox="0 0 160 160" aria-hidden="true"><use id="bossEnemySprite" href="art/bosses.svg#battle-troll"></use></svg>
+          <strong id="bossEnemyName">Boss</strong>
+          <div class="battle-health enemy"><i id="bossEnemyHpBar"></i></div><small id="bossEnemyHp">—</small>
+        </div>
+      </div>
+      <p id="bossBattleLog" class="battle-log" aria-live="polite">Choose an action.</p>
+      <div class="battle-actions" id="bossActions" role="group" aria-label="Battle commands">
+        <button type="button" data-boss-action="attack">Attack</button>
+        <button type="button" data-boss-action="heavy">Power Strike</button>
+        <button type="button" data-boss-action="guard">Guard</button>
+        <button type="button" data-boss-action="potion">Potion</button>
+        <button type="button" data-boss-action="retreat">Retreat</button>
+      </div>
+      <p class="boss-info">Every command advances one combat turn. Guard reduces the next hit; the boss uses a crushing attack every third turn. Retreat may fail. Tavern service and other expeditions continue while this battle waits.</p>
+    </section>
     <h3>Event Feed</h3><div id="log" class="log"></div>
     <details><summary>Decision Debug</summary><pre id="debug"></pre></details>
   </section>

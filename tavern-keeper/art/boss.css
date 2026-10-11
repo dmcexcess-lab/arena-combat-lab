@@ -1,0 +1,29 @@
+/* Interactive JRPG boss stage. Bosses wait for input; the rest of the game remains live. */
+.game-header{flex-wrap:wrap}
+.boss-alert{flex:1 0 100%;position:relative;display:block;margin:8px auto 12px;max-width:720px;width:calc(100% - 24px);padding:13px 18px!important;min-height:48px;color:#fff2bf!important;background:linear-gradient(125deg,#953b31,#62272a)!important;border:2px solid #e8af65!important;box-shadow:0 0 14px #ffad5247,inset 0 0 12px #1f0e14!important;font-weight:800;letter-spacing:.03em;animation:bossPulse 2.4s ease-in-out infinite}
+.boss-alert[hidden],.boss-battle[hidden]{display:none!important}
+.boss-battle{margin:16px 0 24px;padding:clamp(12px,2.5vw,26px);border:4px ridge #d3a364;border-radius:14px;color:#f9e8c5;background:linear-gradient(180deg,#241b28,#302435 27%,#1b2027 65%,#241a1b);box-shadow:0 9px 28px #130a10cc,inset 0 0 24px #5f3b5344}
+.boss-heading{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.boss-heading h3{margin:0;font:700 clamp(20px,4vw,30px) Georgia,serif;letter-spacing:.06em;color:#ffe0a2;text-shadow:0 3px 1px #160e17}
+#bossRound{border:2px solid #c49e64;background:#382838;border-radius:7px;padding:7px 12px;font-weight:700;white-space:nowrap}
+.boss-hint{margin:12px 0;color:#dfc8b1;font-size:14px}
+.battle-stage{display:grid;grid-template-columns:minmax(0,1fr) 44px minmax(0,1fr);gap:8px;align-items:end;min-height:210px;padding:14px 8px;border-radius:12px;border:2px solid #96784b;background:radial-gradient(ellipse at 65% 5%,#8b5c6b44,transparent 50%),linear-gradient(180deg,#453248 0%,#252a34 56%,#4b463d 57%,#292b2b 100%);overflow:hidden}
+.battle-fighter{min-width:0;text-align:center;display:flex;flex-direction:column;align-items:center;gap:5px}
+.battle-sprite{height:clamp(106px,22vw,185px);width:min(100%,190px);filter:drop-shadow(0 9px 3px #0009);overflow:visible}
+.battle-fighter strong{font:700 clamp(14px,2vw,18px) Georgia,serif;max-width:100%;overflow-wrap:anywhere}
+.battle-fighter small{color:#e7dac1;font-variant-numeric:tabular-nums}
+.battle-vs{align-self:center;font:800 20px Georgia,serif;color:#e0b174;text-shadow:0 2px 4px #000}
+.battle-health{height:15px;width:min(100%,250px);background:#411d23;border:2px solid #caad7b;border-radius:7px;overflow:hidden;box-shadow:inset 0 1px 5px #11090b}
+.battle-health i{display:block;height:100%;width:100%;background:linear-gradient(#8bdd89,#2a8e53);transition:width .2s ease}
+.battle-health.enemy i{background:linear-gradient(#ffa37b,#ae3343)}
+.battle-log{min-height:43px;padding:11px 13px;border-left:4px solid #dba45f;background:#161922a8;border-radius:6px;color:#f4e2c0}
+.battle-actions{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px}
+.battle-actions button{white-space:normal;min-height:56px;padding:10px 8px!important;font-size:14px;font-weight:700;touch-action:manipulation}
+.battle-actions button:disabled{opacity:.48;cursor:not-allowed}
+.battle-actions button[data-boss-action=retreat]{border-color:#c37567!important}
+.boss-info{margin-bottom:0;color:#cbbda6;font-size:12px;line-height:1.5}
+.expedition-tab.awaiting-boss{border-color:#e3a65e!important;box-shadow:0 0 0 1px #c36355,inset 0 0 15px #5b222857}
+.expedition-tab.awaiting-boss span{color:#ffc888}
+@keyframes bossPulse{0%,100%{box-shadow:0 0 7px #ffad5247}50%{box-shadow:0 0 21px #ffb85caa}}
+@media(max-width:720px){.battle-actions{grid-template-columns:repeat(2,minmax(0,1fr))}.battle-actions button:last-child{grid-column:1/-1}.battle-stage{min-height:180px;padding:10px 5px}.boss-battle{padding:12px}.battle-sprite{height:115px}.boss-alert{font-size:13px}}
+@media(prefers-reduced-motion:reduce){.boss-alert{animation:none}.battle-health i{transition:none}}

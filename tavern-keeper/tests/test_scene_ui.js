@@ -125,6 +125,23 @@ assert.ok(app.includes('function sceneFigure(kind,index=0)'));
 assert.ok(app.includes('sceneActorHtml(kind,Number(String(key)'));
 assert.ok(app.includes("viewport.scrollTo({left:right?viewport.scrollWidth"));
 assert.ok(html.includes('aria-label="Scrollable top-down tavern and exterior"'));
+// Interactive bosses are implemented in the playable expedition screen, not a mockup.
+const bossArt=fs.readFileSync(path.join(root,'art','bosses.svg'),'utf8');
+const bossCss=fs.readFileSync(path.join(root,'art','boss.css'),'utf8');
+assert.ok(html.includes('href="art/boss.css"'));
+assert.ok(html.includes('id="bossBattle"'));
+assert.ok(html.includes('id="bossAlert"'));
+assert.ok(bossArt.includes('id="battle-troll"'));
+assert.ok(bossArt.includes('id="battle-stalker"'));
+assert.ok(bossArt.includes('id="battle-hero"'));
+assert.ok(bossCss.includes('.battle-actions'));
+assert.ok(bossCss.includes('@media(max-width:720px)'));
+for(const action of ['attack','heavy','guard','potion','retreat']){
+  assert.ok(html.includes('data-boss-action="'+action+'"'));
+}
+assert.ok(app.includes('function renderBossBattle(entry)'));
+assert.ok(app.includes('function bossCommand(action)'));
+assert.ok(app.includes('resolveBossTurn(action)'));
 
 console.log('PASS scene UI',JSON.stringify({
   screens:screenNames,

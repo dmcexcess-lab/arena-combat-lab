@@ -171,7 +171,7 @@
         fungus_cave:{id:'fungus_cave',name:'Fungus Cave',progress:18,next:['collapsed_lift'],optional:true,risk:0.72,reward:1.25,encounter:{enemy:'cave_stalker',count:[1,2]},materials:[['strange_gland',0.75],['medicinal_herb',0.75]]},
         lower_tunnel:{id:'lower_tunnel',name:'Lower Tunnel',progress:16,next:['collapsed_lift'],encounter:{enemy:'cave_crawler',count:[2,3]},materials:[['scrap_iron',0.65]]},
         collapsed_lift:{id:'collapsed_lift',name:'Collapsed Lift',progress:20,next:['brood_chamber','miner_gallery'],encounter:{enemy:'cave_stalker',count:[1,2]},materials:[['strange_gland',0.45],['scrap_iron',0.55]]},
-        brood_chamber:{id:'brood_chamber',name:'Brood Chamber',progress:18,next:['miner_gallery'],optional:true,risk:0.95,reward:1.55,encounter:{enemy:'cave_stalker',count:[2,2]},materials:[['strange_gland',0.9]]},
+        brood_chamber:{id:'brood_chamber',name:'Brood Chamber',progress:18,next:['miner_gallery'],optional:true,risk:0.95,reward:1.55,encounter:{enemy:'cave_stalker',count:[2,2],boss:true},materials:[['strange_gland',0.9]]},
         miner_gallery:{id:'miner_gallery',name:'Missing Miners',progress:24,next:['resolution'],encounter:{enemy:'cave_crawler',count:[2,3]},materials:[['medicinal_herb',0.5],['scrap_iron',0.8]]},
         resolution:{id:'resolution',name:'Miners Recovered',progress:0,next:[],encounter:null,materials:[]}
       }
@@ -506,8 +506,8 @@
   }
 
   class Expedition {
-    constructor({hero=heroTemplate(),seed=1,contract=CONTRACT,debug=false}={}){
-      this.rng=new RNG(seed); this.seed=seed; this.hero=heroTemplate(hero); this.contract=contract; this.debug=debug;
+    constructor({hero=heroTemplate(),seed=1,contract=CONTRACT,debug=false,interactiveBoss=false}={}){
+      this.rng=new RNG(seed); this.seed=seed; this.hero=heroTemplate(hero); this.contract=contract; this.debug=debug; this.interactiveBoss=!!interactiveBoss;
       deriveMoodlets(this.hero);
       this.state='deployed'; this.locationId=contract.start; this.elapsed=0; this.goldRate=Math.max(0,(Number(contract.jobGps)||1)*contractHeroIncomeMultiplier(this.hero,contract)); this.peakGoldRate=this.goldRate; this.gold=0; this.wageGold=0; this.creditedWages=0; this.returnGold=0;
       this.enemiesDefeated=0; this.areasExplored=[]; this.objectiveProgress=0; this.materials={}; this.log=[]; this.decisionDebug=[]; this.injuriesSuffered=0;
@@ -698,11 +698,88 @@
     }
     startCombat(enemyId,count,meta={}){
       const spec=ENEMIES[enemyId];
-      this.currentCombat={enemyId,enemies:Array.from({length:count},()=>({hp:spec.hp,maxHp:spec.hp})),round:0,distance:1,locationId:this.locationId,boss:!!meta.boss};
+      const waiting=!!meta.boss&&this.interactiveBoss;
+      this.currentCombat={enemyId,enemies:Array.from({length:count},()=>({hp:spec.hp,maxHp:spec.hp})),round:0,distance:1,locationId:this.locationId,boss:!!meta.boss,waiting};
       this.addLog(`${this.hero.name} spotted ${count} ${spec.name}${count>1?'s':''}.`,'combat');
+      if(waiting){this.addLog('BOSS ENCOUNTER: awaiting your command. Expedition time and wages are paused.','boss');return;}
       const d=this.choose(['fight','retreat']);
       this.addLog(`${this.hero.name} chose to ${d.action}.`,'decision',d.reasons);
       if(d.action==='retreat' && this.canRetreat()){ this.finish('retreat','avoided combat'); }
+    }
+    isBossPending(){return this.state==='deployed'&&!!this.currentCombat?.waiting;}
+    // One JRPG player command = one hero turn and, unless defeated, one enemy turn.
+    // No wall-clock time, hero wages or unattended combat elapse while choosing.
+    resolveBossTurn(action){
+      if(!this.isBossPending())return {ok:false,reason:'no boss awaiting orders'};
+      const c=this.currentCombat,h=this.hero,spec=ENEMIES[c.enemyId];
+      const allowed=['attack','heavy','guard','potion','retreat'];
+      if(!allowed.includes(action))return {ok:false,reason:'invalid battle action'};
+      if(action==='potion'&&h.supplies.healing_potion<=0)return {ok:false,reason:'no healing potions'};
+      if(action==='heavy'&&h.fatigue>=94)return {ok:false,reason:'too exhausted for a power strike'};
+      c.round++;
+      let defending=false;
+      if(action==='retreat'){
+        const chance=clamp(0.24+h.stats.finesse*0.018-h.fatigue*0.002,0.12,0.48);
+        if(this.rng.chance(chance)){
+          this.addLog(h.name+' escaped the boss battle.','boss');
+          this.currentCombat=null;
+          this.finish('retreat','withdrew from boss encounter');
+          return {ok:true,outcome:'retreat'};
+        }
+        this.addLog(h.name+' tried to escape, but '+spec.name+' blocked the way.','boss');
+      }else if(action==='potion'){
+        const heal=EQUIPMENT.healing_potion.heal+h.stats.wits;
+        const before=h.health;h.supplies.healing_potion--;
+        h.health=clamp(h.health+heal,0,h.maxHealth);
+        this.addLog(h.name+' drinks a potion: '+Math.round(before)+' → '+Math.round(h.health)+' HP.','boss');
+      }else if(action==='guard'){
+        defending=true;
+        h.fatigue=clamp(h.fatigue-3,0,100);
+        this.addLog(h.name+' raises a guard against the incoming blow.','boss');
+      }else{
+        const w=weapon(h),skill=w.kind==='ranged'?h.career.skills.ranged:h.career.skills.melee;
+        const target=c.enemies.find(e=>e.hp>0);
+        const heavy=action==='heavy',accuracy=clamp(.68+h.stats.finesse*.024+skill*.014+(w.kind==='ranged'?.06:0)-(heavy?.17:0)-injuryPenalty(h,'attackPenalty')*.25,.25,.97);
+        this.wearGear('weapon',heavy?3:1);
+        h.fatigue=clamp(h.fatigue+(heavy?6:2),0,100);
+        if(this.rng.chance(accuracy)){
+          const base=w.damage+h.stats.might*.82+h.stats.finesse*(w.kind==='ranged'?.65:.3)+skill*.7;
+          const damage=Math.max(1,Math.round((base*this.rng.range(.85,1.2)*(heavy?1.8:1)-spec.defense)*clamp(1-injuryPenalty(h,'attackPenalty'),.65,1)));
+          const actual=Math.min(target.hp,damage);target.hp-=damage;
+          this.addLog(h.name+(heavy?' lands a power strike':' attacks')+' for '+actual+' damage.','boss');
+          this.objectiveDamage(c.enemyId,actual,c);
+          if(target.hp<=0){this.enemiesDefeated++;this.objectiveKill(c.enemyId,c);this.bumpRate(.08+spec.xp*.035,'boss defeated');this.addLog(spec.name+' falls!','boss');}
+        }else this.addLog(h.name+(heavy?' missed the power strike.':' missed the attack.'),'boss');
+      }
+      if(!c.enemies.some(e=>e.hp>0)){
+        const cleared=clone(c);this.currentCombat=null;this._entered=true;
+        h.morale=clamp(h.morale+8,0,100);
+        this.objectiveCombatCleared(cleared);
+        this.addLog('Victory! '+h.name+' resumes the contract.','boss');
+        deriveMoodlets(h);
+        return {ok:true,outcome:'victory'};
+      }
+      // Every third enemy turn is a telegraphed heavy attack; Guard is the counter.
+      const enraged=c.round%3===0;
+      for(const enemy of c.enemies.filter(e=>e.hp>0)){
+        const hit=clamp(spec.accuracy-h.stats.finesse*.012-(defending?.15:0),.15,.94);
+        if(this.rng.chance(hit)){
+          const raw=this.rng.range(spec.damage[0],spec.damage[1])*(enraged?1.45:1);
+          const dmg=Math.max(1,Math.round((raw-effectiveDefense(h)*.6)*(defending?.25:1)));
+          h.health=Math.max(0,h.health-dmg);
+          this.wearGear('armor',1+(dmg>=10?1:0));
+          this.addLog(spec.name+(enraged?' unleashes a crushing blow':' strikes')+' for '+dmg+' damage.','boss');
+          if(!defending)this.maybeInjury(dmg,spec);
+          if(h.health<=0){
+            h.health=0;h.alive=false;this.currentCombat=null;
+            this.finish('death','slain by '+spec.name+' in boss combat');
+            return {ok:true,outcome:'death'};
+          }
+        }else this.addLog(spec.name+' misses '+h.name+'.','boss');
+      }
+      h.hunger=clamp(h.hunger+.5,0,100);
+      deriveMoodlets(h);
+      return {ok:true,outcome:'waiting'};
     }
     canRetreat(){ return this.objectiveProgress>5; }
     maybeInjury(damage,spec){
@@ -798,7 +875,7 @@
       const normal=nexts.find(n=>!n.optional) || nexts[nexts.length-1]; this.locationId=normal.id; this._entered=false;
     }
     tick(dt=1){
-      if(this.state!=='deployed')return;
+      if(this.state!=='deployed'||this.isBossPending())return;
       dt=clamp(dt,0.05,900);
       const interval=contractActionInterval(this.contract);
       const duration=Math.max(interval,Number(this.contract.durationSeconds)||interval*30);
@@ -847,12 +924,12 @@
       return {contractId:this.contract.id,contract:this.contract.name,threat:this.contract.threat,kind:this.contract.kind,jobGps:this.contract.jobGps||0,durationSeconds:this.contract.durationSeconds||0,outcome:this.state,reason:this.retreatReason,time:this.elapsed,enemiesDefeated:this.enemiesDefeated,areasExplored:this.areasExplored.length,totalAreas:Object.keys(this.contract.locations).length-1,objectiveProgress:Math.round(this.objectiveProgress),objectiveScore:Math.round(this.objectiveScore),objectiveMax:this.objectiveMax,objectiveBonusGold:Number(this.objectiveBonusGold.toFixed(2)),wageGold:this.wageGold,creditedWages:this.creditedWages,returnGold:this.returnGold,objectiveEvents:clone(this.objectiveEvents),objectiveState:clone(this.objectiveState),peakGoldRate:this.peakGoldRate,totalGold:this.gold,materials:clone(this.materials),heroAlive:this.hero.alive,health:this.hero.health,fatigue:this.hero.fatigue,hunger:this.hero.hunger,morale:this.hero.morale,injuries:clone(this.hero.injuries),moodlets:clone(this.hero.moodlets),gearDurability:clone(this.hero.gearDurability),gearOutcome:clone(this.gearOutcome),injuriesSuffered:this.injuriesSuffered,seed:this.seed};
     }
     snapshot(){
-      return {version:7,contractId:this.contract.id,seed:this.seed,rngState:this.rng.state,hero:clone(this.hero),state:this.state,locationId:this.locationId,elapsed:this.elapsed,actionClock:this.actionClock,missionComplete:this.missionComplete,goldRate:this.goldRate,peakGoldRate:this.peakGoldRate,gold:this.gold,wageGold:this.wageGold,creditedWages:this.creditedWages,returnGold:this.returnGold,enemiesDefeated:this.enemiesDefeated,areasExplored:clone(this.areasExplored),objectiveProgress:this.objectiveProgress,objectiveScore:this.objectiveScore,objectiveMax:this.objectiveMax,objectiveBonusGold:this.objectiveBonusGold,objectiveEvents:clone(this.objectiveEvents),objectiveAwards:clone(this.objectiveAwards),objectiveState:clone(this.objectiveState),materials:clone(this.materials),log:clone(this.log),decisionDebug:clone(this.decisionDebug),currentCombat:clone(this.currentCombat),retreatReason:this.retreatReason,lastDecision:clone(this.lastDecision),gearOutcome:clone(this.gearOutcome),entered:this._entered,resolution:clone(this._resolution),injuriesSuffered:this.injuriesSuffered};
+      return {version:8,interactiveBoss:this.interactiveBoss,contractId:this.contract.id,seed:this.seed,rngState:this.rng.state,hero:clone(this.hero),state:this.state,locationId:this.locationId,elapsed:this.elapsed,actionClock:this.actionClock,missionComplete:this.missionComplete,goldRate:this.goldRate,peakGoldRate:this.peakGoldRate,gold:this.gold,wageGold:this.wageGold,creditedWages:this.creditedWages,returnGold:this.returnGold,enemiesDefeated:this.enemiesDefeated,areasExplored:clone(this.areasExplored),objectiveProgress:this.objectiveProgress,objectiveScore:this.objectiveScore,objectiveMax:this.objectiveMax,objectiveBonusGold:this.objectiveBonusGold,objectiveEvents:clone(this.objectiveEvents),objectiveAwards:clone(this.objectiveAwards),objectiveState:clone(this.objectiveState),materials:clone(this.materials),log:clone(this.log),decisionDebug:clone(this.decisionDebug),currentCombat:clone(this.currentCombat),retreatReason:this.retreatReason,lastDecision:clone(this.lastDecision),gearOutcome:clone(this.gearOutcome),entered:this._entered,resolution:clone(this._resolution),injuriesSuffered:this.injuriesSuffered};
     }
     static fromSnapshot(data,{contract=null,debug=false}={}){
       if(!data||!data.hero)throw new Error('invalid expedition snapshot');
       contract=contract||CONTRACTS[data.contractId]||CONTRACT;
-      const e=new Expedition({hero:data.hero,seed:data.seed||1,contract,debug});
+      const e=new Expedition({hero:data.hero,seed:data.seed||1,contract,debug,interactiveBoss:!!data.interactiveBoss});
       e.rng.state=(data.rngState>>>0)||e.rng.state;
       e.state=data.state||'deployed'; e.locationId=data.locationId||contract.start; e.elapsed=Number(data.elapsed)||0; e.actionClock=Math.max(0,Number(data.actionClock)||0); e.missionComplete=!!data.missionComplete;
       e.goldRate=clamp(Number(data.goldRate)||0,0,(contract.jobGps||1)*CONTRACT_PERFORMANCE_RATE_CAP); e.peakGoldRate=Number(data.peakGoldRate)||0; e.gold=Number(data.gold)||0; e.wageGold=Math.max(0,Number(data.wageGold)||0); e.creditedWages=clamp(Number(data.creditedWages)||0,0,e.wageGold); e.returnGold=Math.max(0,Number(data.returnGold)||0);
@@ -874,7 +951,7 @@
       this.entries=[];
       for(const raw of data.entries||[]){
         if(!raw||!raw.expedition)continue;
-        const expedition=raw.expedition instanceof Expedition?raw.expedition:Expedition.fromSnapshot(raw.expedition,{debug:true});
+        const expedition=raw.expedition instanceof Expedition?raw.expedition:Expedition.fromSnapshot(Object.assign({interactiveBoss:true},raw.expedition),{debug:true});
         const id=raw.id||('exp_'+this.nextId++);
         this.entries.push({id,heroId:raw.heroId||expedition.hero.id,settled:!!raw.settled,settlement:clone(raw.settlement||null),expedition});
         const numeric=Number(String(id).replace(/\D/g,''));
@@ -889,7 +966,7 @@
     deploy({hero,seed=1,contract=CONTRACT}={}){
       if(!hero||!hero.alive)return{ok:false,reason:'hero unavailable'};
       if(this.hasHero(hero.id))return{ok:false,reason:'hero already deployed'};
-      const expedition=new Expedition({hero,seed,contract,debug:true});
+      const expedition=new Expedition({hero,seed,contract,debug:true,interactiveBoss:true});
       const entry={id:'exp_'+this.nextId++,heroId:hero.id,settled:false,settlement:null,expedition};
       this.entries.push(entry); this.selectedId=entry.id; return{ok:true,entry};
     }
@@ -1933,7 +2010,7 @@
         heroId:start.heroId,
         heroName:start.heroName,
         contract:start.contract,
-        paused:start.speed===0&&start.state==='deployed',
+        paused:exp.isBossPending(),
         startState:start.state,
         endState:exp.state,
         simulatedSeconds:Math.max(0,exp.elapsed-start.elapsed),
@@ -1971,7 +2048,7 @@
       progress,
       activeStarted:Array.from(before.entries.values()).filter(x=>x.state==='deployed').length,
       activeRemaining:manager.activeEntries().length,
-      pausedRemaining:manager.activeEntries().filter(x=>x.speed===0).length
+      pausedRemaining:manager.activeEntries().filter(x=>x.expedition.isBossPending()).length
     };
   }
 

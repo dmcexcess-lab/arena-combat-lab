@@ -1,0 +1,47 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 160">
+<defs>
+  <linearGradient id="armor" x2="1" y2="1"><stop stop-color="#d9dbcc"/><stop offset=".5" stop-color="#7e9490"/><stop offset="1" stop-color="#394a50"/></linearGradient>
+  <linearGradient id="troll" x2=".7" y2="1"><stop stop-color="#738d68"/><stop offset=".55" stop-color="#4f6858"/><stop offset="1" stop-color="#293b37"/></linearGradient>
+  <linearGradient id="stalker" x2="1" y2=".5"><stop stop-color="#b78b80"/><stop offset=".6" stop-color="#79586c"/><stop offset="1" stop-color="#392e4d"/></linearGradient>
+  <radialGradient id="shadow"><stop stop-color="#020607" stop-opacity=".8"/><stop offset="1" stop-color="#020607" stop-opacity="0"/></radialGradient>
+</defs>
+<symbol id="battle-hero" viewBox="0 0 160 160">
+<ellipse cx="80" cy="145" rx="59" ry="12" fill="url(#shadow)"/>
+<path d="M58 100L46 144 67 146 81 113 93 146 116 143 103 98Z" fill="#4d5d61" stroke="#27323b" stroke-width="5"/>
+<path d="M47 69Q80 53 115 68L123 113Q78 131 39 113Z" fill="url(#armor)" stroke="#2a3535" stroke-width="6"/>
+<path d="M80 68V115M43 89L116 89" stroke="#d6b476" stroke-width="6"/>
+<path d="M55 58L35 72 26 116 43 120 60 83M105 60L127 75 139 111 122 118 99 81" fill="#77908c" stroke="#374747" stroke-width="6"/>
+<rect x="66" y="49" width="28" height="27" rx="10" fill="#d8aa80" stroke="#4a4036" stroke-width="4"/>
+<path d="M56 53Q53 12 81 12Q110 12 107 53L97 62 94 37 65 37 64 60Z" fill="#88989a" stroke="#2d3d41" stroke-width="6"/>
+<path d="M62 35H100" stroke="#f6d79c" stroke-width="6"/><path d="M65 55H94" stroke="#2b2c31" stroke-width="5"/>
+<path d="M129 99L152 25 147 7 135 25 118 95Z" fill="#c7d1cb" stroke="#4b5451" stroke-width="4"/>
+<path d="M112 99L151 109" stroke="#bd9459" stroke-width="7"/>
+<path d="M21 82L10 98 17 122 37 125 50 99 40 82Z" fill="#986c3f" stroke="#3e2d22" stroke-width="5"/>
+<path d="M22 95L39 112M38 89L21 111" stroke="#eed5a1" stroke-width="4"/>
+</symbol>
+<symbol id="battle-troll" viewBox="0 0 160 160">
+<ellipse cx="80" cy="146" rx="67" ry="13" fill="url(#shadow)"/>
+<path d="M43 101L34 143 62 146 76 118 85 145 116 146 123 103" fill="#385248" stroke="#243a35" stroke-width="7"/>
+<path d="M40 52Q24 63 22 96L36 125 70 132 117 122 139 91 119 55 92 47Z" fill="url(#troll)" stroke="#283c35" stroke-width="8"/>
+<path d="M30 70L11 90 8 124 30 132 47 111M129 66L150 85 156 125 132 135 111 112" fill="#587567" stroke="#263e34" stroke-width="7"/>
+<path d="M45 58Q35 12 73 16 113 3 120 55L113 91 89 105 62 97Z" fill="#829a74" stroke="#384a3d" stroke-width="7"/>
+<path d="M43 55L17 31 17 64 45 74M118 49L144 26 145 64 117 72" fill="#647e64" stroke="#34493b" stroke-width="6"/>
+<path d="M57 64L70 62 66 69 57 70ZM93 63L106 60 108 69 97 70Z" fill="#ffb956" stroke="#403b30" stroke-width="3"/>
+<path d="M65 84Q82 77 104 81L96 94 77 98Z" fill="#26392f" stroke="#304039" stroke-width="3"/>
+<path d="M72 84L77 96 83 84M90 83L97 94 100 82" fill="#e9ddb0"/>
+<path d="M111 8L134 111" stroke="#594632" stroke-width="15" stroke-linecap="round"/>
+<path d="M113 16L137 9 145 33 118 45Z" fill="#8a8d78" stroke="#404537" stroke-width="5"/>
+<path d="M48 108L70 112M103 113L122 107" stroke="#aeb590" stroke-width="6"/>
+</symbol>
+<symbol id="battle-stalker" viewBox="0 0 160 160">
+<ellipse cx="79" cy="143" rx="64" ry="12" fill="url(#shadow)"/>
+<path d="M24 121Q33 104 48 111L55 143H37Z M99 117Q126 99 136 120L126 145H108Z" fill="#664d63" stroke="#342b41" stroke-width="6"/>
+<path d="M49 70Q69 49 105 63L129 105 102 127 48 127 26 102Z" fill="url(#stalker)" stroke="#46364f" stroke-width="8"/>
+<path d="M53 64L34 18 62 45 78 13 99 45 124 14 113 66" fill="#937789" stroke="#4f4055" stroke-width="7"/>
+<path d="M37 78Q38 27 75 38 124 25 128 77L110 104 69 108Z" fill="#9c7f87" stroke="#4e4057" stroke-width="6"/>
+<path d="M56 74L71 67 73 77 63 81ZM91 70L111 65 107 78 95 80Z" fill="#efbc79" stroke="#54445a" stroke-width="3"/>
+<path d="M68 92Q90 87 111 90L92 103 77 104Z" fill="#4d3748"/><path d="M73 93L78 102 84 93M95 92L101 101 105 91" fill="#d8c29d"/>
+<path d="M48 93L19 99 4 132 27 141 57 120M114 95L144 104 158 128 133 142 103 124" fill="#876779" stroke="#493a4f" stroke-width="6"/>
+<path d="M28 122L7 144M39 128L35 155M134 121L156 144M123 130L126 156" stroke="#e8d0a8" stroke-width="6"/>
+</symbol>
+</svg>

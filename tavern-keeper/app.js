@@ -135,7 +135,10 @@ function screenExists(name){
 function renderHeader(){
   $('funds').textContent=roster.funds.toFixed(1)+'g';
   $('tavernGps').textContent=roster.tavern.projectedGoldRate().toFixed(2);
-  $('adventurerGps').textContent=expeditions.activeEntries().reduce((sum,e)=>sum+e.expedition.goldRate,0).toFixed(2);
+  $('adventurerGps').textContent=expeditions.activeEntries().reduce((sum,e)=>sum+(e.expedition.isBossPending()?0:e.expedition.goldRate),0).toFixed(2);
+  const pending=expeditions.activeEntries().filter(e=>e.expedition.isBossPending());
+  $('bossAlert').hidden=pending.length===0;
+  if(pending.length)$('bossAlert').textContent=(pending.length>1?pending.length+' bosses':'BOSS')+' awaiting orders — Open Battle';
   $('prepTime').textContent=fmtPrepTime(roster.prepMinutes);
 }
 function renderVisibleScreen(name=currentScreen){
@@ -429,7 +432,7 @@ function renderOfflineReturn(){
   panel.classList.remove('hidden');
   $('offlineDuration').textContent=fmtAwayTime(r.appliedSeconds)+(r.capped?' · 8h cap':'');
   const capNote=(r.capped?'<p class="offline-cap">Offline catch-up is capped at 8 hours. '+fmtAwayTime(r.cappedSeconds)+' beyond the cap was not simulated.</p>':'')+
-    '<p class="offline-cap">Unattended tavern receipts: full for 15m, 25% until 1h; after a total party wipe, a small 10% recovery trickle remains until the 8h cap. Adventuring g/s reaches your treasury while away for up to 8h. Bonus gold and materials arrive when heroes return.</p>';
+    '<p class="offline-cap">Unattended tavern receipts: full for 15m, 25% until 1h; after a total party wipe, a small 10% recovery trickle remains until the 8h cap. Adventuring g/s reaches your treasury while away for up to 8h. Boss encounters stop only the affected expedition until you choose commands. Bonus gold and materials arrive when heroes return.</p>';
   const resolved=r.settlements.map(function(x){
     const mats=Object.entries(x.materials||{}).map(function(kv){return kv[1]+' '+(C.MATERIAL_NAMES[kv[0]]||kv[0]);}).join(', ')||'no materials';
     const gear=x.gearOutcome?(' · gear: '+(x.gearOutcome.recovered||[]).length+' recovered / '+(x.gearOutcome.lost||[]).length+' lost'):'';
@@ -437,7 +440,7 @@ function renderOfflineReturn(){
       '<small>+'+x.banked.toFixed(1)+'g return · objective '+Math.round(x.objectiveScore)+'/100 · '+mats+gear+'</small></div>';
   }).join('')||'<p class="empty">No expedition resolved while you were away.</p>';
   const progress=r.progress.filter(function(p){return p.endState==='deployed';}).map(function(p){
-    if(p.paused)return '<div><strong>'+p.heroName+' — '+p.contract+'</strong><span>Paused; no offline progress.</span></div>';
+    if(p.paused)return '<div><strong>'+p.heroName+' — '+p.contract+'</strong><span>Boss awaiting your orders — select this hero on Road Map to fight.</span></div>';
     return '<div><strong>'+p.heroName+' — '+p.contract+'</strong><span>+'+p.scoreGained+' score · +'+p.goldGained.toFixed(1)+'g · '+fmtAwayTime(p.simulatedSeconds)+' simulated</span></div>';
   }).join('')||'<p class="empty">No expedition remains active.</p>';
   $('offlineSummary').innerHTML=capNote+
@@ -887,8 +890,8 @@ function renderExpeditionTabs(){
   }
   $('expeditionTabs').innerHTML=entries.map(function(entry){
     const e=entry.expedition,h=e.hero;
-    const state=e.state==='deployed'?'ACTIVE':e.state.toUpperCase();
-    return '<button class="expedition-tab '+(entry.id===expeditions.selectedId?'selected':'')+' '+e.state+'" data-expedition="'+entry.id+'">'+
+    const state=e.isBossPending()?'BOSS WAITING':e.state==='deployed'?'ACTIVE':e.state.toUpperCase();
+    return '<button class="expedition-tab '+(entry.id===expeditions.selectedId?'selected':'')+' '+e.state+(e.isBossPending()?' awaiting-boss':'')+'" data-expedition="'+entry.id+'">'+
       '<div><strong>'+h.name+'</strong><span>'+state+'</span></div>'+
       '<small>'+e.contract.name+' · score '+Math.round(e.objectiveScore||0)+'/100 · '+e.gold.toFixed(1)+'g</small></button>';
   }).join('');
@@ -939,10 +942,47 @@ function renderSummary(entry){
   $('returnHome').disabled=!entry.settled;
 }
 
+function renderBossBattle(entry){
+  const container=$('bossBattle');
+  const exp=entry?.expedition;
+  const waiting=!!exp?.isBossPending();
+  container.hidden=!waiting;
+  if(!waiting)return;
+  const h=exp.hero,c=exp.currentCombat,spec=C.ENEMIES[c.enemyId],alive=c.enemies.filter(e=>e.hp>0);
+  const hp=alive.reduce((n,e)=>n+Math.max(0,e.hp),0);
+  const max=c.enemies.reduce((n,e)=>n+e.maxHp,0);
+  $('bossTitle').textContent=spec.name+' — BOSS BATTLE';
+  $('bossRound').textContent='TURN '+(c.round+1);
+  $('bossHint').textContent=exp.contract.name+' · '+(alive.length===1?'1 enemy remains':alive.length+' enemies remain')+' · Expedition time and income are paused until you issue a command.';
+  $('bossHeroName').textContent=h.name;
+  $('bossEnemyName').textContent=spec.name+(c.enemies.length>1?' × '+c.enemies.length:'');
+  $('bossHeroHp').textContent=Math.ceil(h.health)+' / '+h.maxHealth+' HP';
+  $('bossEnemyHp').textContent=Math.ceil(hp)+' / '+max+' HP';
+  $('bossHeroHpBar').style.width=Math.max(0,h.health/h.maxHealth*100)+'%';
+  $('bossEnemyHpBar').style.width=Math.max(0,hp/max*100)+'%';
+  $('bossEnemySprite').setAttribute('href','art/bosses.svg#'+(c.enemyId==='troll'?'battle-troll':'battle-stalker'));
+  const recent=exp.log.filter(x=>x.type==='boss').slice(-2).map(x=>x.text).join(' · ');
+  $('bossBattleLog').textContent=recent||'Choose a battle command.';
+  for(const button of $('bossActions').querySelectorAll('[data-boss-action]')){
+    button.disabled=(button.dataset.bossAction==='potion'&&!h.supplies.healing_potion)||
+      (button.dataset.bossAction==='heavy'&&h.fatigue>=94);
+    if(button.dataset.bossAction==='potion')button.textContent='Potion ('+(h.supplies.healing_potion||0)+')';
+  }
+}
+function bossCommand(action){
+  const entry=focusedEntry();
+  if(!entry||!entry.expedition.isBossPending())return;
+  const result=entry.expedition.resolveBossTurn(action);
+  if(!result.ok){$('bossBattleLog').textContent=result.reason;return;}
+  settleResolved();
+  renderAll();
+  saveGame();
+}
 function renderExpedition(){
   renderExpeditionTabs();
   const entry=focusedEntry();
   if(!entry){
+    renderBossBattle(null);
     $('status').textContent='READY';
     $('activeHeroBanner').textContent='No active expedition.';
     ['hp','gps','gold','progress','location','moodlets','fieldInjuries','fieldPotions','fieldWeapon','fieldArmor','fieldObjectiveScore','fieldObjectiveState'].forEach(function(id){$(id).textContent='—';});
@@ -953,8 +993,9 @@ function renderExpedition(){
     return;
   }
   const exp=entry.expedition,h=exp.hero,loc=exp.contract.locations[exp.locationId];
+  renderBossBattle(entry);
   $('activeHeroBanner').textContent=h.name+' · '+exp.contract.name+' · Threat '+exp.contract.threat+' · career rank '+h.career.rank+' · seed '+exp.seed;
-  $('status').textContent=exp.state.toUpperCase();
+  $('status').textContent=exp.isBossPending()?'BOSS WAITING':exp.state.toUpperCase();
   $('hp').textContent=Math.round(h.health)+'/'+h.maxHealth;
   $('gps').textContent=exp.goldRate.toFixed(2);
   $('gold').textContent=exp.gold.toFixed(1);
@@ -1043,6 +1084,15 @@ $('recruitApplicant').addEventListener('click',function(){
   if(r.ok){renderAll();saveGame();}
 });
 $('returnHome').addEventListener('click',closeReport);
+$('bossAlert').addEventListener('click',function(){
+  const pending=expeditions.activeEntries().find(e=>e.expedition.isBossPending());
+  if(!pending)return;
+  expeditions.select(pending.id);
+  openScreen('expeditions');
+});
+document.querySelectorAll('[data-boss-action]').forEach(button=>{
+  button.addEventListener('click',()=>bossCommand(button.dataset.bossAction));
+});
 $('newTavern').addEventListener('click',function(){localStorage.removeItem(SAVE_KEY);newGame();$('summaryBody').innerHTML='<p>New tavern started.</p>';renderAll();renderOfflineReturn();openScreen('scene');saveGame();});
 $('closeOfflineSummary').addEventListener('click',function(){offlineReturn=null;renderOfflineReturn();});
 $('jobHeroSelect').addEventListener('change',function(){

@@ -1,5 +1,13 @@
 # Arena Combat Lab — Changelog
 
+## 2026-10-11 — Tavern Keeper: Player-Controlled JRPG Boss Battles
+- Converted flagged encounters into an interactive turn-based RPG panel for real browser-game deployments: the required Wren Bridge Troll and optional Blackroot Brood Chamber miniboss.
+- Paused only the affected expedition's action timer and income until player input, while food/drink sales and other expeditions continue normally through offline catch-up.
+- Added Attack, Power Strike, Guard, Potion and risk-based Retreat choices, boss attack telegraphs, gear durability, injury/death, objective rewards and route continuation.
+- Added a persistent battle-ready alert, illustrated vector boss/hero sprites, responsive arena, HP bars and battle logs, without altering non-boss autonomous combat.
+- Preserved boss HP/turn and player-wait state in version 8 expedition snapshots; existing saves migrate without a forced reset.
+- Expanded CI with interactive boss simulation, pause persistence and scene-art wiring checks; deploy packages `bosses.svg` and `boss.css`.
+
 Current truth: `PROJECT_CONTEXT.md` · Future: `ROADMAP.md`
 
 ## 2026-10-11 — Tavern Keeper: Mercenary Risk/Reward and Bankruptcy Recovery

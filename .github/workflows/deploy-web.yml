@@ -64,7 +64,7 @@ jobs:
           set -euxo pipefail
           node --check tavern-keeper/core.js
           node --check tavern-keeper/app.js
-          python3 -c 'import xml.etree.ElementTree as ET; [ET.parse("tavern-keeper/art/"+f) for f in ("room.svg","props.svg","figures.svg")]'
+          python3 -c 'import xml.etree.ElementTree as ET; [ET.parse("tavern-keeper/art/"+f) for f in ("room.svg","props.svg","figures.svg","bosses.svg")]'
           node tavern-keeper/tests/test_core.js
           node tavern-keeper/tests/test_preparation.js
           node tavern-keeper/tests/test_roster.js
@@ -83,6 +83,7 @@ jobs:
           node tavern-keeper/tests/test_economy_balance.js
           node tavern-keeper/tests/test_income_streams.js
           node tavern-keeper/tests/test_mercenary_risk.js
+          node tavern-keeper/tests/test_boss_battle.js
           node tavern-keeper/tests/test_scene_ui.js
 
       - name: Export Web builds and reject script errors
@@ -111,6 +112,8 @@ jobs:
           test -s build/web/tavern-keeper/art/props.svg
           test -s build/web/tavern-keeper/art/figures.svg
           test -s build/web/tavern-keeper/art/scene.css
+          test -s build/web/tavern-keeper/art/bosses.svg
+          test -s build/web/tavern-keeper/art/boss.css
           test -f build/web/tavern-keeper/index.html
           test -f build/web/tavern-keeper/core.js
           touch build/web/.nojekyll

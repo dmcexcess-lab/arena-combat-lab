@@ -79,6 +79,13 @@ Jobs advertise a base contract income rate and listed duration:
 
 Adventurer salary enters the tavern treasury continuously while the hero is away. Extra gold and materials come back only upon expedition settlement. Autonomous travel, combat and objective events still occur during the job and can affect performance rewards. Death or retreat ends the job early. Once the route is complete, a surviving hero remains away on the return journey until the listed duration completes. The hardest 8-hour job matches the offline progression cap.
 
+## Interactive boss encounters
+Some contracts culminate in **player-controlled JRPG-style boss battles**. The required Bridge Troll battle in **Wren Bridge**, and the optional two-stalker Brood Chamber boss in **Blackroot Mine**, interrupt that expedition when reached. On screen, a visible alert opens the Road Map's battle arena. Commands are Attack, Power Strike, Guard, Potion, and Retreat. Each action resolves one combat turn, followed by the enemy's response; every third enemy turn is a powerful blow that can be mitigated by guarding.
+
+**The boss waits for you:** only that expedition freezes its timer, wages and autonomous actions while the player is away or elsewhere in the UI. Other heroes remain on the road and patron sales keep running. This hold persists across saving, closing the browser and offline catch-up; the player cannot accumulate free boss-period g/s. Victory resumes automatic travel, and deaths/retreats still use the existing permanent loss and partial-reward mechanics.
+
+The boss display uses separate illustrated vector character assets, with large mobile battle buttons and reduced-motion support. The implementation is reusable for other `encounter.boss` markers.
+
 ## Core game
 
 The underlying simulation remains: persistent autonomous heroes, permanent death, preparation, five contract types, concurrent expeditions, crafting, merchants, recruitment, facilities, equipment durability, 8-hour offline progress and the persistent Chronicle.
@@ -96,6 +103,7 @@ Run all existing simulation suites plus:
 ```bash
 node tests/test_release.js
 node tests/test_income_streams.js
+node tests/test_boss_battle.js
 node tests/test_scene_ui.js
 ```
 

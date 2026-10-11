@@ -1,7 +1,7 @@
 # CURRENT — Tavern Keeper
 
 ## Current operation
-Major Change 8 — Tavern Recovery Floor, Mercenary Capital and Risk-Scaled G/s
+Major Change 9 — Interactive JRPG Boss Encounters
 
 ## Status
 Major Change 4 was implemented as a deliberate new progression generation. The browser save key changes, so this build force-starts Tavern Keeper from a fresh tavern rather than importing the prior three-founder/speed-control economy.
@@ -152,3 +152,12 @@ node tests/test_scene_ui.js
 
 ## NEXT OPERATION
 Test the actual economy on desktop and phone: 1h/2h base income + return rewards, high-tier selected-hero salary quotes, expensive starter equipment/recruitment, death terminating income, and bankruptcy recovery from patron sales with 8h offline limits. Continue balancing upper-tier outcome rates and upgrade cadence only from measured results.
+
+## Major Change 9 — player-controlled boss battles (2026-10-11)
+- Boss encounters marked `encounter.boss` are now player-controlled during real browser gameplay, not ordinary autonomous combat. Wren Bridge has a required troll boss; Blackroot Mine's optional Brood Chamber has a two-stalker miniboss. Other enemies and optional Wren Lair troll remain autonomous.
+- When an expedition reaches a boss, it enters `isBossPending()`: **that expedition's duration, wages and autonomous decisions pause** until the player resolves combat. The tavern, other expeditions, visiting merchants, recruitment and the offline 8h world simulation continue at normal speed.
+- A persistent alert opens Road Map and selects the waiting expedition. The JRPG battle panel shows hero/boss figures, health bars, combat feedback and five commands: Attack, Power Strike, Guard, Potion and Retreat. Each valid command advances one hero/enemy turn, with the boss's third-turn crushing attack made visible; Retreat can fail. Consumables, injuries, gear wear and permanent death are real and shared with the hero roster.
+- Victory records the existing boss objective and resumes the original route; on death or retreat, original career/settlement/gear-loss outcomes apply. No extra speed control, bypass, or free g/s while stopped.
+- Boss turn, enemy HP, RNG, equipment/supplies and waiting state serialize with the expedition (snapshot v8). Reopening or long absence cannot auto-resolve the fight. Older in-flight expedition saves can still load.
+- The browser scene adds `art/bosses.svg` and `art/boss.css`; GitHub Pages includes the new files. The CI suite `test_boss_battle.js` verifies pause/salary freeze, other active work, offline waiting, deterministic snapshot recovery, command validity, victory, optional mine boss, and alert/UI wiring. Standalone noninteractive simulation remains automatic for seeded game-balance testing.
+- Remaining manual acceptance: iPhone Safari touch comfort and visual clarity, several boss attempts with ordinary mercenaries, reload while mid-battle, and balancing hero actions versus boss damage.
