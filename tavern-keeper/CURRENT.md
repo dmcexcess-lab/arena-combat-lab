@@ -1,7 +1,7 @@
 # CURRENT — Tavern Keeper
 
 ## Current operation
-Major Change 9 — Interactive JRPG Boss Encounters
+Major Change 10 — Save Profiles & Safe Restart
 
 ## Status
 Major Change 4 was implemented as a deliberate new progression generation. The browser save key changes, so this build force-starts Tavern Keeper from a fresh tavern rather than importing the prior three-founder/speed-control economy.
@@ -161,3 +161,13 @@ Test the actual economy on desktop and phone: 1h/2h base income + return rewards
 - Boss turn, enemy HP, RNG, equipment/supplies and waiting state serialize with the expedition (snapshot v8). Reopening or long absence cannot auto-resolve the fight. Older in-flight expedition saves can still load.
 - The browser scene adds `art/bosses.svg` and `art/boss.css`; GitHub Pages includes the new files. The CI suite `test_boss_battle.js` verifies pause/salary freeze, other active work, offline waiting, deterministic snapshot recovery, command validity, victory, optional mine boss, and alert/UI wiring. Standalone noninteractive simulation remains automatic for seeded game-balance testing.
 - Remaining manual acceptance: iPhone Safari touch comfort and visual clarity, several boss attempts with ordinary mercenaries, reload while mid-battle, and balancing hero actions versus boss damage.
+
+## Major Change 10 — local profiles, restart and save-slot management (2026-10-11)
+- Added a top-header **Profiles / Restart** button, also accessible from the Heroes' Table. The manager is a separate overlay that does not modify the eight physical tavern destinations or pause game simulation.
+- Three independent local browser saves, with customizable profile names, snapshot metadata (funds, living heroes, active expeditions, last saved), profile switching, new game in an unused slot, and separate restart/delete operations.
+- **Restart** preserves the named slot but resets its gameplay to the intended one-founder/30g fresh start. **Delete** frees the slot; deleting the last profile is disallowed. Both destructive actions require in-game confirmation. Other profiles remain untouched.
+- The existing save at `tavernKeeper.reputationBoard.v1` is copied into Slot 1 on first migration, preserving the old key as a backup. The profile index is versioned and save payloads retain the full roster, expeditions, combat turn state, currency, crafting inventory, and savedAt timestamp. Slot switches apply independent offline catch-up.
+- All slots are stored in `localStorage` on the current browser/device, not cloud accounts. Clearing site data or changing devices does not preserve them. Slots do not share progress.
+- Invalid legacy/index/profile data is protected from accidental reset by refusing to overwrite unreadable saves. Storage failures show Unavailable, rather than claiming success.
+- New files: `profiles.js`, `art/profiles.css`, `tests/test_profiles.js`. The existing Heroes' Table “New Tavern / Clear Save” action now opens the management UI instead of instantly destroying progress. CI verifies migration, slot isolation, confirmation wiring, restart, delete, and deploy asset presence.
+- User acceptance: test on iPhone Safari including old save migration, button discoverability, renaming, profile switches after idle time, mid-boss save persistence and restart confirmation. Browser-device manual QA is pending.

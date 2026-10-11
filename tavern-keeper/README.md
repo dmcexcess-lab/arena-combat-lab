@@ -79,6 +79,15 @@ Jobs advertise a base contract income rate and listed duration:
 
 Adventurer salary enters the tavern treasury continuously while the hero is away. Extra gold and materials come back only upon expedition settlement. Autonomous travel, combat and objective events still occur during the job and can affect performance rewards. Death or retreat ends the job early. Once the route is complete, a surviving hero remains away on the return journey until the listed duration completes. The hardest 8-hour job matches the offline progression cap.
 
+## Save profiles and restart
+The top bar includes **Profiles / Restart**, also reachable from the Heroes' Table. The manager offers three independent named tavern slots, each with its own heroes, money, upgrades, equipment, expeditions and boss-fight state.
+
+Use **Create Tavern** in an empty slot to start another game; **Play Profile** to switch, and **Rename** to label a run. Select **Restart** to begin that slot again with one founding hero and 30g, or **Delete** to free a slot. Both actions require a separate confirmation; no other profiles are reset. The final remaining profile cannot be deleted, but can always be restarted.
+
+The pre-profile Tavern Keeper browser save is automatically **copied into Slot 1** when this version first loads. The original save remains as a backup. Slots autosave and independently calculate offline progress when opened.
+
+**These profiles live only in the browser's local storage on this device.** They are not server accounts and do not sync between phones or browsers. Clearing website data deletes all local slots.
+
 ## Interactive boss encounters
 Some contracts culminate in **player-controlled JRPG-style boss battles**. The required Bridge Troll battle in **Wren Bridge**, and the optional two-stalker Brood Chamber boss in **Blackroot Mine**, interrupt that expedition when reached. On screen, a visible alert opens the Road Map's battle arena. Commands are Attack, Power Strike, Guard, Potion, and Retreat. Each action resolves one combat turn, followed by the enemy's response; every third enemy turn is a powerful blow that can be mitigated by guarding.
 

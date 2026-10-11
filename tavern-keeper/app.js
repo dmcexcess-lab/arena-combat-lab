@@ -2,9 +2,10 @@
 'use strict';
 const C=window.TavernKeeperCore;
 const $=id=>document.getElementById(id);
-const SAVE_KEY='tavernKeeper.reputationBoard.v1';
+const Profiles=window.TavernKeeperProfiles;
 
 let roster=null,expeditions=null,renderedLogs={},saveClock=0,offlineReturn=null,lastCheckpointMs=Date.now(),currentScreen='scene',sceneSignature='',scenePatronActors=new Map(),sceneStaffActors=new Map(),sceneMotionRaf=0,sceneMotionLast=0;
+let profileStore=null,profileNotice='',pendingProfileAction=null;
 
 function newGame(){
   roster=new C.TavernRoster({funds:30});
@@ -14,13 +15,29 @@ function newGame(){
   lastCheckpointMs=Date.now();
   resetSceneMotion();
 }
+function initializeProfiles(){
+  try{
+    profileStore=new Profiles.ProfileStore(window.localStorage);
+    profileStore.initialize();
+    profileNotice='';
+  }catch(err){
+    profileStore=null;
+    profileNotice=err.message||'Local saves are unavailable';
+  }
+}
 function saveGame(){
+  if(!profileStore){$('saveState').textContent='Unavailable';return false;}
   try{
     const now=Date.now();
-    localStorage.setItem(SAVE_KEY,JSON.stringify({version:5,savedAtMs:now,roster:roster.snapshot(),expeditions:expeditions.snapshot()}));
+    profileStore.write(profileStore.activeId(),{version:6,savedAtMs:now,roster:roster.snapshot(),expeditions:expeditions.snapshot()},now);
     lastCheckpointMs=now;
     $('saveState').textContent='Saved';
-  }catch(_){$('saveState').textContent='Unavailable';}
+    return true;
+  }catch(err){
+    profileNotice='Save failed: '+(err.message||'storage unavailable');
+    $('saveState').textContent='Unavailable';
+    return false;
+  }
 }
 function applyOfflineGap(seconds){
   const summary=C.advanceOffline(roster,expeditions,seconds);
@@ -31,9 +48,9 @@ function applyOfflineGap(seconds){
 }
 function loadGame(){
   try{
-    const raw=localStorage.getItem(SAVE_KEY);
-    if(!raw){newGame();return;}
-    const data=JSON.parse(raw);
+    if(!profileStore){newGame();return;}
+    const data=profileStore.read();
+    if(!data){newGame();return;}
     roster=C.TavernRoster.fromSnapshot(data.roster);
     if(data.expeditions){
       expeditions=C.ExpeditionManager.fromSnapshot(data.expeditions);
@@ -53,7 +70,11 @@ function loadGame(){
       lastCheckpointMs=Date.now();
       offlineReturn=null;
     }
-  }catch(_){newGame();}
+  }catch(err){
+    profileNotice='Profile could not be loaded: '+(err.message||'unknown error')+'. Existing save was not overwritten.';
+    profileStore=null; // Fail closed: never overwrite unreadable save with a fresh game.
+    newGame();
+  }
 }
 function fmtTime(s){
   s=Math.max(0,Math.floor(s));
@@ -133,6 +154,7 @@ function screenExists(name){
   return !!document.querySelector('.app-screen[data-screen="'+name+'"]');
 }
 function renderHeader(){
+  $('openProfiles').textContent=profileStore?(profileStore.get(profileStore.activeId()).name+' · Profiles'):'Profiles / Restart';
   $('funds').textContent=roster.funds.toFixed(1)+'g';
   $('tavernGps').textContent=roster.tavern.projectedGoldRate().toFixed(2);
   $('adventurerGps').textContent=expeditions.activeEntries().reduce((sum,e)=>sum+(e.expedition.isBossPending()?0:e.expedition.goldRate),0).toFixed(2);
@@ -1047,11 +1069,129 @@ function closeReport(){
   renderAll();
   saveGame();
 }
+// The profile manager is an overlay, never a simulation pause or a separate game instance.
+function escapeProfileText(value){
+  return String(value).replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
+}
+function profileTime(ms){
+  if(!ms)return 'Not played yet';
+  return new Date(ms).toLocaleString();
+}
+function renderProfileManager(){
+  const box=$('profileSlots'),message=$('profileMessage');
+  message.textContent=profileNotice;
+  if(!profileStore){
+    box.innerHTML='<p class="profile-error">Browser storage is unavailable or a save could not be read. Existing data has not been cleared. Enable website storage and reload to manage profiles.</p>';
+    $('profileConfirm').hidden=true;
+    return;
+  }
+  const manifest=profileStore.list();
+  box.innerHTML=manifest.slots.map(function(slot,i){
+    const id='slot'+(i+1);
+    if(!slot)return '<div class="profile-slot empty-slot"><div><strong>Slot '+(i+1)+'</strong><small>Empty — available for a new tavern</small></div><button type="button" data-profile-create="'+id+'">Create Tavern</button></div>';
+    const active=id===manifest.activeId;
+    const summary=slot.summary;
+    return '<div class="profile-slot'+(active?' active-profile':'')+'">'+
+      '<div class="profile-slot-info"><strong>Slot '+(i+1)+(active?' · Current tavern':'')+'</strong>'+
+      '<label for="profileName'+(i+1)+'">Tavern name</label>'+
+      '<input id="profileName'+(i+1)+'" data-profile-name="'+id+'" type="text" maxlength="32" value="'+escapeProfileText(slot.name)+'" autocomplete="off">'+
+      '<small>'+(summary?summary.funds.toFixed(1)+'g · '+summary.heroes+' living heroes · '+summary.expeditions+' active expeditions':'Fresh tavern')+' · '+profileTime(slot.updatedAtMs)+'</small></div>'+
+      '<div class="profile-slot-actions">'+
+      '<button type="button" data-profile-rename="'+id+'">Rename</button>'+
+      '<button type="button" data-profile-switch="'+id+'" '+(active?'disabled':'')+'>'+(active?'Playing':'Play Profile')+'</button>'+
+      '<button type="button" data-profile-restart="'+id+'" class="profile-danger">Restart</button>'+
+      '<button type="button" data-profile-delete="'+id+'" class="profile-danger" '+(manifest.slots.filter(Boolean).length<=1?'disabled':'')+'>Delete</button>'+
+      '</div></div>';
+  }).join('');
+  const panel=$('profileConfirm');
+  panel.hidden=!pendingProfileAction;
+  if(pendingProfileAction){
+    const profile=profileStore.get(pendingProfileAction.id);
+    $('profileConfirmTitle').textContent=pendingProfileAction.type==='restart'?'Restart '+profile.name+'?':'Delete '+profile.name+'?';
+    $('profileConfirmDescription').textContent=pendingProfileAction.type==='restart'?
+      'This permanently resets this slot to one founding hero and 30 gold, removing its heroes, contracts, equipment, upgrades and wealth. Your other slots remain untouched.':
+      'This permanently deletes this tavern and frees the slot. Other profiles remain available.';
+    $('confirmProfileAction').textContent=pendingProfileAction.type==='restart'?'Yes, Restart Tavern':'Yes, Delete Profile';
+  }
+}
+function openProfileManager(){
+  pendingProfileAction=null;
+  if(profileStore)saveGame();
+  renderProfileManager();
+  $('profileManager').hidden=false;
+  $('closeProfiles').focus();
+}
+function closeProfileManager(){
+  pendingProfileAction=null;
+  $('profileManager').hidden=true;
+  $('openProfiles').focus();
+}
+function activateProfile(id,create=false){
+  if(!profileStore)return;
+  if(!saveGame())throw Error('Current profile could not be saved. Profile switch cancelled.');
+  if(create)profileStore.create(id);
+  profileStore.setActive(id);
+  renderedLogs={};resetSceneMotion();
+  loadGame();
+  renderAll();
+  renderOfflineReturn();
+  openScreen('scene');
+  if(!saveGame())throw Error('Profile selected, but could not be saved.');
+  closeProfileManager();
+}
+function confirmProfileAction(){
+  if(!profileStore||!pendingProfileAction)return;
+  const {type,id}=pendingProfileAction;
+  pendingProfileAction=null;
+  try{
+    if(type==='restart'){
+      const active=profileStore.activeId()===id;
+      profileStore.restart(id);
+      if(active){
+        newGame();renderAll();renderOfflineReturn();openScreen('scene');
+        if(!saveGame())throw Error('Restart succeeded but saving the new tavern failed.');
+        closeProfileManager();
+        return;
+      }
+    }else if(type==='delete'){
+      const wasActive=profileStore.activeId()===id;
+      profileStore.delete(id);
+      if(wasActive){
+        renderedLogs={};resetSceneMotion();loadGame();renderAll();renderOfflineReturn();
+        openScreen('scene');saveGame();closeProfileManager();return;
+      }
+    }
+    profileNotice='';
+  }catch(err){profileNotice=err.message||'Unable to change profile';}
+  renderProfileManager();
+}
+function handleProfileClick(event){
+  const btn=event.target.closest('button[data-profile-create],button[data-profile-switch],button[data-profile-rename],button[data-profile-restart],button[data-profile-delete]');
+  if(!btn||!profileStore)return;
+  const id=btn.dataset.profileCreate||btn.dataset.profileSwitch||btn.dataset.profileRename||btn.dataset.profileRestart||btn.dataset.profileDelete;
+  try{
+    pendingProfileAction=null;
+    profileNotice='';
+    if(btn.dataset.profileCreate)activateProfile(id,true);
+    else if(btn.dataset.profileSwitch)activateProfile(id,false);
+    else if(btn.dataset.profileRename){
+      const name=$('profileSlots').querySelector('[data-profile-name="'+id+'"]').value;
+      profileStore.rename(id,name);
+      renderHeader();renderProfileManager();
+    }else{
+      pendingProfileAction={type:btn.dataset.profileRestart?'restart':'delete',id};
+      renderProfileManager();
+      $('confirmProfileAction').focus();
+    }
+  }catch(err){profileNotice=err.message||'Profile operation failed';renderProfileManager();}
+}
+
 function renderAll(){
   settleResolved();
   renderEconomy();renderMerchants();renderApplicants();renderCrafting();renderContractBoard();renderChronicle();renderRoster();renderHome();renderHistoryLog();renderExpedition();renderScene();renderHeader();
 }
 
+initializeProfiles();
 loadGame();
 renderAll();
 renderOfflineReturn();
@@ -1074,6 +1214,7 @@ document.querySelectorAll('[data-scene-pan]').forEach(function(button){
 });
 document.querySelector('.brand')?.addEventListener('click',function(){openScreen('scene');});
 document.addEventListener('keydown',function(e){
+  if(e.key==='Escape'&&!$('profileManager').hidden){closeProfileManager();return;}
   if(e.key==='Escape'&&currentScreen!=='scene')openScreen('scene');
 });
 
@@ -1093,7 +1234,12 @@ $('bossAlert').addEventListener('click',function(){
 document.querySelectorAll('[data-boss-action]').forEach(button=>{
   button.addEventListener('click',()=>bossCommand(button.dataset.bossAction));
 });
-$('newTavern').addEventListener('click',function(){localStorage.removeItem(SAVE_KEY);newGame();$('summaryBody').innerHTML='<p>New tavern started.</p>';renderAll();renderOfflineReturn();openScreen('scene');saveGame();});
+$('newTavern').addEventListener('click',openProfileManager);
+$('openProfiles').addEventListener('click',openProfileManager);
+$('closeProfiles').addEventListener('click',closeProfileManager);
+$('profileSlots').addEventListener('click',handleProfileClick);
+$('cancelProfileAction').addEventListener('click',function(){pendingProfileAction=null;renderProfileManager();});
+$('confirmProfileAction').addEventListener('click',confirmProfileAction);
 $('closeOfflineSummary').addEventListener('click',function(){offlineReturn=null;renderOfflineReturn();});
 $('jobHeroSelect').addEventListener('change',function(){
   if(this.value)roster.selectHero(this.value);

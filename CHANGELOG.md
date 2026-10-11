@@ -1,5 +1,13 @@
 # Arena Combat Lab — Changelog
 
+## 2026-10-11 — Tavern Keeper: Local Profiles & Safe Restart
+- Added three independent save-slot profiles with editable names, current-slot indicator, save summary and last saved time.
+- Added a prominent Profiles / Restart button in the game header; the Heroes' Table action now opens the manager rather than erasing the game immediately.
+- Added create, switch, rename, restart and delete controls. Restart and delete require a second explicit confirmation, with separate actions for each. Last profile cannot be deleted.
+- Migrates the existing `tavernKeeper.reputationBoard.v1` save into Slot 1 without wiping the original, maintaining legacy progress and active boss turn state.
+- Preserves independent real-time/offline catch-up per profile, protects unreadable saves against silent overwrites, and notes that storage is device/browser-local.
+- Added `profiles.js`, `art/profiles.css`, and automated profile lifecycle/migration tests to CI/deployment.
+
 ## 2026-10-11 — Tavern Keeper: Player-Controlled JRPG Boss Battles
 - Converted flagged encounters into an interactive turn-based RPG panel for real browser-game deployments: the required Wren Bridge Troll and optional Blackroot Brood Chamber miniboss.
 - Paused only the affected expedition's action timer and income until player input, while food/drink sales and other expeditions continue normally through offline catch-up.

@@ -7,6 +7,7 @@
   <link rel="stylesheet" href="styles.css">
   <link rel="stylesheet" href="art/scene.css">
   <link rel="stylesheet" href="art/boss.css">
+  <link rel="stylesheet" href="art/profiles.css">
 </head>
 <body class="scene-mode">
 <header class="game-header">
@@ -18,6 +19,7 @@
     <div><span>Prep time</span><strong id="prepTime">0m</strong></div>
     <div><span>Save</span><strong id="saveState">Local</strong></div>
   </div>
+  <button id="openProfiles" class="profile-menu-toggle" type="button" aria-haspopup="dialog" aria-controls="profileManager">Profiles / Restart</button>
   <button id="bossAlert" class="boss-alert" type="button" hidden>Boss awaiting orders — Open Battle</button>
 </header>
 
@@ -26,6 +28,26 @@
     <div id="offlineSummary"></div>
     <button id="closeOfflineSummary">Dismiss Return Summary</button>
   </section>
+
+<section id="profileManager" class="profile-overlay" role="dialog" aria-modal="true" aria-labelledby="profileTitle" hidden>
+  <div class="profile-dialog panel">
+    <div class="profile-dialog-head">
+      <div><h2 id="profileTitle">Tavern Profiles</h2><p>Three separate local taverns. Start over without losing your other profiles.</p></div>
+      <button id="closeProfiles" type="button" aria-label="Close profile manager">Close ×</button>
+    </div>
+    <p class="profile-storage-note">Profiles save automatically in this browser on this device. They are not online accounts or cloud saves. Clearing website data deletes local profiles.</p>
+    <div id="profileSlots" class="profile-slots" aria-live="polite"></div>
+    <p id="profileMessage" class="profile-message" role="status"></p>
+    <section id="profileConfirm" class="profile-confirm" hidden aria-live="assertive">
+      <strong id="profileConfirmTitle">Confirm action</strong>
+      <p id="profileConfirmDescription"></p>
+      <div class="profile-confirm-actions">
+        <button type="button" id="cancelProfileAction">Cancel</button>
+        <button type="button" id="confirmProfileAction" class="danger">Confirm</button>
+      </div>
+    </section>
+  </div>
+</section>
 
 <main id="appShell" class="scene-shell">
   <section id="sceneScreen" class="app-screen active" data-screen="scene" aria-label="Animated tavern">
@@ -241,7 +263,7 @@
     <div id="heroRoster" class="hero-roster"></div>
     <h3>Fallen</h3>
     <div id="fallenRoster" class="fallen-roster"></div>
-    <div class="save-actions"><button id="newTavern" class="danger">New Tavern / Clear Save</button></div>
+    <div class="save-actions"><button id="newTavern" type="button">Profiles / Restart Tavern</button></div>
   </aside><section class="panel tavern screen-panel" id="tavernPanel">
     <div class="section-title"><h2>Selected Hero</h2><span id="risk" class="risk">—</span></div>
     <div id="heroCard" class="hero-card"></div>
@@ -333,5 +355,5 @@
   </section>
 </main>
 
-<script src="core.js"></script><script src="app.js"></script>
+<script src="core.js"></script><script src="profiles.js"></script><script src="app.js"></script>
 </body></html>
