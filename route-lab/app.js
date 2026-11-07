@@ -99,15 +99,16 @@ function renderOverview(){
  for(const id of ['kickoffBtn','onsideBtn','puntBtn','fieldGoalBtn','extraPointBtn','twoPointBtn'])$(id).disabled=!!campaign||s.phase==='final'||(id==='kickoffBtn'&&!['kickoff','safetyKick'].includes(s.phase))||(id==='onsideBtn'&&s.phase!=='kickoff')||(id==='puntBtn'&&s.phase!=='scrimmage')||(id==='fieldGoalBtn'&&s.phase!=='scrimmage')||((id==='extraPointBtn'||id==='twoPointBtn')&&s.phase!=='try');
 }
 function autoNext(){const pick=G.autoPick(gameState,allOff(),allDef());const o=allOff().find(p=>p.id===pick.offense),d=allDef().find(p=>p.id===pick.defense);if(o)offensive=G.dressPlay(gameState,o,gameState.possession,'offense');if(d)defensive=G.dressPlay(gameState,d,gameState.possession==='home'?'away':'home','defense');offensive.yardLine=gameState.possession==='home'?gameState.ball:100-gameState.ball;selected=sidePlay().players[0]?.id||'';manualOverride=false;fillPresets();}
-function continueGame(){if(!pendingState)return;gameState=pendingState;pendingState=null;pendingRuling=null;lastKick=null;invalidate();autoNext();refresh(true);$('officialCall').textContent=gameState.log.at(-1)||'Referee: ball ready for play.';saveExhibition();}
+function continueGame(){if(!pendingState)return null;const reset=G.resetToLine(pendingState);gameState=reset.state;pendingState=null;pendingRuling=null;lastKick=null;invalidate();autoNext();refresh(true);$('officialCall').textContent=reset.call?'Referee: '+reset.call:gameState.log.at(-1)||'Referee: ball ready for play.';saveExhibition();return reset;}
 function choosePenalty(choice){if(!pendingRuling?.choices?.[choice]||!pendingState)return;const picked=pendingRuling.choices[choice];pendingState=picked.state;pendingRuling.state=picked.state;pendingRuling.call=picked.call;pendingRuling.defaultChoice=choice;$('officialCall').textContent='Referee: '+picked.call;$('resultMain').textContent=picked.call;renderOverview();saveExhibition();}
 function challengePending(team){if(!pendingRuling?.review||!pendingState)return;const decided=G.reviewSpot(pendingRuling,team);if(!decided.ok){$('officialCall').textContent='Referee: '+decided.call;return;}pendingState=decided.state;pendingRuling.state=decided.state;pendingRuling.call=decided.call;$('officialCall').textContent='Referee: '+decided.call;$('resultMain').textContent=decided.call;renderOverview();saveExhibition();}
 function startAtSpot(){if(campaign||gameMode!=='free')return;const yard=Number($('spotYard').value);if(!Number.isFinite(yard)||yard<1||yard>99){$('officialCall').textContent='Referee: choose a yard line from 1 to 99.';return;}pendingState=null;pendingRuling=null;lastKick=null;G.setSpot(gameState,$('spotTeam').value,yard,Number($('spotDown').value),Number($('spotGain').value));invalidate();autoNext();refresh(true);$('officialCall').textContent=gameState.log.at(-1);saveExhibition();}
 function doKick(kind){
  if(campaign)return;
+ if(pendingState){$('officialCall').textContent='Referee: set the next play before the kick.';return;}
  const seed=Number($('seedInput').value)||71,choice=$('kickChoice').value;
  const result=G.kick(gameState,kind,seed,choice);
- if(!result.accepted){$('officialCall').textContent=result.call;return;}
+ if(!result.accepted){gameState=result.state;invalidate();autoNext();refresh(true);$('officialCall').textContent='Referee: '+result.call;saveExhibition();return;}
  stopKickReplay();gameState=result.state;pendingState=null;pendingRuling=null;lastKick=result.kick;kickFrame=0;
  $('kickChoice').value='auto';$('seedInput').value=seed+1;
  invalidate();autoNext();refresh(true);
@@ -123,7 +124,7 @@ function doKick(kind){
  $('officialCall').textContent='Referee: '+result.call;
  saveExhibition();playKickReplay();
 }
-function nextPlay(){if(campaign||gameState.phase==='coinflip'||gameState.phase==='final')return;if(pendingState)continueGame();if(gameState.phase==='kickoff'||gameState.phase==='safetyKick')return doKick(gameState.phase);if(gameState.phase==='try')return doKick('extraPoint');if(gameState.phase==='scrimmage'){const own=gameState.possession==='home'?gameState.ball:100-gameState.ball;if(gameState.down===4&&!manualOverride&&gameState.toGain>2)return doKick(own>=65?'fieldGoal':'punt');return run();}}
+function nextPlay(){if(campaign||gameState.phase==='coinflip'||gameState.phase==='final')return;if(pendingState){const reset=continueGame();if(!reset?.ready)return;}if(gameState.phase==='kickoff'||gameState.phase==='safetyKick')return doKick(gameState.phase);if(gameState.phase==='try')return doKick('extraPoint');if(gameState.phase==='scrimmage'){const own=gameState.possession==='home'?gameState.ball:100-gameState.ball;if(gameState.down===4&&!manualOverride&&gameState.toGain>2)return doKick(own>=65?'fieldGoal':'punt');return run();}}
 function renderGrid(){const yard=campaign?(offensive.yardLine??50):(gameState.possession==='home'?gameState.ball:100-gameState.ball);let s=`<defs>
 <pattern id="grass" patternUnits="userSpaceOnUse" width="90" height="150"><rect width="90" height="150" fill="#0c332e"/><path d="M0 0H90V75H0Z" fill="#10392f"/></pattern>
 <pattern id="speckle" patternUnits="userSpaceOnUse" width="48" height="38"><circle cx="4" cy="7" r=".8" fill="#6ba899" opacity=".19"/><circle cx="31" cy="24" r=".7" fill="#64a08f" opacity=".17"/></pattern>

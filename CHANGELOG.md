@@ -1,3 +1,7 @@
+## 2026-11-07 — Route Lab between-play clock reset
+- Moving from a completed play to the next lineup now immediately simulates the 27–35 second reset (capped under a 25-second administrative play clock) and deducts it from a running game clock. The game book records the elapsed time; no player walk-back animation is shown.
+- Scrimmage snaps, punts and field goals consume the prepared lineup without charging the same interval twice. Stopped clocks do not burn game time, and a reset can reach a two-minute warning or period end before a snap.
+
 ## 2026-11-07 — Route Lab timing, medical events and foul exposure
 - Added per-player tackle/block contact records and movement exposure to the live 11-on-11 simulation. Seeded medical events now cause recorded evaluations, limited availability or game removal, with automatic depth-chart substitution and replay/report evidence.
 - Added close-rusher false starts, coverage-based defensive holding, post-release roughing, tackle facemasks, and support blocks in the back, while conditioning existing holding and illegal-contact hazards on the actual engagement. Tightened defender break, pursuit and tackle geometry and balanced CPU first-down calls. No player-facing frequency slider or scheduled event count.
