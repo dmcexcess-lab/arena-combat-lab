@@ -31,7 +31,7 @@ test('defensive matchup alters passer decisions',()=>{
 test('hosted standalone HTML embeds exactly the maintained modules',()=>{
  const source=fs.readFileSync(path.join(__dirname,'..','index.html'),'utf8');
  const scripts=[...source.matchAll(/<script>\s*([\s\S]*?)\s*<\/script>/g)].map(x=>x[1].trim());
- const names=['engine.js','plays.js','campaign.js','encyclopedia.js','app.js'];
+ const names=['engine.js','plays.js','campaign.js','game.js','encyclopedia.js','app.js'];
  assert.equal(scripts.length,names.length);
  for(let i=0;i<names.length;i++)assert.equal(scripts[i],fs.readFileSync(path.join(__dirname,'..',names[i]),'utf8').trim(),names[i]);
 });
