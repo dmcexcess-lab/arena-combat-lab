@@ -17,7 +17,19 @@ function roster(seed){const rand=random(seed),units={offense:P.createOffensePres
   return {name:FIRST[Math.floor(rand()*FIRST.length)]+' '+LAST[Math.floor(rand()*LAST.length)],number:i?backup:baseNumber,stats};
  })}));
  depth.special=['K','P','KR'].map((label,j)=>({slot:label,label,starter:0,players:[0,1].map((_,i)=>({name:FIRST[Math.floor(rand()*FIRST.length)]+' '+LAST[Math.floor(rand()*LAST.length)],number:1+j*12+i*40,stats:{power:clamp(Math.round(78+(rand()-.5)*28-i*4),35,99),accuracy:clamp(Math.round(78+(rand()-.5)*28-i*4),35,99),hang:clamp(Math.round(78+(rand()-.5)*28-i*4),35,99),speed:clamp(Math.round(82+(rand()-.5)*24-i*4),35,99),vision:clamp(Math.round(81+(rand()-.5)*24-i*4),35,99),agility:clamp(Math.round(82+(rand()-.5)*24-i*4),35,99)}}))}));
- const used=new Set();for(const unit of ['offense','defense','special'])for(const slot of depth[unit])for(const person of slot.players){const pool=unit==='offense'?['LT','LG','C','RG','RT'].includes(slot.label)?Array.from({length:30},(_,n)=>50+n):slot.label==='QB'?Array.from({length:20},(_,n)=>n):slot.label==='TE'?[...Array.from({length:10},(_,n)=>80+n),...Array.from({length:50},(_,n)=>n)]:[...Array.from({length:50},(_,n)=>n),...Array.from({length:10},(_,n)=>80+n)]:Array.from({length:100},(_,n)=>n);if(used.has(person.number)||!pool.includes(person.number))person.number=pool.find(n=>!used.has(n));used.add(person.number);}
+ const numbers=(unit,label)=>{
+  const low=Array.from({length:50},(_,n)=>n),line=Array.from({length:30},(_,n)=>50+n),high=Array.from({length:10},(_,n)=>90+n),receivers=Array.from({length:10},(_,n)=>80+n);
+  if(unit==='special')return label==='KR'?[...low,...receivers]:[...low,...high];
+  if(unit==='offense')return ['LT','LG','C','RG','RT'].includes(label)?line:label==='QB'?low.slice(0,20):[...low,...receivers];
+  if(['DE','DT','NT'].includes(label))return [...line,...high];
+  if(['LB','MLB','OLB'].includes(label))return [...low,...line.slice(0,10),...high];
+  return low;
+ };
+ const used=new Set();for(const index of [0,1])for(const unit of ['offense','defense','special'])for(const slot of depth[unit]){
+  const person=slot.players[index],pool=numbers(unit,slot.label);
+  if(used.has(person.number)||!pool.includes(person.number))person.number=pool.find(n=>!used.has(n));
+  used.add(person.number);
+ }
  out[team]={depth,coverage:clamp(Math.round(75+(rand()-.5)*26),45,95),returnBlocking:clamp(Math.round(75+(rand()-.5)*26),45,95)};
  }return out;}
 function selected(slot){return slot.players[slot.starter]||slot.players[0];}

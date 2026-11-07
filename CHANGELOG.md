@@ -1,6 +1,7 @@
 ## 2026-11-06 — Route Lab exhibition setup and game rhythm
 - Added a Free / Campaign / Load start menu, a saved first-time coin call and home uniform color, and an animated toss for every new Free exhibition.
 - Fresh games generate randomized ratings and two candidates for each team depth-chart slot. Home starters chosen before kickoff dress the live 11-on-11 plays; skipping setup uses the CPU lineup.
+- The menu can reopen coin-call and uniform setup. Generated jersey numbers use position ranges and stay unique within each team; special teams depth rows show the ratings relevant to each job.
 - Added quarter/clock/score/possession/spot jump controls, local exhibition resume, and one-button Next with situational CPU offense, defense, kicks and tries. Player playbook and custom-play overrides remain available.
 - Running-clock snaps now consume a capped 27–35 second line reset, while snap-anticipation offside and a geometry-based defensive pass interference call can change the live result. Exhibition has no season W/L record.
 - Grouped future possession, special teams, officiating and timing work into follow-on slices in `route-lab/RULES_AUDIT.md`.
