@@ -13,7 +13,7 @@ let campaignDrillCleared=false,campaignQuizCleared=false,encyCategory='All',ency
 let campaignWave=0,coachLayer='assignments';
 let campaign=null,campaignBaseline=null,campaignProgress=K.readProgress({getItem:k=>{try{return localStorage.getItem(k);}catch{return null;}}}),campaignDrive=null,campaignSuccess=false,campaignAttempt=0;
 const OFF_JOBS=['route','passblock','runblock','block','pull','carry','release','quarterback'], DEF_JOBS=['rush','blitz','man','zone','spy','contain','runfit','deep'];
-const STAT_LABELS={speed:'Speed',acceleration:'Acceleration',agility:'Agility',strength:'Strength',blocking:'Blocking',coverage:'Coverage',tackling:'Tackling',hands:'Hands',awareness:'Awareness',throwAccuracy:'Passing accuracy',throwPower:'Arm strength'};
+const STAT_LABELS={speed:'Speed',acceleration:'Acceleration',agility:'Agility',stamina:'Stamina',strength:'Strength',blocking:'Blocking',passRush:'Pass rush',coverage:'Coverage',pursuit:'Pursuit',tackling:'Tackling',hands:'Hands',routeRunning:'Route running',vision:'Runner vision',awareness:'Awareness',throwAccuracy:'Passing accuracy',throwPower:'Arm strength'};
 const routeKinds=['go','fade','slant','flat','out','in','dig','corner','post','curl','hitch','drag','wheel','seam','comeback','swing','angle','bubble','shallow'];
 const sidePlay=()=>side==='offense'?offensive:defensive;
 const selectedPlayer=()=>sidePlay().players.find(p=>p.id===selected);

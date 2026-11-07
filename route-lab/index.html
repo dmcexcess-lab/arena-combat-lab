@@ -73,7 +73,8 @@ body.ency-open{overflow:hidden}.ency-overlay[hidden]{display:none}.ency-overlay{
 <div class="ency-cats" id="encyCategories"></div>
 <div class="ency-body"><div class="ency-results" id="encyResults"></div><article class="ency-article" id="encyArticle"></article></div></div></div>
 
-<script>/* Route Lab — deterministic 11-on-11 tactical simulation core. World units: yards.
+<script>
+/* Route Lab — deterministic 11-on-11 tactical simulation core. World units: yards.
    Standalone/no dependencies. Accuracy is an evolving model, not a certified football engine. */
 (function(root){
 'use strict';
@@ -149,14 +150,21 @@ function move(agent,target,dt,speed,accel=15){
   if(!target) return;
   let dx=target.x-agent.x,dy=target.y-agent.y, d=Math.hypot(dx,dy);
   if(d<.16){agent.vx*=.5;agent.vy*=.5;return;}
+  const ratings=statsOf(agent);
+  const effort=1-(agent.fatigue||0)*.27;
+  speed*=effort;
   let vx=dx/d*speed,vy=dy/d*speed;
-  let change=Math.min(1,accel*dt*(.73+statsOf(agent).acceleration/330)/Math.max(speed,.5));
+  const oldSpeed=Math.hypot(agent.vx,agent.vy);
+  const turn=oldSpeed>.15?clamp((agent.vx*dx+agent.vy*dy)/(oldSpeed*d),-1,1):1;
+  const cut=agent.job==='route'?ratings.routeRunning:ratings.agility;
+  const turnControl=clamp(.55+(ratings.agility+cut)/260, .56,1.25);
+  const change=Math.min(1,accel*dt*(.48+ratings.acceleration/150)*(turn<.7?turnControl:1)/Math.max(speed,.5));
   agent.vx+=(vx-agent.vx)*change; agent.vy+=(vy-agent.vy)*change;
   let f=Math.min(1,d/Math.max(.01,Math.hypot(agent.vx,agent.vy)*dt));
   agent.x=clamp(agent.x+agent.vx*dt*f,-26.6,26.6); agent.y+=agent.vy*dt*f;
 }
-// Ratings are educational 0–100 scouting grades; they are not calibrated NFL tracking data.
-const RATING_KEYS=['speed','acceleration','agility','strength','blocking','coverage','tackling','hands','awareness','throwAccuracy','throwPower'];
+// Ratings are educational 1–99 scouting grades; they are not calibrated NFL tracking data.
+const RATING_KEYS=['speed','acceleration','agility','stamina','strength','blocking','passRush','coverage','pursuit','tackling','hands','routeRunning','vision','awareness','throwAccuracy','throwPower'];
 function defaultStats(player) {
  const p=player.label||'',o=player.id?.startsWith('o');
  const line=['LT','LG','C','RG','RT'].includes(p), pass=p==='QB', skill=['X','Z','SL','WR','TE','RB','HB','FB'].includes(p);
@@ -164,9 +172,13 @@ function defaultStats(player) {
  const linebacker=['LB','MLB','OLB','ILB','W','M'].some(k=>p===k||p.startsWith(k));
  const base={speed:line?56:pass?68:secondary?89:linebacker?77:skill?85:72,
  acceleration:line?62:pass?69:secondary?86:skill?84:76,agility:line?52:pass?72:secondary?86:skill?84:67,
+ stamina:line?78:pass?80:secondary?82:skill?81:78,
  strength:line?90:linebacker?80:secondary?58:pass?53:73,blocking:line?88:p==='TE'?72:skill?42:45,
- coverage:secondary?88:linebacker?73:42,tackling:secondary?77:linebacker?85:pass?36:70,
- hands:skill?86:secondary?72:pass?66:53,awareness:pass?87:secondary?77:line?75:76,
+ passRush:!o&&defFront.has(p)?83:42,coverage:secondary?88:linebacker?73:42,
+ pursuit:secondary?85:linebacker?86:!o&&defFront.has(p)?78:55,
+ tackling:secondary?77:linebacker?85:pass?36:70,
+ hands:skill?86:secondary?72:pass?66:53,routeRunning:skill?82:48,vision:p==='RB'||p==='HB'?84:pass?74:67,
+ awareness:pass?87:secondary?77:line?75:76,
  throwAccuracy:pass?85:38,throwPower:pass?87:38};
  if(o&&p==='RB'){base.speed=85;base.agility=86;}
  return base;
@@ -181,8 +193,8 @@ function pickupCoverage(pos,defenders){return clamp((2.5-nearest(pos,defenders,a
 function simulate(off,def,seed=71){
  const v=validate(off,def); if(!v.valid)return {valid:false,validation:v,frames:[],events:[]};
  const rand=rng(seed), dt=.05, maxT=12;
- const o=clone(off.players).map(p=>({...p,side:'o',vx:0,vy:0,routeIndex:0,engaged:false,speed:(p.speed??1)*(.96+rand()*.08)}));
- const d=clone(def.players).map(p=>({...p,side:'d',vx:0,vy:0,engaged:false,speed:(p.speed??1)*(.94+rand()*.12)}));
+ const o=clone(off.players).map(p=>({...p,side:'o',vx:0,vy:0,fatigue:0,routeIndex:0,engaged:false,speed:(p.speed??1)*(.96+rand()*.08)}));
+ const d=clone(def.players).map(p=>({...p,side:'d',homeY:p.y,vx:0,vy:0,fatigue:0,tackleCooldown:0,engaged:false,speed:(p.speed??1)*(.94+rand()*.12)}));
  const byId=(id)=>o.find(p=>p.id===id), defenders=(id)=>d.find(p=>p.id===id);
  const qb=byId(off.snapToId||'oQB')||o.find(p=>p.label==='QB'), runner=byId(off.runnerId)||qb;
  let carrier=qb, state='live', ball={x:qb.x,y:qb.y,kind:'held'}, targetPass=null,flight=null, thrown=false, handoff=false, playOver=false, verdict='', yards=0, time=0, sack=false;
@@ -194,7 +206,7 @@ function simulate(off,def,seed=71){
  if(directRun)handoff=true;
  log(0,'Snap — '+off.name+' vs '+def.name);
  if(directRun)log(0,'Direct snap to '+runner.label);
- function copyFrame(t){frames.push({t:+t.toFixed(2),offense:o.map(p=>({id:p.id,x:+p.x.toFixed(3),y:+p.y.toFixed(3),engaged:p.engaged})),defense:d.map(p=>({id:p.id,x:+p.x.toFixed(3),y:+p.y.toFixed(3),engaged:p.engaged})),ball:{...ball},carrierId:carrier?.id||null,phase:state,verdict});}
+ function copyFrame(t){frames.push({t:+t.toFixed(2),offense:o.map(p=>({id:p.id,x:+p.x.toFixed(3),y:+p.y.toFixed(3),engaged:p.engaged,energy:+(1-p.fatigue).toFixed(3)})),defense:d.map(p=>({id:p.id,x:+p.x.toFixed(3),y:+p.y.toFixed(3),engaged:p.engaged,energy:+(1-p.fatigue).toFixed(3)})),ball:{...ball},carrierId:carrier?.id||null,phase:state,verdict});}
  function finish(msg,t,pos,kill=true){if(playOver)return; verdict=msg;yards=+((pos?.y??carrier?.y??0)).toFixed(1);log(t,msg);playOver=kill;}
  // Animate one legal backfield player moving laterally/backward before snap.
  const moving=o.find(p=>p.motion);
@@ -224,10 +236,13 @@ function simulate(off,def,seed=71){
       if(dist(p,loc)<.6&&p.routeIndex<(p.route?.length||1)-1)p.routeIndex++;
       move(p,loc,dt,5.1);
     }else if(p.job==='carry'){
-      if(isRun && !handoff){const first=p.route?.[0]||{x:0,y:-4};move(p,{x:first.x,y:Math.min(-4,first.y)},dt,5.8,18);}
+      if(isRun && !handoff){const first=p.route?.[0]||{x:0,y:-4};move(p,{x:first.x,y:Math.min(-4,first.y)},dt,speedOf(p)*.78,18);}
       if(isRun && handoff){let goal= p.route?.[Math.min(p.routeIndex,p.route.length-1)]||{x:playDir,y:35};
         if(dist(p,goal)<.7&&p.routeIndex<(p.route?.length||1)-1)p.routeIndex++;
-        move(p,goal,dt,7.3,18);
+        const ahead=nearest(p,d,a=>a.y>p.y-.4&&a.y<p.y+5&&Math.abs(a.x-p.x)<3.5);
+        if(ahead.agent){const avoid=clamp((5-ahead.d)/5,0,1)*(statsOf(p).vision/99)*1.8;
+          goal={x:clamp(goal.x+(p.x<=ahead.agent.x?-avoid:avoid),-26.5,26.5),y:goal.y};}
+        move(p,goal,dt,speedOf(p),18);
       } else if(!handoff){move(p,{x:p.x*.96,y:-4.9},dt,2.5,8);}
     }else if(p.job==='passblock'||p.job==='runblock'||p.job==='block'){
       let target=defenders(p.blockTarget);
@@ -260,24 +275,36 @@ function simulate(off,def,seed=71){
   for(const p of d){
     if(p.job==='rush'||p.job==='blitz'){
       const engageRun=isRun&&t>.22;const attack=engageRun?(handoff?carrier:{x:playDir,y:-.7}):qb;
-      move(p,attack,dt,speedOf(p)*(p.job==='blitz'?1.03:.85),15);
+      move(p,attack,dt,speedOf(p)*(p.job==='blitz'?1.03:.85)*(.82+statsOf(p).passRush/440),15);
     }
     else if(p.job==='contain'){
       const edge={x:p.x<0?-6.8:6.8,y:Math.max(0,qb.y+.2)};
       move(p,(carrier!==qb&&handoff)?carrier:edge,dt,speedOf(p)*.78);
     }else if(p.job==='man'){
       let m=byId(p.coverTarget)||nearest(p,o,a=>a.job==='route').agent;
-      if(m){const direction=carrier===m?0:-.8;move(p,{x:m.x,y:m.y+direction},dt,speedOf(p)*(.74+statsOf(p).coverage/470));}
+      if(m){
+        const rated=statsOf(p),target=statsOf(m);
+        const reacting=carrier===m?1:clamp((rated.awareness+rated.coverage*.7-target.routeRunning*.38)/135,.25,1.05);
+        p.readX=(p.readX??m.x)+(m.x-(p.readX??m.x))*Math.min(1,dt*reacting*5);
+        p.readY=(p.readY??m.y)+(m.y-(p.readY??m.y))*Math.min(1,dt*reacting*5);
+        const lead=carrier===m?rated.pursuit/250:(rated.awareness+rated.coverage)/360;
+        const targetY=carrier===m?p.readY+m.vy*lead:
+          p.label.startsWith('CB')&&m.onLine?Math.max(p.homeY-1.5,p.readY+m.vy*lead+1):
+          p.readY+m.vy*lead-.8;
+        const coveragePace=carrier===m?.74+rated.coverage/470:.84+rated.coverage/430;
+        move(p,{x:p.readX+m.vx*lead,y:targetY},dt,speedOf(p)*coveragePace);
+      }
     }else if(p.job==='zone'){
       const z=p.zone||{x:p.x,y:p.y,r:5};
       const threats=receivers.filter(r=>dist(r,z)<(z.r||7)*1.6);
       const nearestThreat=nearest(z,threats);
       let lead=nearestThreat.agent&&nearestThreat.d<(z.r||7)*1.2?nearestThreat.agent:null;
       if(handoff&&t>.75&&dist(p,carrier)<12)lead=carrier;
-      const aim=lead?{x:clamp(lead.x,z.x-(z.r||6),z.x+(z.r||6)),y:clamp(lead.y+.2,z.y-(z.rY||z.r||6),z.y+(z.rY||z.r||6))}:z;
+      const pursuit=lead===carrier?statsOf(p).pursuit/260:0;
+      const aim=lead?{x:clamp(lead.x+lead.vx*pursuit,z.x-(z.r||6),z.x+(z.r||6)),y:clamp(lead.y+lead.vy*pursuit+.2,z.y-(z.rY||z.r||6),z.y+(z.rY||z.r||6))}:z;
       move(p,aim,dt,speedOf(p)*.85);
     }else if(p.job==='spy'){const watch=carrier||qb;move(p,{x:watch.x,y:clamp(watch.y+3,2,12)},dt,speedOf(p)*.65);}
-    else if(p.job==='runfit')move(p,handoff?carrier:{x:p.fitX??playDir,y:1.4},dt,speedOf(p)*.9);
+    else if(p.job==='runfit'){const lead=statsOf(p).pursuit/260;move(p,handoff?{x:carrier.x+carrier.vx*lead,y:carrier.y+carrier.vy*lead}:{x:p.fitX??playDir,y:1.4},dt,speedOf(p)*.9);}
     else if(p.job==='deep')move(p,{x:p.zone?.x??p.x,y:p.zone?.y??18},dt,speedOf(p)*.7);
   }
   // Blocking contacts: delay / deflect rushers; the pressure model uses assignments and matchups.
@@ -286,12 +313,15 @@ function simulate(off,def,seed=71){
     if(!enemy)enemy=nearest(blocker,d,a=>['rush','blitz','contain','runfit'].includes(a.job)&&(!a.engaged||isRun)).agent;
     if(enemy&&dist(blocker,enemy)<2.15){
       blocker.engaged=enemy.engaged=true;
-      const power=(blocker.power??.72)*(.55+statsOf(blocker).blocking/155)*(.7+statsOf(blocker).strength/300), defense=(enemy.power??.66)*(.62+statsOf(enemy).strength/200);
-      const advantage=clamp(power/(power+defense),.35,.7);
+      const block=statsOf(blocker),rush=statsOf(enemy);
+      const power=(blocker.power??.72)*(.55+block.blocking/155)*(.7+block.strength/300)*(1-blocker.fatigue*.24);
+      const defense=(enemy.power??.66)*(.48+rush.strength/260+rush.passRush/310)*(1-enemy.fatigue*.22);
+      const advantage=clamp(power/(power+defense),.22,.78);
       // Friction: linemen redirect toward pocket; running assignments can create a lane.
       enemy.x+=(enemy.x-blocker.x)*dt*advantage*(isRun?1.7:1.2);
       enemy.y+=dt*advantage*(isRun?4.8:3.0);
       enemy.vx*=1-advantage*.30;enemy.vy*=1-advantage*.52;
+      blocker.vy-=dt*(1-advantage)*rush.passRush/65;
       if(!isRun && enemy.y<-.25)enemy.y=-.25;
     }
   }
@@ -313,10 +343,17 @@ function simulate(off,def,seed=71){
       const clockPressure=clamp((t-maxWait+.6)/.8,0,1);
       const firstDown=Number.isFinite(off.toGain)?off.toGain:10;
       const graded=receivers.map(r=>{
-        const travel=Math.max(.25,dist(qb,r)/(20+statsOf(qb).throwPower*.1));
-        const predict={x:clamp(r.x+r.vx*travel*.45,-26.5,26.5),y:r.y+r.vy*travel*.45};
-        const closest=nearest(predict,d,a=>!['rush','blitz'].includes(a.job));
-        const man=d.filter(a=>a.job==='man'&&a.coverTarget===r.id);
+        const ballSpeed=20+statsOf(qb).throwPower*.1;
+        let travel=Math.max(.25,dist(qb,r)/ballSpeed);
+        let predict={x:r.x,y:r.y};
+        const lead=clamp(.7+statsOf(qb).awareness/300,.7,1);
+        for(let i=0;i<2;i++){
+          predict={x:clamp(r.x+r.vx*travel*lead,-26.5,26.5),y:r.y+r.vy*travel*lead};
+          travel=Math.max(.25,dist(qb,predict)/ballSpeed);
+        }
+        const forecast=d.map(a=>({...a,x:a.x+a.vx*travel*.7,y:a.y+a.vy*travel*.7}));
+        const closest=nearest(predict,forecast,a=>!['rush','blitz'].includes(a.job));
+        const man=forecast.filter(a=>a.job==='man'&&a.coverTarget===r.id);
         const shadow=man.length?nearest(predict,man).d:99;
         // Defender can arrive on the throwing lane before the football.
         const lane=d.filter(a=>!['rush','blitz'].includes(a.job)).reduce((risk,player)=>{
@@ -379,8 +416,11 @@ function simulate(off,def,seed=71){
     ball={x:flight.from.x+(flight.to.x-flight.from.x)*pct,y:flight.from.y+(flight.to.y-flight.from.y)*pct,kind:'air'};
     if(pct>=1){
       const closeD=nearest(ball,d,a=>a.y>=-.5), receiverDist=dist(ball,targetPass);
-      const disruption=clamp((1.6-closeD.d)*.36+(receiverDist>1.65?.27:0)+(closeD.d<receiverDist?.18:0)+(closeD.agent?(statsOf(closeD.agent).coverage-75)*.002:0),0,.88);
-      if(closeD.d<1.65 && rand()<disruption){
+      const contest=clamp((3.3-closeD.d)/2.3,0,1);
+      const defenderSkill=closeD.agent?statsOf(closeD.agent):null;
+      const disruption=clamp(contest*(.18+(defenderSkill?.coverage||0)*.004+(defenderSkill?.awareness||0)*.0015)+
+        (receiverDist>1.65?.18:0)+(closeD.d<receiverDist?.12:0),0,.88);
+      if(closeD.d<3.3 && rand()<disruption){
         if(rand()<.18&&closeD.d<.8){carrier=closeD.agent;ball={x:carrier.x,y:carrier.y,kind:'held-d'};finish('Interception by '+carrier.label,t,carrier);}
         else finish('Pass broken up by '+closeD.agent.label,t,point(0,0));
       } else if(receiverDist<=2.3 && rand()<clamp(.70+statsOf(targetPass).hands*.0030-pickupCoverage(ball,d)*.11,.5,.985)){carrier=targetPass;state='runafter';ball={x:carrier.x,y:carrier.y,kind:'held'};flight=null;log(t,'Completed to '+carrier.label);}
@@ -396,11 +436,26 @@ function simulate(off,def,seed=71){
     ball={x:carrier.x,y:carrier.y,kind:carrier.side==='d'?'held-d':'held'};
     if((isRun&&handoff)||(state==='runafter')){
       const near=nearest(carrier,d);
-      if(near.d<.99 && !near.agent?.engaged && t>.8){const success=clamp(.70+(statsOf(near.agent).tackling-75)*.005-(statsOf(carrier).agility-75)*.003,.35,.97);if(rand()<success)finish('Tackle by '+near.agent.label,t,carrier);}
+      if(near.d<1.05 && !near.agent?.engaged && near.agent?.tackleCooldown<=0 && t>.8){
+        const tackler=near.agent, a=statsOf(tackler),b=statsOf(carrier);
+        const momentum=clamp((Math.hypot(tackler.vx-carrier.vx,tackler.vy-carrier.vy)-3)/12,0,1);
+        const success=clamp(.54+(a.tackling-70)*.005+(a.strength-b.strength)*.0018+
+          momentum*.08-(b.agility-70)*.0025-(b.vision-70)*.0014-
+          tackler.fatigue*.13+carrier.fatigue*.08,.24,.95);
+        tackler.tackleCooldown=.65;
+        if(rand()<success)finish('Tackle by '+tackler.label,t,carrier);
+        else {tackler.vx*=.35;tackler.vy*=.35;log(t,'Missed tackle by '+tackler.label);}
+      }
       if(Math.abs(carrier.x)>=26.5)finish('Out of bounds',t,carrier);
       const toGoal=100-(off.yardLine??50);
       if(carrier.y>=toGoal)finish('Touchdown',t,carrier);
     }
+  }
+  for(const p of [...o,...d]){
+    const rating=statsOf(p).stamina;
+    const effort=clamp(Math.hypot(p.vx,p.vy)/Math.max(1,speedOf(p)),0,1.5);
+    p.fatigue=clamp(p.fatigue+dt*(.006+effort*.018+(p.engaged?.026:0))*(1.45-rating/180),0,.8);
+    if(p.side==='d')p.tackleCooldown=Math.max(0,p.tackleCooldown-dt);
   }
   if(!playOver&&t>=11.95)finish('Whistle — play duration limit',t,carrier||point(0,0));
   copyFrame(t);
@@ -412,9 +467,9 @@ const api={validate,simulate,eligibleNumber,clone,clamp,dist,statsOf,defaultStat
 root.GridironCore=api;
 if(typeof module!=='undefined'&&module.exports)module.exports=api;
 })(typeof window!=='undefined'?window:globalThis);
-
 </script>
-<script>/* Formation factory and editable playbook. */
+<script>
+/* Formation factory and editable playbook. */
 (function(root){
 'use strict';
 const c=root.GridironCore;
@@ -558,9 +613,9 @@ const api={offense,defense,routeFrom,setRoute,setBlock,createOffensePresets,crea
 root.GridironPlays=api;
 if(typeof module!=='undefined'&&module.exports)module.exports=api;
 })(typeof window!=='undefined'?window:globalThis);
-
 </script>
-<script>/* Route Lab campaigns: progressive small-sided instructional drills and full-squad challenges. */
+<script>
+/* Route Lab campaigns: progressive small-sided instructional drills and full-squad challenges. */
 (function(root){
 'use strict';
 const C=root.GridironCore||(typeof require!=="undefined"?require("./engine.js"):null),P=root.GridironPlays||(typeof require!=="undefined"?require("./plays.js"):null);
@@ -774,9 +829,9 @@ function assess(lesson,before,offense,defense,sim){const s=lesson.role.startsWit
 root.RouteCampaign={lessons,setup,readProgress,changed,assess,SCRIMMAGE_WAVES,SCRIMMAGE_ROSTERS,scrimmageSetup,objectiveForWave};
 if(typeof module!=='undefined'&&module.exports)module.exports=root.RouteCampaign;
 })(typeof window!=='undefined'?window:globalThis);
-
 </script>
-<script>/* Route Lab playbook reference. Rules simplified; NFL Rulebook remains authoritative. */
+<script>
+/* Route Lab playbook reference. Rules simplified; NFL Rulebook remains authoritative. */
 (function(root){'use strict';
 const raw=[
 ['Game','Down and distance','A down is a single opportunity to advance the ball. The offense normally has four downs to gain ten yards; crossing the line to gain awards a new series.','On 3rd & 3, a shallow route can be more useful than a deep post.','line to gain,first down'],
@@ -845,9 +900,9 @@ const byTitle=term=>entries.find(e=>e.title.toLowerCase()===String(term).toLower
 root.RouteEncyclopedia={entries,byTitle};
 if(typeof module!=='undefined'&&module.exports)module.exports=root.RouteEncyclopedia;
 })(typeof window!=='undefined'?window:globalThis);
-
 </script>
-<script>(function(){
+<script>
+(function(){
 'use strict';
 const C=window.GridironCore,P=window.GridironPlays,K=window.RouteCampaign,E=window.RouteEncyclopedia;
 const $=id=>document.getElementById(id),esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
@@ -862,7 +917,7 @@ let campaignDrillCleared=false,campaignQuizCleared=false,encyCategory='All',ency
 let campaignWave=0,coachLayer='assignments';
 let campaign=null,campaignBaseline=null,campaignProgress=K.readProgress({getItem:k=>{try{return localStorage.getItem(k);}catch{return null;}}}),campaignDrive=null,campaignSuccess=false,campaignAttempt=0;
 const OFF_JOBS=['route','passblock','runblock','block','pull','carry','release','quarterback'], DEF_JOBS=['rush','blitz','man','zone','spy','contain','runfit','deep'];
-const STAT_LABELS={speed:'Speed',acceleration:'Acceleration',agility:'Agility',strength:'Strength',blocking:'Blocking',coverage:'Coverage',tackling:'Tackling',hands:'Hands',awareness:'Awareness',throwAccuracy:'Passing accuracy',throwPower:'Arm strength'};
+const STAT_LABELS={speed:'Speed',acceleration:'Acceleration',agility:'Agility',stamina:'Stamina',strength:'Strength',blocking:'Blocking',passRush:'Pass rush',coverage:'Coverage',pursuit:'Pursuit',tackling:'Tackling',hands:'Hands',routeRunning:'Route running',vision:'Runner vision',awareness:'Awareness',throwAccuracy:'Passing accuracy',throwPower:'Arm strength'};
 const routeKinds=['go','fade','slant','flat','out','in','dig','corner','post','curl','hitch','drag','wheel','seam','comeback','swing','angle','bubble','shallow'];
 const sidePlay=()=>side==='offense'?offensive:defensive;
 const selectedPlayer=()=>sidePlay().players.find(p=>p.id===selected);
@@ -1345,6 +1400,5 @@ $('coachLayer').addEventListener('change',e=>{coachLayer=e.target.value;renderFi
 bindEncyclopedia();bindEvents();fillPresets();refresh();modeCampaignUI();document.getElementById('startupFallback')?.remove();
 
 })();
-
 </script>
 </body></html>

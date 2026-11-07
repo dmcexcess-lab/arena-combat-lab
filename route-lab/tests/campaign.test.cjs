@@ -30,7 +30,7 @@ test('offense first lesson observes the baseline, then requires an RB route coun
  const l=Camp.lessons.offense[0],s=Camp.scrimmageSetup(l,'offense',0),start=Core.clone(s),baseline=Core.simulate(s.offense,s.defense,l.seed);
  assert.ok(baseline.result.yards>=l.minimum);
  assert.equal(Camp.assess(l,start,s.offense,s.defense,baseline).pass,false);
- s.offense.players.find(p=>p.id==='oRB').route=[{x:2,y:-3},{x:-4,y:1},{x:-8,y:9},{x:-10,y:25}];
+ s.offense.players.find(p=>p.id==='oRB').route=[{x:-4,y:-4},{x:-10,y:1},{x:-14,y:10},{x:-17,y:25}];
  const counter=Core.simulate(s.offense,s.defense,l.seed);
  assert.notEqual(counter.result.yards,baseline.result.yards);
  assert.equal(Camp.assess(l,start,s.offense,s.defense,counter).pass,true);

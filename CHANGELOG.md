@@ -1,3 +1,9 @@
+## 2026-11-06 — Route Lab player ratings and simulation depth
+- Expanded player ratings to 16 with stamina, pass rush, pursuit, route running and runner vision; older saved play records inherit role defaults for missing attributes.
+- Added momentum-sensitive cuts, within-play fatigue, vision-guided run paths, rated man reaction and defensive pursuit, pass-rush versus blocking contact, and missed-tackle recovery.
+- Reworked QB pass lead and defender catch-point contests so coverage can produce broken passes instead of automatic deep completions. Replay frames now carry player energy.
+- Added seeded regression checks for rating effects, pass contests and exact replay determinism; refreshed Mission One's counterplay route for the revised pursuit model.
+
 ## 2026-11-06 — Route Lab Mission One assignment scout
 - Made the opening 3v1 run lesson an observe → adjust → test exercise: the unchanged rep is film study, and advancement requires editing the RB path and earning the stated simulated gain.
 - Added a live assignment brief for each player in Mission One, including blocking/coverage jobs and the RB-versus-MLB matchup; retained the same roster while Scout, Man, Zone and Blitz rotate.

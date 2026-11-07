@@ -174,3 +174,10 @@ Operational checklist for humans + AIs. Keep compact; add only behaviors whose r
 - Assignment, coverage, protection, pressure, run fits, schematic open space, and mismatch overlays must be selectable and reflect the current player assignments; player stat inspector edits persist in the play definition and affect subsequent simulations.
 - Advancing non-final campaign stages requires winning each scrimmage and modifying the tactical plan for each subsequent opponent.
 
+## Route Lab player and contact model (2026-11-06)
+- All 16 ratings have role defaults, clamp to 1–99, and missing new ratings on saved play records resolve to defaults.
+- Exact seed and play state reproduce frames (including energy), QB decisions and outcomes.
+- Faster/clearer running backs gain more yards over a seed set; stronger pursuit/tackling reduces those gains. Route running changes cuts, pass rush changes rusher movement, and stamina changes late-play energy and pace.
+- A moving receiver is led to a projected catch point; defenders can break up a catch there. Changing a corner's coverage and awareness changes seeded completion rate.
+- Failed tackle attempts recover before another attempt, while Mission One and the progressive campaign drills remain solvable under the shared simulation.
+

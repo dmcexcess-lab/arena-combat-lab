@@ -1,7 +1,7 @@
 'use strict';
 const {test}=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path');
 const C=require('../engine.js'),K=require('../campaign.js');
-const routeAway=[{x:2,y:-3},{x:-4,y:1},{x:-8,y:9},{x:-10,y:25}];
+const routeAway=[{x:-4,y:-4},{x:-10,y:1},{x:-14,y:10},{x:-17,y:25}];
 
 test('Mission One treats the unchanged SCOUT run as film study, then requires an RB counterplay',()=>{
  const lesson=K.lessons.offense[0],setup=K.scrimmageSetup(lesson,'offense',0),before=C.clone(setup);

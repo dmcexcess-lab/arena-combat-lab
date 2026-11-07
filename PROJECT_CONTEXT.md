@@ -49,3 +49,6 @@ The authoritative `GridironCore.statsOf(player)` produces editable 1–99 skill 
 ## Route Lab Mission One update
 Mission One now presents a live per-player assignment scout for its opening 3v1 run. The unchanged play is an observation rep; the outcome gate then requires an RB route edit plus the yardage objective through all four defensive looks, keeping the roster constant for comparison. The standalone HTML embeds the current maintained modules.
 
+## Route Lab player and contact model
+The same `GridironCore.simulate` drives free play and campaign drills. Its 1–99 player model now includes stamina, pass rush, pursuit, route running and runner vision alongside the original ratings. Sprinting and blocking accumulate within-play fatigue; acceleration, agility and route running affect cuts; runner speed and vision affect path execution; defenders use rated reaction and pursuit to track assignments. Block strength now contests pass rush, a tackler has a recovery period after a missed attempt, and defenders contest the projected catch point. QB passes lead moving receivers through an iterative flight estimate. Replay frames include remaining player energy. These are deterministic educational approximations; fatigue resets at each snap and is not yet a persistent drive condition.
+
