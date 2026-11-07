@@ -18,12 +18,24 @@ body{margin:0;background:var(--bg);color:var(--text);font-size:13px}button,input
 .campaign-nav{display:flex;gap:8px;align-items:center;padding:10px 16px;border-bottom:1px solid var(--border);background:#0b1a26;flex-wrap:wrap}.campaign-nav button{border-radius:30px;padding:8px 17px;background:#122a37}.campaign-nav button.active{border-color:var(--cyan);background:#17483e;color:#d6fff6}
 .campaign-banner{display:grid;grid-template-columns:minmax(0,1fr) 255px;gap:18px;padding:17px 21px;background:linear-gradient(115deg,#0d2f34,#101e32);border-bottom:1px solid #36544f}.campaign-banner[hidden]{display:none}.campaign-banner h2{margin:5px 0;font-size:22px}.campaign-banner p{color:#c4d9d9;line-height:1.45;max-width:800px}.campaign-role{color:#5be4cd;font-weight:800;font-size:12px}.campaign-task{border-left:3px solid #eebc70;padding-left:12px}.campaign-task b{color:#ffd38b;margin-right:6px}.campaign-feedback{margin-top:11px;font-size:13px;font-weight:700;color:#bdf1d9}.campaign-banner details{max-width:800px;color:#f9d39d}.campaign-banner details summary{cursor:pointer;font-weight:700}.campaign-banner details p{margin:5px 0 0}.campaign-control{border-left:1px solid #38534e;padding-left:15px;display:flex;flex-direction:column;gap:10px}.campaign-stages{display:flex;flex-wrap:wrap;gap:6px}.campaign-stage{padding:6px 10px;min-width:33px}.campaign-stage.current{border-color:#65e9c9;color:#6bebcf}.campaign-score{font:700 11px/1.5 ui-monospace,monospace;color:#f6cf8c}.campaign-next{background:#206457;border-color:#64d6b8}.campaign-on #offPreset,.campaign-on #defPreset{opacity:.65}.campaign-on .header-right .release{color:#ffe1a5}
 @media(max-width:720px){.campaign-nav{padding:7px;gap:6px}.campaign-nav button{flex:1;padding:9px 6px;font-size:11px}.campaign-banner{grid-template-columns:1fr;gap:10px;padding:14px}.campaign-banner h2{font-size:19px}.campaign-control{border-left:0;border-top:1px solid #38534e;padding:12px 0 0}.campaign-control>button{flex:1}.campaign-stages{gap:5px}}
+
+/* Knowledge and film room */
+.header-right #encyBtn{background:#14423b;border:1px solid #63ba9d;color:#c8f9e8;padding:9px 12px;border-radius:8px;font-weight:800}
+body.ency-open{overflow:hidden}.ency-overlay[hidden]{display:none}.ency-overlay{position:fixed;inset:0;z-index:120;background:#020b12db;display:flex;align-items:center;justify-content:center;padding:12px}
+.ency-window{background:#0a1927;border:1px solid #397166;box-shadow:0 20px 100px #000b;display:flex;flex-direction:column;width:min(1120px,100%);height:min(94vh,900px);border-radius:14px;overflow:hidden}
+.ency-head{padding:16px 20px;border-bottom:1px solid #34515b;display:flex;align-items:center;gap:18px;justify-content:space-between}.ency-head h2{margin:0;font-size:21px}.ency-head button{font-size:24px}
+.ency-searchbox{padding:12px 20px;display:flex;gap:12px;align-items:center;border-bottom:1px solid #293f4e}.ency-searchbox input{flex:1;min-width:0;background:#091621;border:1px solid #406074;color:white;padding:12px;border-radius:8px;font-size:16px}.ency-searchbox span{font-size:12px;color:#a4c0c8;white-space:nowrap}
+.ency-cats{display:flex;gap:6px;overflow-x:auto;padding:10px 16px;border-bottom:1px solid #293f4e}.ency-cats button{flex:none;font-size:12px;border-radius:20px;padding:7px 12px}.ency-cats button.active{background:#176e61;color:white;border-color:#76d0b5}
+.ency-body{display:grid;grid-template-columns:40% 60%;flex:1;min-height:0}.ency-results{overflow:auto;border-right:1px solid #314754;padding:10px}.ency-result{display:flex;flex-direction:column;text-align:left;width:100%;gap:4px;margin-bottom:7px;background:#112634;border:1px solid #294652;padding:10px;border-radius:8px}.ency-result.selected{border-color:#68d2bb;background:#183d40}.ency-result span,.ency-result small{font-size:11px;color:#a4bfcb}.ency-result b{font-size:14px;color:#f4fafb}.ency-article{overflow:auto;padding:25px;color:#d3e6ed;line-height:1.65}.ency-article h2{font-size:26px;margin:5px 0 18px}.ency-article h3{font-size:15px;margin:22px 0 6px;color:#84eacb}.ency-article a{color:#96e8dc}.ency-article .ency-tags{display:flex;gap:5px;flex-wrap:wrap;margin:20px 0}.ency-tags span{padding:4px 9px;background:#17323b;border-radius:12px;font-size:12px}.ency-authority{font-size:12px;color:#a9c2c8}
+.coach-manual{margin-top:14px;background:#0a2430;border:1px solid #33645f;padding:9px 12px;border-radius:10px}.coach-manual summary{font-size:13px;font-weight:800;color:#bafbe5;cursor:pointer}.coach-content{max-height:380px;overflow-y:auto;padding:5px 8px 8px;line-height:1.55}.coach-content h3,.coach-quiz h3{color:#67e1ca;font-size:12px;letter-spacing:.05em;margin:14px 0 6px}.coach-content p,.coach-content li{font-size:13px;color:#d4e5e8}.coach-content ol{padding-left:21px}.coach-references{display:flex;align-items:center;flex-wrap:wrap;gap:5px;font-size:12px}.term-link{padding:5px 9px!important;border-radius:12px!important;font-size:11px!important;background:#1a3b48!important;color:#b5f9ec!important}
+.coach-quiz{padding:10px 12px;margin-top:10px;border:1px solid #485b62;border-radius:9px;background:#10202e}.coach-quiz p{font-size:13px}.quiz-options{display:flex;gap:5px;flex-wrap:wrap}.quiz-options button{flex:1;min-width:125px;font-size:11px;padding:7px}.quiz-feedback{color:#ffdc97!important;font-size:12px!important}.decision-box{padding:12px 16px;border-top:1px solid #284454;background:#101d2a}.decision-box h4{margin:2px 0 9px;font-size:12px;color:#b5e2d8}.decision-card{font-size:12px;margin:5px 0}.decision-card b{color:#8ef2d4}.decision-card span{color:#a9c2ce}.decision-table{margin:8px 0;overflow-x:auto}.decision-row{display:grid;grid-template-columns:48px 66px 110px 78px 80px;gap:7px;align-items:center;border-bottom:1px solid #304451;padding:5px 7px;min-width:420px}.decision-row.picked{background:#164239}.decision-card small{font-size:11px;color:#94a9b5}
+@media(max-width:720px){.ency-overlay{padding:0}.ency-window{height:100dvh;width:100%;border-radius:0}.ency-body{grid-template-columns:1fr;grid-template-rows:42% 58%}.ency-results{border-right:0;border-bottom:1px solid #314754}.ency-article{padding:15px}.ency-head{padding:12px}.ency-searchbox{padding:8px}.ency-head h2{font-size:17px}.coach-content{max-height:320px}}
 </style></head>
 <body><div id="startupFallback" role="alert" style="padding:13px 17px;background:#382821;color:#ffe3b7;border-bottom:2px solid #d69e47;font:600 14px/1.5 system-ui,sans-serif;position:relative;z-index:20">The game has not started. If you opened this attachment in an iPhone Files or ChatGPT preview, that viewer may block JavaScript. Open this HTML in a full browser or use a hosted link. The plays and players are inside this file, but require JavaScript to load.</div><div class="app">
-<header><div class="mark">X/O</div><div class="brand"><b>ROUTE LAB</b><small>FOOTBALL TACTICS SANDBOX</small></div><div class="header-right"><span class="release">11v11 • NFL-STYLE • BUILD 0.1</span><button class="linkish" id="helpBtn">HOW TO USE ?</button></div></header>
+<header><div class="mark">X/O</div><div class="brand"><b>ROUTE LAB</b><small>FOOTBALL TACTICS SANDBOX</small></div><div class="header-right"><span class="release">11v11 • NFL-STYLE • BUILD 0.1</span><button id="encyBtn" aria-haspopup="dialog">ENCYCLOPEDIA ↗</button><button class="linkish" id="helpBtn">HOW TO USE ?</button></div></header>
 <nav class="campaign-nav" aria-label="Game modes"><button id="campaignFreeBtn" class="active">Free Play</button><button id="campaignOffBtn">Offense Campaign</button><button id="campaignDefBtn">Defense Campaign</button></nav>
 <section id="campaignBanner" class="campaign-banner" hidden aria-live="polite">
-<div class="campaign-lesson"><div class="eyebrow" id="campaignKicker"></div><h2 id="campaignTitle"></h2><div class="campaign-role" id="campaignRole"></div><p id="campaignDetail"></p><p class="campaign-task"><b>YOUR CHALLENGE</b> <span id="campaignTask"></span></p><details><summary>Coaching hint</summary><p id="campaignHint"></p></details><div class="campaign-feedback" id="campaignFeedback"></div></div>
+<div class="campaign-lesson"><div class="eyebrow" id="campaignKicker"></div><h2 id="campaignTitle"></h2><div class="campaign-role" id="campaignRole"></div><p id="campaignDetail"></p><p class="campaign-task"><b>YOUR CHALLENGE</b> <span id="campaignTask"></span></p><details><summary>Coaching hint</summary><p id="campaignHint"></p></details><div class="campaign-feedback" id="campaignFeedback"></div><div id="clinicPanel" aria-label="Interactive lesson clinic"></div></div>
 <div class="campaign-control"><div class="micro">LESSON PROGRESS</div><div id="campaignStageList" class="campaign-stages"></div><div class="campaign-score" id="campaignScore"></div><button id="campaignRestartBtn">↶ Restart lesson</button><button id="campaignNextBtn" class="campaign-next" disabled>Next lesson →</button></div>
 </section>
 <div class="workspace">
@@ -50,10 +62,15 @@ body{margin:0;background:var(--bg);color:var(--text);font-size:13px}button,input
  <div class="zoom-controls"><button id="zoomOut" aria-label="Zoom out">−</button><button id="zoomFit" aria-label="Fit whole field">Fit</button><button id="zoomIn" aria-label="Zoom in">+</button></div><div class="overlay-top"><span>LOS <strong id="losLabel">50</strong></span><span id="downLabel">1ST &amp; 10</span><span id="viewLabel">DESIGN</span></div><div class="field-overlay-hint" id="fieldHint">Tap a player to edit</div><div class="overlay-bottom">O = OFFENSE &nbsp; · &nbsp; X = DEFENSE &nbsp; · &nbsp; FIELD IN YARDS</div></div>
  <div class="control-strip"><button class="primary" id="runBtn">▶ Run play</button><button class="wide" id="pauseBtn" disabled>Ⅱ Pause</button><button class="wide" id="stepBtn" disabled>▸ Frame</button><button class="wide" id="rewindBtn" disabled>↶ Start</button><button class="wide" id="editBtn" disabled>✎ Edit</button><span class="control-divider"></span><span class="simtime" id="clock">0.00s</span><label style="display:flex;align-items:center;gap:5px;margin:0"><span>Speed</span><select class="rate" id="speedSelect"><option value=".25">¼×</option><option value=".5">½×</option><option value="1" selected>1×</option><option value="2">2×</option><option value="4">4×</option></select></label><label style="display:flex;align-items:center;gap:5px;margin:0"><span>Seed</span><input id="seedInput" class="seed" type="number" min="1" max="999999999" value="71"/></label></div>
  <div class="timeline-box"><span>REPLAY</span><input id="timeline" type="range" min="0" max="1" step="1" value="0" disabled/><span id="duration">—</span></div>
- <div class="events-box"><div><h4>Play result</h4><div id="resultMain" class="result-main">Ready for the snap</div><div id="resultMeta" class="result-meta">Choose plays, make adjustments, then run the simulation.</div></div><div><h4>Event log</h4><div class="event-log" id="eventLog">Simulation events will appear here.</div></div></div>
+ <div class="events-box"><div><h4>Play result</h4><div id="resultMain" class="result-main">Ready for the snap</div><div id="resultMeta" class="result-meta">Choose plays, make adjustments, then run the simulation.</div></div><div><h4>Event log</h4><div class="event-log" id="eventLog">Simulation events will appear here.</div></div></div><section class="decision-box" aria-label="QB decision review"><h4>QB FILM ROOM — READ PROGRESSION</h4><div id="decisionLog">Run a pass play to see the QB evaluate receivers, separation, pressure and risk.</div></section>
 </main>
 <aside class="pane inspector" id="inspector"></aside>
 </div></div>
+<div class="ency-overlay" id="encyOverlay" hidden role="presentation"><div class="ency-window" role="dialog" aria-modal="true" aria-labelledby="encyHeading">
+<div class="ency-head"><h2 id="encyHeading">Football Encyclopedia</h2><button id="encyClose" aria-label="Close encyclopedia">×</button></div>
+<div class="ency-searchbox"><input id="encySearch" type="search" placeholder="Search rules, routes, positions, concepts…" aria-label="Search football encyclopedia"><span id="encyCount"></span></div>
+<div class="ency-cats" id="encyCategories"></div>
+<div class="ency-body"><div class="ency-results" id="encyResults"></div><article class="ency-article" id="encyArticle"></article></div></div></div>
 
 <script>
 /* Route Lab — deterministic 11-on-11 tactical simulation core. World units: yards.
@@ -146,12 +163,12 @@ function speedOf(p){let mult=clamp(p.speed??1,.5,1.5);if(['WR','SL','RB','HB','F
 function simulate(off,def,seed=71){
  const v=validate(off,def); if(!v.valid)return {valid:false,validation:v,frames:[],events:[]};
  const rand=rng(seed), dt=.05, maxT=12;
- const o=clone(off.players).map(p=>({...p,side:'o',vx:0,vy:0,routeIndex:0,engaged:false}));
- const d=clone(def.players).map(p=>({...p,side:'d',vx:0,vy:0,engaged:false}));
+ const o=clone(off.players).map(p=>({...p,side:'o',vx:0,vy:0,routeIndex:0,engaged:false,speed:(p.speed??1)*(.96+rand()*.08)}));
+ const d=clone(def.players).map(p=>({...p,side:'d',vx:0,vy:0,engaged:false,speed:(p.speed??1)*(.94+rand()*.12)}));
  const byId=(id)=>o.find(p=>p.id===id), defenders=(id)=>d.find(p=>p.id===id);
  const qb=byId(off.snapToId||'oQB')||o.find(p=>p.label==='QB'), runner=byId(off.runnerId)||qb;
  let carrier=qb, state='live', ball={x:qb.x,y:qb.y,kind:'held'}, targetPass=null,flight=null, thrown=false, handoff=false, playOver=false, verdict='', yards=0, time=0, sack=false;
- const frames=[],events=[]; const log=(t,text)=>events.push({t:+t.toFixed(2),text});
+ const frames=[],events=[],decisions=[]; const log=(t,text)=>events.push({t:+t.toFixed(2),text});
  const isRun=['run','option'].includes(off.type),directRun=isRun&&runner===qb;
  const eligible=new Set(off.training?o.filter(p=>p.job==='route').map(p=>p.id):v.eligible);
  const receivers=o.filter(p=>p.job==='route'&&eligible.has(p.id));
@@ -270,22 +287,73 @@ function simulate(off,def,seed=71){
     }
     const ready=t>=Math.max(1.15,off.qbDropTime??1.15);
     if(!playOver&&ready&&receivers.length){
-      const scored=receivers.map(r=>{
-        const cover=nearest(r,d,a=>!['rush','blitz'].includes(a.job));
-        const progress=r.y;const open=cover.d;
-        return {r,score:open*.8+Math.min(progress,18)*.04-(r.read||3)*.16+(r.hot?1.1:0)+(r.id===off.primaryTarget?.7:0),open};
-      }).filter(s=>s.r.y>-.2).sort((a,b)=>b.score-a.score);
+      // Evaluate the RECEIVER AT BALL ARRIVAL, not just at the current frame.
+      // Each candidate carries a coverage, trajectory, urgency and risk estimate.
+      const rushDistance=rush.d;
+      const desperate=rushDistance<3.1;
       const maxWait=off.throwAt??3.2;
-      if(scored.length&&(scored[0].open>=2.4||t>=maxWait)){
-        const pick=scored[0],r=pick.r;
-        let approximate=Math.max(.35,dist(qb,r)/25);
-        let aim={x:clamp(r.x+r.vx*approximate*.60,-26.5,26.5),y:r.y+r.vy*approximate*.60};
-        let accuracy=clamp(.92 - dist(qb,r)*.005 - (rush.d<2.6?.25:0),.37,.96);
-        if(rand()>accuracy){aim.x+= (rand()-.5)*7;aim.y+=(rand()-.5)*5;}
-        const duration=Math.max(.2,dist(qb,aim)/28);
-        targetPass=r;flight={from:{x:qb.x,y:qb.y},to:aim,t0:t,duration};
-        thrown=true;carrier=null;state='air';log(t,'Pass aimed at '+r.label+(r.hot?' (hot)':''));
+      const clockPressure=clamp((t-maxWait+.6)/.8,0,1);
+      const firstDown=Number.isFinite(off.toGain)?off.toGain:10;
+      const graded=receivers.map(r=>{
+        const travel=Math.max(.25,dist(qb,r)/28);
+        const predict={x:clamp(r.x+r.vx*travel*.45,-26.5,26.5),y:r.y+r.vy*travel*.45};
+        const closest=nearest(predict,d,a=>!['rush','blitz'].includes(a.job));
+        const man=d.filter(a=>a.job==='man'&&a.coverTarget===r.id);
+        const shadow=man.length?nearest(predict,man).d:99;
+        // Defender can arrive on the throwing lane before the football.
+        const lane=d.filter(a=>!['rush','blitz'].includes(a.job)).reduce((risk,player)=>{
+          const dx=predict.x-qb.x,dy=predict.y-qb.y,mag=dx*dx+dy*dy;
+          if(mag<.1)return risk;
+          const along=clamp(((player.x-qb.x)*dx+(player.y-qb.y)*dy)/mag,0,1);
+          const projected={x:qb.x+dx*along,y:qb.y+dy*along};
+          return Math.max(risk,along>.08&&along<.93?clamp((2.6-dist(player,projected))/2.6,0,1):0);
+        },0);
+        const cushion=Math.min(closest.d,shadow+1);
+        const separation=clamp((cushion-1.2)/4.2,0,1);
+        const depth=clamp(predict.y,0,30);
+        const risk=clamp((1-separation)*.50+lane*.43+Math.max(0,depth-20)*.008,0,1);
+        const conversion=depth>=firstDown?1:0;
+        const timing=clamp(1-Math.abs(t-(r.read||3)*.42-.55)/3.7,.1,1);
+        // Pocket urgency makes open hot outlets more valuable than deeper contested throws.
+        const urgency=desperate||clockPressure>.55;
+        const value=separation*2.65+risk*-1.75+Math.min(depth,24)*.044+conversion*.36+timing*.20+
+          (r.hot&&urgency?.84:0)+(r.id===off.primaryTarget?.10:0)-
+          (urgency?Math.max(0,depth-12)*.055:0)+
+          (rand()-.5)*.55;
+        return {r,predict,risk,separation,lane,depth,score:value,open:cushion};
+      }).filter(a=>a.predict.y>-.2).sort((a,b)=>b.score-a.score);
+      // Softmax within a credible read window. A different seed can produce a
+      // different defensible choice while clear, low-risk winners stay favored.
+      const viable=graded.filter(a=>a.score>=graded[0].score-1.25&&a.risk<.82);
+      const weights=viable.map(a=>Math.exp((a.score-graded[0].score)*1.15));
+      let roll=rand()*weights.reduce((a,b)=>a+b,0),best=viable[0]||graded[0];
+      for(let j=0;j<viable.length;j++){roll-=weights[j];if(roll<=0){best=viable[j];break;}}
+      if(best&&(best.separation>.33||desperate||t>=maxWait)){
+        // A high-risk throw is sometimes worse than throwing away or scrambling.
+        const unsafe=best.risk>.72;
+        if(unsafe && (desperate||t>=maxWait) && rand()<.44){
+          if(off.allowScramble!==false&&rushDistance>1.6&&t<maxWait+1){
+            log(t,'QB rejects covered reads and extends the play');
+          }else{
+            thrown=true;carrier=null;state='dead';
+            decisions.push({t:+t.toFixed(2),action:'throwaway',reason:'No acceptable window; pressure and interception risk',candidates:graded.map(a=>({target:a.r.label,score:+a.score.toFixed(2),separation:+a.separation.toFixed(2),risk:+a.risk.toFixed(2)}))});
+            finish('Throwaway — incomplete pass',t,point(0,0));
+          }
+        }else{
+          const pick=best,r=pick.r;
+          const aim={x:pick.predict.x,y:pick.predict.y};
+          const accuracy=clamp(.93-dist(qb,aim)*.005-pick.risk*.15-(desperate?.16:0),.35,.97);
+          if(rand()>accuracy){aim.x+=(rand()-.5)*7;aim.y+=(rand()-.5)*5;}
+          const duration=Math.max(.2,dist(qb,aim)/28);
+          targetPass=r;flight={from:{x:qb.x,y:qb.y},to:aim,t0:t,duration};
+          thrown=true;carrier=null;state='air';
+          const why=desperate?'pressure/hot answer':pick.separation>.65?'separation':'timing/window';
+          decisions.push({t:+t.toFixed(2),action:'pass',targetId:r.id,target:r.label,reason:why,pressure:+rushDistance.toFixed(1),candidates:graded.map(a=>({target:a.r.label,score:+a.score.toFixed(2),separation:+a.separation.toFixed(2),risk:+a.risk.toFixed(2),depth:+a.depth.toFixed(1)}))});
+          log(t,'QB reads '+graded.slice(0,3).map(a=>a.r.label+' '+a.score.toFixed(1)).join(' / '));
+          log(t,'Pass aimed at '+r.label+' — '+why+(r.hot?' (hot)':''));
+        }
       }
+
     }
   }
   if(thrown&&flight){
@@ -293,8 +361,9 @@ function simulate(off,def,seed=71){
     ball={x:flight.from.x+(flight.to.x-flight.from.x)*pct,y:flight.from.y+(flight.to.y-flight.from.y)*pct,kind:'air'};
     if(pct>=1){
       const closeD=nearest(ball,d,a=>a.y>=-.5), receiverDist=dist(ball,targetPass);
-      if(closeD.d<1.25 && (closeD.d<receiverDist+.4 || rand()<.27)){
-        if(rand()<.31&&closeD.d<.8){carrier=closeD.agent;ball={x:carrier.x,y:carrier.y,kind:'held-d'};finish('Interception by '+carrier.label,t,carrier);}
+      const disruption=clamp((1.6-closeD.d)*.36+(receiverDist>1.65?.27:0)+(closeD.d<receiverDist?.18:0),0,.77);
+      if(closeD.d<1.65 && rand()<disruption){
+        if(rand()<.18&&closeD.d<.8){carrier=closeD.agent;ball={x:carrier.x,y:carrier.y,kind:'held-d'};finish('Interception by '+carrier.label,t,carrier);}
         else finish('Pass broken up by '+closeD.agent.label,t,point(0,0));
       } else if(receiverDist<=2.3){carrier=targetPass;state='runafter';ball={x:carrier.x,y:carrier.y,kind:'held'};flight=null;log(t,'Completed to '+carrier.label);}
       else finish('Incomplete pass',t,point(0,0));
@@ -319,13 +388,12 @@ function simulate(off,def,seed=71){
   copyFrame(t);
  }
  if(!playOver&&frames.length)finish('Play ended',time,carrier||point(0,0));
- return {valid:true,validation:v,frames,events,result:{verdict,yards,seconds:+time.toFixed(2),seed,offense:off.name,defense:def.name,sack}};
+ return {valid:true,validation:v,frames,events,decisions,result:{verdict,yards,seconds:+time.toFixed(2),seed,offense:off.name,defense:def.name,sack}};
 }
 const api={validate,simulate,eligibleNumber,clone,clamp,dist};
 root.GridironCore=api;
 if(typeof module!=='undefined'&&module.exports)module.exports=api;
 })(typeof window!=='undefined'?window:globalThis);
-
 </script>
 <script>
 /* Formation factory and editable playbook. */
@@ -472,7 +540,6 @@ const api={offense,defense,routeFrom,setRoute,setBlock,createOffensePresets,crea
 root.GridironPlays=api;
 if(typeof module!=='undefined'&&module.exports)module.exports=api;
 })(typeof window!=='undefined'?window:globalThis);
-
 </script>
 <script>
 /* Route Lab campaigns: progressive small-sided instructional drills and full-squad challenges. */
@@ -514,6 +581,77 @@ const lessons={
  {title:'Win the Defensive Stand',role:'Defensive coordinator',detail:'Now call your own 11-man defense. The opposing coordinator attacks your position repeatedly. Four downs without a first down wins the game; a touchdown loses the stand.',task:'Make a tactical edit, then stop the offense from converting four downs. Reconfigure assignments between snaps.',hint:'Watch the yards-to-gain and adapt your rush and coverage after every snap. The offense starts 10 yards from a first down.',off:'Shotgun Mesh',def:'4–3 Cover 2',os:11,ds:11,goal:'turnover',edit:'any',drive:true,editable:null,seed:71}
  ]
 };
+// Four-part coaching clinics are independent of the outcome gate; each lesson is a
+// genuine reading/practice exercise, not a slideshow that auto-awards progress.
+const clinics={
+ offense:[
+ {objective:'Understand the snap, the possession chain and the difference between a handoff and a pass.',
+  theory:['The center starts every scrimmage play with a snap. The QB must receive it cleanly before distributing the ball. A run does not automatically mean the QB keeps the football: the back must meet the exchange point and follow an assigned path.','The offense advances toward the top of the board. The line of scrimmage is the starting reference for yards gained; a tackle behind it is a loss. A single defender can stop a careless run if the ball carrier attacks directly into the pursuit angle.','These training drills deliberately use fewer than 11 players. Their alignments are instructional and are NOT legal NFL game formations.'],
+  craft:['Identify C, QB and RB on the field. Select each and inspect the job assigned.','Run once without editing, watch the carrier marker and follow the event log for the handoff.','Adjust the RB’s route away from the run-fit defender; repeat. Compare where contact occurs and the resulting yards.'],
+  observe:'Where was the ball at the instant of the handoff? Did the defender take a direct route or an angle to the projected runner?',
+  terms:['Snap','Quarterback (QB)','Running back (RB)','Line of scrimmage','Run fit'],
+  question:'Which player normally initiates a scrimmage play by snapping the ball?',choices:['Quarterback','Center','Running back'],answer:1,explain:'The center snaps it; the QB then receives the ball or executes the next action.'},
+ {objective:'Write a route that creates a throwing window rather than merely moving a receiver.',
+  theory:['A receiver runs a route to put a defender in conflict. A slant attacks inside quickly; an out attacks the boundary; a drag crosses the defense at shallow depth. Different shapes solve different coverage problems.','The QB does not throw solely because a receiver is first in the progression. Separation, position, ball-flight timing, defender leverage and pressure determine whether a window is viable.','A receiver can look open at the snap but be covered at ball arrival. Watch both the defender and receiver as the football travels.'],
+  craft:['Select X and review the route waypoints and receiving job.','Try a short break into available space, such as a curl, drag or shallow cross.','Run two attempts with different seeds, then replay each at the instant of the throw.'],
+  observe:'Did the QB choose X on both attempts? If not, how did the position of the covering defender change the read?',terms:['Wide receiver (WR)','Slant','Drag and shallow cross','Progression read','Leverage'],
+  question:'What makes an otherwise attractive receiver a poor target?',choices:['A defender in the anticipated catch window','Being second in the progression','Running a shorter route'],answer:0,explain:'A covered arrival point or contested passing lane can make a throw unsafe regardless of nominal read order.'},
+ {objective:'Use blocking assignments to buy enough time for a route to develop.',
+  theory:['Pass protection creates a pocket; it is not a race to push every defender forward. A tackle usually handles a threatening edge, while interior blockers protect the shortest line to the QB.','An assignment needs a defined opponent or area. Sending the LT to the wrong defender can leave a free rusher. Blocking also has limits: a slower blocker may lose a matchup or fail to redirect a rusher.','Every route has a time cost. A five-yard hitch can be available early; a deep post may require the QB to survive much longer.'],
+  craft:['Find the defender attacking the offensive left edge. Select LT and bind his block target to that defender.','Compare elapsed time to the first pressure or sack before and after the assignment.','If pressure still arrives, modify a route to give the QB an earlier answer rather than treating protection as infallible.'],
+  observe:'Which blocker contacted the rush first, and which receiving window was available before pressure?',terms:['Guards and tackles','Pass rush and blitz','Hot route','Checkdown','Gap integrity'],
+  question:'Why can a quick outlet improve a play with weak protection?',choices:['It makes every block stronger','It gives the QB an earlier viable throw','It removes the defensive line'],answer:1,explain:'Short answers can be delivered before a rusher wins, without changing the blockers’ physical ability.'},
+ {objective:'Design a concept that makes a single defender choose between multiple threats.',
+  theory:['Good play calls combine routes: short/long and inside/outside threats stress the same defender. If both receivers run into the same space, one defender may cover both.','A hot read is a built-in response to an expected blitz. It should be accessible early, with an angle and location the QB can identify. It is not an automatic completion button.','Read priority is guidance, not a hard lock. A QB should reject an unsafe first read and move to another window or avoid the throw.'],
+  craft:['Map the likely linebacker zone and choose two different routes that force a commitment.','Assign a hot receiver or adjust the read numbers so the QB has an early outlet.','Try the same concept against multiple seeds and identify which defender each successful completion exploited.'],
+  observe:'At the snap, which two routes put a defender in conflict? Which read won after the snap?',terms:['Route concept','Spacing concept','Hot route','Progression read','Post-snap read'],
+  question:'Which route combination creates more useful spacing?',choices:['Two receivers finishing on the same spot','A flat underneath with a slant behind it','Two receivers both waiting behind the QB'],answer:1,explain:'Different depths and horizontal areas can force one defender to choose a threat.'},
+ {objective:'Retain legal alignment while modifying a full 11-player offensive concept.',
+  theory:['With 11 players the formation becomes a legal design problem. Seven or more are on the offensive line at the snap. The two ends of the line are eligible positions; interior linemen normally cannot catch a forward pass.','A receiver lined up ON the line outside a tight end may cover the tight end, removing that end’s eligibility. A back clearly behind the line can remain eligible if his number and status permit.','The legality checker is an instructional subset of NFL enforcement. It detects important formation and assignment violations but does not yet officiate all movement, contact or live-ball rules.'],
+  craft:['Count the on-line players and locate each end-of-line eligible receiver.','Change an eligible route while leaving the interior blockers and snap structure intact.','Inspect Rules Check. If it fails, correct the exact offender instead of abandoning your concept.'],
+  observe:'Did all receiving routes belong to eligible players? Which defenders were stressed by the revised design?',terms:['Legal offensive formation','Eligible receiver','Line of scrimmage','Legal motion and shift','Illegal man downfield'],
+  question:'Under the NFL scrimmage formation rule, at least how many offensive players must be on the line?',choices:['Five','Six','Seven'],answer:2,explain:'At least seven offensive players must align on the line of scrimmage.'},
+ {objective:'Call a sequence of legal, complementary plays to score a touchdown.',
+  theory:['A touchdown drive requires situational football, not one perfect diagram. Keep track of down, yards to go, field position and the defense’s strengths. A three-yard gain is useful on 2nd & 2 but not enough on 4th & 8.','Use plays in families: run to challenge gap integrity, a quick pass to counter pressure, a deeper concept to punish defensive overreaction. Running and passing should make each other harder to defend.','A good coordinator observes the previous snap. Did the blitz arrive? Did the CB stay in man? Did the safety rotate? Adapt assignments between downs rather than replaying the identical call without thought.'],
+  craft:['Start by reading the down and distance. Identify one safe concept and one higher-reward alternative.','Change at least one tactical assignment, then run and evaluate the QB’s candidate scores and contact points.','Manage the next down. Earn a fresh set of downs when needed and cross the goal line before turning it over.'],
+  observe:'Which calls generated positive expected yards against pressure? Did your alterations improve the drive or just increase risk?',terms:['Down and distance','Touchdown','Turnover on downs','Film review','Checkdown','Pre-snap read'],
+  question:'On 3rd & 2 near the goal line, what is the most relevant design goal?',choices:['Always target the deepest receiver','Gain the needed yards while controlling risk','Throw only to the first read'],answer:1,explain:'Distance to gain, coverage and turnover risk determine which play is most useful.'}
+ ],
+ defense:[
+ {objective:'Learn pursuit, run fits and the role of the second-level defender.',
+  theory:['A defender should not chase the current ball position blindly. A pursuit angle closes the runner’s likely future path. A linebacker is a gap fitter and a tackler, not merely a stationary X.','Front defenders control lanes; second-level defenders clean up when a runner chooses a crease. A bad fit creates a hole even when several defenders seem close.','A single-defender drill strips away team complexity so you can see pursuit decisions and the effect of an assignment.'],
+  craft:['Inspect MLB’s default job and identify the ball carrier.','Assign the RB as the linebacker’s responsibility, then run and inspect the angle of pursuit.','Reposition the linebacker and compare where contact occurs. Do not judge a defense purely by the first second of motion.'],
+  observe:'Did the defender meet the runner’s path or chase behind it?',terms:['Linebacker (LB)','Run fit','Gap integrity','Contain and force'],
+  question:'What is a sound pursuit principle?',choices:['Chase the runner’s previous location','Intercept the runner’s likely path','Always rush straight upfield'],answer:1,explain:'Interception angles beat reactive chasing, especially in space.'},
+ {objective:'Assign man coverage and recognize leverage advantages.',
+  theory:['In man coverage a defender is responsible for an eligible player rather than a fixed patch of grass. The defender’s starting leverage influences which cuts he can defend.','Man assignments remain vulnerable to traffic, sharp inside breaks and receiver speed. Outside help or a deep safety can change the technique.','Man versus zone is a responsibility distinction, not merely whether a corner runs next to someone in an animation.'],
+  craft:['Assign CB1 to X and confirm the target label in the inspector.','Run multiple seeds. Inspect whether the corner stays with X through the break.','Move the corner a little inside or outside and test which break it best protects.'],
+  observe:'Did the receiver win inside, outside or vertically? Was another defensive player available for help?',terms:['Man coverage','Cornerback (CB)','Leverage','Cover 1','Drag and shallow cross'],
+  question:'In man coverage, who is the primary assigned responsibility?',choices:['An individual eligible opponent','A fixed rectangle of grass','Only the QB'],answer:0,explain:'Man coverage tracks a particular offensive player, with help rules where the scheme provides them.'},
+ {objective:'Create pressure without sacrificing all viable coverage answers.',
+  theory:['A rush of four can create pressure while preserving seven in coverage. Blitzing a linebacker may speed arrival at the QB, but it also removes an underneath body.','A successful rush is a race against the route. The defense must reach the passer before the receiver makes a safe throwing window.','Contain matters against QB movement. An edge defender who loses outside leverage may give the passer a scramble escape route.'],
+  craft:['Inspect a pass-rushing DE and change one assignment to Rush or Blitz.','Replay the instant pressure reaches the QB and note whether the pass was already released.','Adjust another defender into coverage if your blitz leaves a short outlet completely unprotected.'],
+  observe:'Which defender created pressure, and what space did the rushing choice leave open?',terms:['Pass rush and blitz','Contain and force','Hot route','Checkdown','Quarterback (QB)'],
+  question:'What is the main tradeoff when sending an extra blitzer?',choices:['More pressure but fewer coverage defenders','Automatic interception','Less pressure and more coverage'],answer:0,explain:'Extra rushers trade coverage resources for a faster path to the QB.'},
+ {objective:'Protect areas as a coordinated zone defense instead of just following receivers.',
+  theory:['Zone coverage puts defenders in charge of areas and route threats entering those areas. Good defenders react to receivers, but their assignments include depth, width and help.','A deep window can appear between underneath and deep defenders; a shallow window can appear if multiple zones expand after the same receiver.','Zone size is a tactical responsibility in Route Lab, not a magic radius in which all catches are forbidden.'],
+  craft:['Locate the strongest crossing route and the linebacker’s current coverage zone.','Move the zone center or resize the radius to take away the route’s projected catch point.','Run another attempt and compare thrown target, spacing and whether the offense exploited the opposite side.'],
+  observe:'Did a zone defender close the expected window, or did the QB correctly progress elsewhere?',terms:['Zone coverage','Cover 2','Cover 3','Pattern matching','Leverage'],
+  question:'In zone coverage, what is the defender’s main organizing responsibility?',choices:['Track one specified player everywhere','Protect an area and react to threats','Never move from the initial position'],answer:1,explain:'Zone defenders have area responsibilities with different reaction and matching rules.'},
+ {objective:'Combine front pressure, intermediate help and deep coverage with all eleven defenders.',
+  theory:['A defensive call is an integrated structure: front/gap responsibilities, curl-flat and hook defenders, deep leverage and potential match rules. Eleven independent jobs can contradict one another.','Cover 2 traditionally uses two deep safeties; Cover 3 has three deep defenders; quarters uses four deep responsibilities and commonly match principles. Labels are broad families, not complete play calls.','The best shell for a concept depends on what the offense threatens, where the weakness lies and how pressure changes the QB’s time.'],
+  craft:['Identify the rushers, underneath defenders and deep safeties in the preset.','Alter one coverage or rush role, then confirm all eleven remain in legal positions.','Test your assignment against a short pattern and a vertical concept; inspect which responsibility was compromised.'],
+  observe:'Which position had to choose between a shallow receiver and an intermediate or vertical threat?',terms:['Cover 2','Cover 3','Quarters','Pattern matching','Gap integrity'],
+  question:'Which is typically the distinguishing deep structure of Cover 3?',choices:['Three deep coverage defenders','No deep defender','Every defender rushing'],answer:0,explain:'The standard Cover 3 zone family uses three deep thirds with underneath defenders.'},
+ {objective:'Plan a four-down defensive stand and adapt coverage after each offensive response.',
+  theory:['A defense wins a stand by denying a new first down or forcing a turnover, not necessarily by making every play a sack. The acceptable gain changes with down and distance.','Avoid giving up one explosive conversion to chase an unrealistic negative play. Mix front integrity, underneath reactions and enough deep help to prevent a touchdown.','Treat replay as film study: identify which receiver was actually selected, why the QB rejected alternatives and how your assignments changed the pressure and passing lanes.'],
+  craft:['Before each snap read the distance to gain and name the most dangerous receiving window.','Make a meaningful adjustment to coverage or rush, then use the event log to inspect the QB read and the stop.','Keep the offense behind the chains for four downs; reconsider the shell if a conversion resets the series.'],
+  observe:'Did your scheme remove the primary read or merely force a safer checkdown? Was that sufficient on the current down?',terms:['Down and distance','Turnover on downs','Film review','Pre-snap read','Pass rush and blitz'],
+  question:'What defines success for a four-down defensive stand?',choices:['Sack the quarterback on every snap','Prevent the offense from earning another first down','Make every pass incomplete'],answer:1,explain:'The defense can concede short gains so long as the offense does not reach the line to gain.'}
+ ]
+};
+for(const side of ['offense','defense'])lessons[side].forEach((lesson,index)=>{lesson.clinic=clinics[side][index];});
+
 const START_PROGRESS={offense:0,defense:0};
 function readProgress(storage){try{const p=JSON.parse(storage.getItem('route-lab-campaign-v1')||'{}');return {offense:Math.max(0,Math.min(lessons.offense.length,Number(p.offense)||0)),defense:Math.max(0,Math.min(lessons.defense.length,Number(p.defense)||0))};}catch{return {...START_PROGRESS};}}
 function changed(before,after,lesson,side){const bp=before[side].players,ap=after[side].players;const e=lesson.edit;if(!e)return true;
@@ -543,12 +681,82 @@ function assess(lesson,before,offense,defense,sim){const s=lesson.role.startsWit
 root.RouteCampaign={lessons,setup,readProgress,changed,assess};
 if(typeof module!=='undefined'&&module.exports)module.exports=root.RouteCampaign;
 })(typeof window!=='undefined'?window:globalThis);
-
+</script>
+<script>
+/* Route Lab playbook reference. Rules simplified; NFL Rulebook remains authoritative. */
+(function(root){'use strict';
+const raw=[
+['Game','Down and distance','A down is a single opportunity to advance the ball. The offense normally has four downs to gain ten yards; crossing the line to gain awards a new series.','On 3rd & 3, a shallow route can be more useful than a deep post.','line to gain,first down'],
+['Game','Line of scrimmage','The imaginary line through the ball before a snap. The neutral zone separates the teams. In Route Lab the offense attacks upward on the board.','Align seven or more offensive players on the line in a full-squad formation.','LOS,neutral zone'],
+['Game','Touchdown','A touchdown scores six points when a player with possession breaks the plane of the opponents’ goal line or otherwise satisfies the scoring rule.','Drive into the end zone rather than merely beating a single defender.','end zone,score'],
+['Game','Turnover on downs','If the offense fails to gain a new first down after its fourth down, possession passes to the defense.','On fourth down consider both conversion chance and turnover risk.','downs,conversion'],
+['Game','Snap','The center puts the ball in play by delivering it backward. The snap begins an offensive play.','Watch how the offensive line creates a pocket as the ball arrives at the QB.','center,football start'],
+['Rules','Legal offensive formation','In NFL scrimmage formations, at least seven offensive players must be on the line; the two ends are eligible receiver positions while the players between them are normally ineligible. Backfield players must clearly line up off the line.','Count the line players, then look at which receivers are covered by teammates on the line.','seven on the line,illegal formation'],
+['Rules','Eligible receiver','An offensive player permitted to catch a forward pass. Usually an end-of-line player or backfield player who has an eligible number. Properly reported exceptions exist.','If the slot moves onto the line and covers the tight end, the tight end may lose eligibility.','covered up,report eligible'],
+['Rules','Legal motion and shift','A single backfield player can be in motion at the snap if not moving toward the opposing goal line. Multiple moving players require a legal shift and a set period.','Use motion to expose man or zone tendencies; do not send two moving players through the snap.','motion,shift,pre-snap'],
+['Rules','Offside and neutral zone','A defender must not illegally enter or remain in the neutral zone at the snap. Exact enforcement varies by action.','Give defensive linemen room outside the neutral zone.','offsides,encroachment'],
+['Rules','Pass interference','Illegal contact that materially restricts an eligible opponent’s opportunity to catch a forward pass, subject to timing and other exceptions.','Do not confuse close coverage with a legal license to grab a receiver.','DPI,OPI'],
+['Rules','Intentional grounding','An NFL passer under pressure can be penalized for intentionally throwing an incomplete forward pass without a realistic chance of completion, subject to exceptions such as outside the pocket and beyond the line.','The alpha simulator treats throwaways as incomplete plays, not full officiated grounding judgments.','throwaway,pocket'],
+['Rules','Illegal man downfield','On a forward pass crossing the neutral zone, ineligible offensive players cannot advance too far downfield before the throw, except where rules permit.','A guard can pull on a run; he cannot freely release five yards upfield before a normal forward pass.','ineligible,pass'],
+['Personnel','Quarterback (QB)','The offensive decision-maker receives the snap, reads defensive leverage, times routes, and decides where and whether to deliver the ball.','A progression is a decision order, not a promise to force the first receiver.','passer,progression'],
+['Personnel','Center (C)','The center snaps the ball and makes interior protection or run-blocking calls.','Protect the A-gaps so the QB can step forward.','offensive line,snap'],
+['Personnel','Guards and tackles','Guards defend the interior and tackles handle edge rush. Their run assignments may include drive, reach, pull or combination blocking.','Assign the LT to the dangerous edge rusher, then compare time to pressure.','OL,LG,RG,LT,RT'],
+['Personnel','Running back (RB)','A back can run, protect the passer, release into a route, or act as a checkdown.','Assign a swing route to see how an outlet punishes aggressive pressure.','HB,tailback,checkdown'],
+['Personnel','Wide receiver (WR)','An eligible player who uses route speed, stems and leverage to get a favorable throwing window.','Run different-depth routes to stretch both the corner and safety.','X,Z,split end,flanker'],
+['Personnel','Slot receiver','A receiver aligned inside the outside receiver. Slot alignments often create two-way releases and quick-game opportunities.','Use a drag from the slot to attack underneath space.','SL,nickel'],
+['Personnel','Tight end (TE)','A hybrid receiver and blocker, often aligned beside the tackle or split out. End-of-line eligibility matters.','A seam by the TE pressures linebackers and split safeties.','Y,blocking'],
+['Personnel','Defensive line','Interior tackles and edge players attack blockers, fit run gaps and pressure the QB.','Four rushers leave seven defenders for coverage.','DT,DE,edge'],
+['Personnel','Linebacker (LB)','A second-level defender who can fit the run, blitz, spy, or cover man/zone.','Move the MLB into the correct interior fit before a run snap.','MLB,OLB,ILB'],
+['Personnel','Cornerback (CB)','A perimeter coverage defender, usually responsible for outside receivers or outside coverage zones.','Change CB alignment to inside leverage against a slant.','press,off coverage'],
+['Personnel','Safety (FS/SS)','Deep or intermediate defender who caps vertical routes, matches receivers and supports runs.','Watch what happens to a post route if the free safety rotates down.','free safety,strong safety'],
+['Routes','Slant','A short angled route designed to cross a defender’s leverage quickly, often against soft or outside coverage.','Pair slant with a flat route to stress a curl/flat defender.','quick game,inside'],
+['Routes','Flat','A short route toward the sideline, often run by a back or tight end.','If the defender expands to the flat, the slant window may open.','outlet,checkdown'],
+['Routes','Hitch and curl','A hitch is a short vertical stem with a quick stop; a curl typically settles at greater depth with a turn toward the QB.','Throw on the break rather than waiting until the receiver is completely still.','stop route,timing'],
+['Routes','Drag and shallow cross','A low-depth horizontal crossing route, valuable against man trails and some underneath zones.','Mesh pairs opposing shallow routes and changes defender traffic.','mesh,crosser'],
+['Routes','Dig and in','A receiver pushes vertically then breaks inside at intermediate depth.','Pair a dig with an underneath outlet to stress hook defenders.','square in'],
+['Routes','Out and comeback','A sideline-breaking out or return-to-QB comeback relies on sharp timing and leverage.','A late throw to the sideline gives the corner time to undercut.','sideline'],
+['Routes','Post and corner','Post routes break toward the middle/deep post; corners break toward deep sideline areas.','A corner can stretch a Cover 2 safety near the boundary.','deep route'],
+['Routes','Go and fade','Vertical routes demand that deep defenders respect speed; a fade angles toward the outside boundary.','Deep threats can open room for underneath routes even without being targeted.','streak,vertical'],
+['Routes','Wheel and seam','A wheel starts laterally then turns vertically; a seam attacks a gap between underneath and deep defenders.','A wheel from a back can test whether a linebacker can carry vertical.','RB route,vertical'],
+['Concepts','Route concept','A coordinated set of routes intended to stress specific defenders, zones or leverage—not simply five independent lines.','Ask: Which defender is placed in conflict, and what is the QB’s answer to either choice?','combination,spacing'],
+['Concepts','Progression read','The ordered process by which a QB evaluates throws. A real read also considers safeties, leverage, pressure, timing and risk.','Prioritizing X as first read should not force a bad throw to X.','QB,primary,secondary'],
+['Concepts','Hot route','An early or altered receiving answer against likely pressure. The QB must know where it develops.','Hot outlets are useful when a blitz shortens time to throw.','blitz answer'],
+['Concepts','Checkdown','A shorter, safer outlet if deeper receivers are not viable. Taking a modest gain is often better than a sack or interception.','Compare RB swing reception versus forcing a covered go route.','outlet'],
+['Concepts','Spacing concept','Routes distribute defenders horizontally and vertically to prevent one player covering two threats.','Use an underneath, intermediate and deep route in different lanes.','levels'],
+['Concepts','Mesh concept','Two shallow crossing routes create traffic and threaten man coverage, complemented by outlets or deeper routes.','Watch man defenders navigate crossings; zone defenders may pass receivers off.','crossing,drag'],
+['Concepts','Flood concept','Three routes at staggered depths on the same side overload a limited number of zone defenders.','A deep clear, mid out and flat stress the sideline layers.','three-level stretch'],
+['Concepts','Play-action','The offense sells a run before dropping into a pass, aiming to influence linebackers and open throwing windows.','It works best when the run threat is credible and protection survives the fake.','run fake'],
+['Concepts','Inside zone','Linemen work playside combinations while a back reads how blocks develop and chooses a crease.','Run the same front several times; a run gap should adapt to defenders, not teleport.','run,zone blocking'],
+['Concepts','Power run','A gap-scheme concept using down blocks and often a pulling guard or lead blocker to create a numbers advantage.','Read the point of attack and backside pursuit.','pull,gap'],
+['Coverage','Man coverage','Each assigned defender tracks a specific eligible receiver. Leverage and help determine where the defender can be attacked.','Use bunch or crossing routes to challenge man assignments.','Cover 0,Cover 1'],
+['Coverage','Zone coverage','Defenders protect named areas while passing routes between zones according to their responsibilities.','Move a hook zone underneath the dig, then inspect the deep window.','spot drop,match'],
+['Coverage','Cover 0','A pressure-oriented man structure without a dedicated deep safety. It risks explosive gains if coverage is beaten.','Hot slant and quick outlets can attack immediate pressure.','zero blitz'],
+['Coverage','Cover 1','Man coverage with one deep safety and typically other defenders rushing or supporting underneath.','Isolation on the outside depends on CB leverage and help angle.','single high'],
+['Coverage','Cover 2','Two deep safety zones with defenders protecting short and intermediate areas. A common weakness is the gap between a corner and deep safety.','A corner or seam route can stress a split-safety defense.','two high'],
+['Coverage','Cover 3','Three deep defenders, with four underneath defenders in a traditional zone shell.','Curl/flat defenders must respond to two threats at once.','three deep'],
+['Coverage','Quarters','Four deep quarters, often with match rules tied to receiver releases; not simply four immobile deep boxes.','Study safeties’ vertical responsibilities before calling four verts.','Cover 4,match quarters'],
+['Coverage','Leverage','The defensive position relative to a receiver—inside, outside, above or underneath—affects route access.','Against inside leverage, an outside break may create a cleaner window.','inside shade,outside shade'],
+['Coverage','Pattern matching','A defender starts from zone principles but may carry a receiver based on his route, combining zone and man behavior.','A seam release may become a safety’s man-like responsibility.','match zone'],
+['Defense','Pass rush and blitz','A typical rush uses down linemen; a blitz adds a second- or third-level player. More pressure usually means fewer defenders in coverage.','A successful blitz must arrive before exposed receivers exploit its vacancy.','pressure'],
+['Defense','Gap integrity','Each front defender has an assigned run gap or force/contain role; vacating it can create a running lane.','Do not send every linebacker chasing the QB against inside zone.','A gap,B gap,C gap'],
+['Defense','Contain and force','An edge defender keeps the runner from escaping outside and forces action back toward support.','If a contain player collapses inside too early, the runner has an edge.','edge,run defense'],
+['Defense','Spy','A defender watches a potentially mobile QB rather than rushing immediately, ready to react to a scramble.','A spy reduces escape lanes but costs coverage or pressure manpower.','QB run'],
+['Defense','Run fit','The coordinated path by which each defender fills a gap once the run declares.','A poor angle can produce a gain even with a numerically sound front.','tackling,pursuit'],
+['Coaching','Pre-snap read','Before the snap, recognize safety depth, corner leverage, the defensive front and likely pressure; movement after the snap can disguise the truth.','Do not assume two high safeties automatically mean Cover 2.','recognition'],
+['Coaching','Post-snap read','After the snap, confirm rotation and see where the conflicted defender commits. The QB must keep the route timing in mind.','Watch the linebacker: does he run to the flat or close the slant?','processing'],
+['Coaching','Film review','Rewatch why a play worked: who gained leverage, whether protection held, and what alternative read was available.','Use the QB decision log to compare candidate separation and risk at the release.','replay,debrief'],
+['Coaching','Deterministic seed','The simulation seed fixes its generated decisions and variations for reproducibility. A new attempt uses a new seed; repeating a saved seed repeats the same simulated sequence.','Change one route and reuse a seed to isolate the assignment’s effect.','randomness,experiment']
+];
+const entries=raw.map(([category,title,description,practice,tags],i)=>({id:'term-'+i,category,title,description,practice,tags:tags.split(',')}));
+const byTitle=term=>entries.find(e=>e.title.toLowerCase()===String(term).toLowerCase())||entries.find(e=>e.title.toLowerCase().includes(String(term).toLowerCase()));
+root.RouteEncyclopedia={entries,byTitle};
+if(typeof module!=='undefined'&&module.exports)module.exports=root.RouteEncyclopedia;
+})(typeof window!=='undefined'?window:globalThis);
 </script>
 <script>
 (function(){
 'use strict';
-const C=window.GridironCore,P=window.GridironPlays,K=window.RouteCampaign;
+const C=window.GridironCore,P=window.GridironPlays,K=window.RouteCampaign,E=window.RouteEncyclopedia;
 const $=id=>document.getElementById(id),esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
 const W=1080,H=900,OX=540,OY=745,XS=18,YS=15;
 const pos=(p)=>({x:OX+p.x*XS,y:OY-p.y*YS}), world=(x,y)=>({x:C.clamp((x-OX)/XS,-26.6,26.6),y:C.clamp((OY-y)/YS,-9.2,39.5)});
@@ -557,6 +765,7 @@ const initCustom=()=>{try{let v=JSON.parse(localStorage.getItem('route-lab-custo
 const custom=initCustom();
 let offensive=C.clone(offPresets[0]), defensive=C.clone(defPresets[0]);
 let side='offense',selected='oSL',tool='select',drag=null,undo=[],redo=[],running=false,playback=null,frameIndex=0,lastFrameTime=0,raf=0,dirty=false,zoom=1;
+let campaignDrillCleared=false,campaignQuizCleared=false,encyCategory='All',encySearch='';
 let campaign=null,campaignBaseline=null,campaignProgress=K.readProgress({getItem:k=>{try{return localStorage.getItem(k);}catch{return null;}}}),campaignDrive=null,campaignSuccess=false,campaignAttempt=0;
 const OFF_JOBS=['route','passblock','runblock','block','pull','carry','release','quarterback'], DEF_JOBS=['rush','blitz','man','zone','spy','contain','runfit','deep'];
 const routeKinds=['go','fade','slant','flat','out','in','dig','corner','post','curl','hitch','drag','wheel','seam','comeback','swing','angle','bubble','shallow'];
@@ -799,6 +1008,7 @@ function bindEvents(){
   dirty=true;invalidate();refresh();
  });
  document.addEventListener('keydown',e=>{
+  if(e.key==='Escape'&&!$('encyOverlay').hidden){closeEncyclopedia();return;}
   if(['INPUT','TEXTAREA','SELECT'].includes(e.target.tagName))return;
   if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='z'){e.preventDefault();history(e.shiftKey?'redo':'undo');}
   else if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='y'){e.preventDefault();history('redo');}
@@ -812,12 +1022,13 @@ function setZoom(v){const shell=document.querySelector('.field-shell'), oldW=she
  $('zoomOut').disabled=zoom<=1;$('zoomIn').disabled=zoom>=3.5;
 }
 function run(){const validation=validationUI();if(!validation.valid){$('resultMain').textContent='Cannot run: illegal alignment';$('resultMeta').textContent=validation.errors[0]||'Fix highlighted validation issues.';return;}
- const seed=(Number($('seedInput').value)||71)+(campaign?campaignAttempt:0);if(campaign && campaignDrive)offensive.yardLine=campaignDrive.yardLine;const sim=C.simulate(offensive,defensive,seed);if(!sim.valid)return;
+ const seed=(Number($('seedInput').value)||71);if(campaign && campaignDrive)offensive.yardLine=campaignDrive.yardLine;const sim=C.simulate(offensive,defensive,seed);if(!sim.valid)return;
+ $('seedInput').value=seed+1; // A new click is a new attempt; type an old seed to reproduce it exactly.
  if(campaign){campaignAttempt++;gradeCampaign(sim);}
  playback=sim;frameIndex=0;running=true;lastFrameTime=performance.now();$('timeline').disabled=false;$('timeline').max=sim.frames.length-1;$('timeline').value='0';
  $('pauseBtn').disabled=false;$('stepBtn').disabled=false;$('rewindBtn').disabled=false;$('editBtn').disabled=false;$('pauseBtn').textContent='Ⅱ Pause';
  $('duration').textContent=sim.result.seconds.toFixed(2)+'s';$('resultMain').textContent=sim.result.verdict;$('resultMeta').textContent=(sim.result.yards>=0?'+':'')+sim.result.yards.toFixed(1)+' yards • '+sim.result.seconds.toFixed(2)+' seconds • seed '+sim.result.seed;
- $('modeChip').textContent='SIMULATION';$('viewLabel').textContent='REPLAY';renderFrame();cancelAnimationFrame(raf);raf=requestAnimationFrame(tick);
+ renderDecisions(sim);$('modeChip').textContent='SIMULATION';$('viewLabel').textContent='REPLAY';renderFrame();cancelAnimationFrame(raf);raf=requestAnimationFrame(tick);
 }
 function renderFrame(){if(!playback)return;frameIndex=C.clamp(frameIndex,0,playback.frames.length-1);const f=playback.frames[frameIndex];
  $('timeline').value=frameIndex;$('clock').textContent=f.t.toFixed(2)+'s';$('eventLog').innerHTML=playback.events.filter(e=>e.t<=f.t+.05).map(e=>`<div><em>${e.t.toFixed(2)}s</em>${esc(e.text)}</div>`).join('')||'Waiting for snap.';
@@ -835,6 +1046,61 @@ function togglePause(){if(!playback)return;running=!running;$('pauseBtn').textCo
 function step(){if(!playback)return;running=false;cancelAnimationFrame(raf);frameIndex=Math.min(playback.frames.length-1,Math.floor(frameIndex)+1);$('pauseBtn').textContent='▶ Play';renderFrame();}
 function rewind(){if(!playback)return;running=false;cancelAnimationFrame(raf);frameIndex=0;$('pauseBtn').textContent='▶ Play';renderFrame();}
 
+
+function renderDecisions(sim){
+ const slot=$('decisionLog');if(!slot)return;
+ if(!sim.decisions?.length){slot.innerHTML='<p>No QB passing decision on this snap (run, sack, or no viable release).</p>';return;}
+ slot.innerHTML=sim.decisions.map(dec=>{
+  if(dec.action==='throwaway')return `<div class="decision-card"><b>${esc(dec.t)}s: QB threw away</b><p>${esc(dec.reason)}</p></div>`;
+  return `<div class="decision-card"><div><b>${esc(dec.t)}s: ${esc(dec.target)}</b> <span>${esc(dec.reason)} · nearest rusher ${esc(dec.pressure)} yd</span></div><div class="decision-table">${dec.candidates.map((r,i)=>`<div class="decision-row ${r.target===dec.target?'picked':''}"><b>${esc(r.target)}</b><span>Read ${i+1}</span><span>Separation ${Math.round(r.separation*100)}%</span><span>Risk ${Math.round(r.risk*100)}%</span><span>Value ${esc(r.score)}</span></div>`).join('')}</div><small>Scores are simplified tactical estimates used by the simulator, not real NFL quarterback ratings.</small></div>`;
+ }).join('');
+}
+function renderClinic(lesson){
+ const info=lesson.clinic;if(!info){$('clinicPanel').innerHTML='';return;}
+ const link=term=>`<button class="term-link" data-term="${esc(term)}">${esc(term)} ↗</button>`;
+ $('clinicPanel').innerHTML=`<details class="coach-manual" open><summary>COACH'S CLINIC — learning objective, tactics & film study</summary>
+ <div class="coach-content"><h3>Learning objective</h3><p>${esc(info.objective)}</p><h3>The breakdown</h3>${info.theory.map(p=>`<p>${esc(p)}</p>`).join('')}
+ <h3>Design workshop</h3><ol>${info.craft.map(t=>`<li>${esc(t)}</li>`).join('')}</ol><h3>What to study on replay</h3><p>${esc(info.observe)}</p>
+ <div class="coach-references"><strong>Look up:</strong> ${info.terms.map(link).join('')}</div></div></details>
+ <div class="coach-quiz"><h3>COACHING CHECK ${campaignQuizCleared?'✓':''}</h3><p>${esc(info.question)}</p><div class="quiz-options">${info.choices.map((choice,i)=>`<button data-answer="${i}" ${campaignQuizCleared?'disabled':''}>${String.fromCharCode(65+i)}. ${esc(choice)}</button>`).join('')}</div><p class="quiz-feedback" id="quizFeedback">${campaignQuizCleared?'Correct — knowledge check completed.':'Choose an answer to confirm the principle before finishing the lesson.'}</p></div>`;
+}
+function bindEncyclopedia(){
+ $('encyBtn').onclick=()=>openEncyclopedia();$('encyClose').onclick=closeEncyclopedia;
+ $('encyOverlay').addEventListener('click',e=>{if(e.target===$('encyOverlay'))closeEncyclopedia();});
+ $('encySearch').addEventListener('input',e=>{encySearch=e.target.value;renderEncyclopedia();});
+ $('encyCategories').onclick=e=>{const btn=e.target.closest('[data-category]');if(!btn)return;encyCategory=btn.dataset.category;renderEncyclopedia();};
+ $('encyResults').onclick=e=>{const btn=e.target.closest('[data-entry]');if(!btn)return;renderEncyclopediaEntry(btn.dataset.entry);};
+ $('clinicPanel').onclick=e=>{
+  const term=e.target.closest('[data-term]');if(term){openEncyclopedia(term.dataset.term);return;}
+  const answer=e.target.closest('[data-answer]');if(!answer||!campaign||campaignQuizCleared)return;
+  const c=K.lessons[campaign.side][campaign.index].clinic;
+  if(+answer.dataset.answer===c.answer){campaignQuizCleared=true;renderClinic(K.lessons[campaign.side][campaign.index]);$('quizFeedback').textContent='Correct. '+c.explain;
+    if(campaignDrillCleared&&!campaignSuccess)grantLesson();
+  }else{$('quizFeedback').textContent='Not quite. '+c.explain+' Review the breakdown and try again.';}
+ };
+}
+function openEncyclopedia(term){
+ $('encyOverlay').hidden=false;document.body.classList.add('ency-open');
+ if(term){encySearch='';encyCategory='All';$('encySearch').value='';}
+ renderEncyclopedia();
+ if(term){const found=E.byTitle(term);if(found)renderEncyclopediaEntry(found.id);}
+ $('encySearch').focus();
+}
+function closeEncyclopedia(){$('encyOverlay').hidden=true;document.body.classList.remove('ency-open');}
+function renderEncyclopedia(){
+ const cats=['All',...new Set(E.entries.map(e=>e.category))];
+ $('encyCategories').innerHTML=cats.map(c=>`<button data-category="${esc(c)}" class="${c===encyCategory?'active':''}">${esc(c)}</button>`).join('');
+ const q=encySearch.toLowerCase().trim();const found=E.entries.filter(e=>(encyCategory==='All'||e.category===encyCategory)&&(!q||[e.title,e.category,e.description,...e.tags].join(' ').toLowerCase().includes(q)));
+ $('encyCount').textContent=found.length+' of '+E.entries.length+' entries';
+ $('encyResults').innerHTML=found.length?found.map(e=>`<button class="ency-result" data-entry="${e.id}"><span>${esc(e.category)}</span><b>${esc(e.title)}</b><small>${esc(e.description.slice(0,104))}…</small></button>`).join(''):'<p>No matching terms. Try another formation, assignment or rule.</p>';
+ if(found.length)renderEncyclopediaEntry(found[0].id);else $('encyArticle').innerHTML='';
+}
+function renderEncyclopediaEntry(id){
+ const e=E.entries.find(x=>x.id===id);if(!e)return;
+ $('encyResults').querySelectorAll('[data-entry]').forEach(btn=>btn.classList.toggle('selected',btn.dataset.entry===id));
+ $('encyArticle').innerHTML=`<span class="eyebrow">${esc(e.category)}</span><h2>${esc(e.title)}</h2><p>${esc(e.description)}</p><h3>Try it in Route Lab</h3><p>${esc(e.practice)}</p><div class="ency-tags">${e.tags.map(t=>`<span>${esc(t)}</span>`).join('')}</div><p class="ency-authority">Educational coaching reference. The official NFL rulebook controls detailed legality and enforcement.</p><a href="https://operations.nfl.com/rules-officiating/2026-nfl-rulebook/" target="_blank" rel="noopener noreferrer">Official 2026 NFL rulebook ↗</a>`;
+}
+
 function safeProgress(){try{localStorage.setItem('route-lab-campaign-v1',JSON.stringify(campaignProgress));}catch{}}
 function modeCampaignUI(){
  const banner=$('campaignBanner');banner.hidden=!campaign;
@@ -844,7 +1110,7 @@ function modeCampaignUI(){
  $('sideTabs').querySelectorAll('[data-side]').forEach(b=>{b.disabled=!!campaign&&b.dataset.side!==campaign.side;b.classList.toggle('active',b.dataset.side===side);});
  $('resetBtn').textContent=campaign?'↶ Restart lesson':'Reset play';
  $('campaignOffBtn').classList.toggle('active',campaign?.side==='offense');$('campaignDefBtn').classList.toggle('active',campaign?.side==='defense');$('campaignFreeBtn').classList.toggle('active',!campaign);
- if(!campaign){$('campaignStageList').innerHTML='';return;}
+ if(!campaign){$('campaignStageList').innerHTML='';$('clinicPanel').innerHTML='';return;}
  const lesson=K.lessons[campaign.side][campaign.index],progress=campaignProgress[campaign.side];
  $('campaignKicker').textContent=(campaign.side==='offense'?'OFFENSIVE':'DEFENSIVE')+' CAMPAIGN • LESSON '+(campaign.index+1)+' / '+K.lessons[campaign.side].length;
  $('campaignTitle').textContent=lesson.title;$('campaignRole').textContent=lesson.role;
@@ -852,6 +1118,7 @@ function modeCampaignUI(){
  $('campaignNextBtn').disabled=!campaignSuccess;$('campaignNextBtn').textContent=campaign.index===K.lessons[campaign.side].length-1?'Finish campaign →':'Next lesson →';
  $('campaignStageList').innerHTML=K.lessons[campaign.side].map((l,i)=>`<button data-stage="${i}" ${i>progress?'disabled':''} class="campaign-stage ${i===campaign.index?'current':''}" title="${esc(l.title)}">${i<progress?'✓':i+1}</button>`).join('');
  $('campaignScore').textContent=campaignDrive?campaignDriveText():(campaignSuccess?'LESSON COMPLETE':'TRAINING FIELD');
+ renderClinic(lesson);
  $('campaignFeedback').textContent=campaignSuccess?'Objective cleared. Advance when ready.':'Edit your play and run the simulation to test your idea.';
 }
 function campaignDriveText(){if(!campaignDrive)return '';const d=campaignDrive;return (campaign.side==='offense'?'DRIVE':'DEFENSIVE STAND')+' • '+d.down+' & '+Math.max(1,Math.ceil(d.toGain))+' • BALL AT '+d.yardLine.toFixed(1)+' • '+d.snaps+' SNAPS';}
@@ -859,11 +1126,12 @@ function loadLesson(campaignSide,index){
  if(!K.lessons[campaignSide]||index<0||index>=K.lessons[campaignSide].length||index>campaignProgress[campaignSide])return;
  const lesson=K.lessons[campaignSide][index],setup=K.setup(lesson.off,lesson.def,lesson.os,lesson.ds,lesson.drive?{yardLine:campaignSide==='offense'?80:50}:{});
  invalidate();offensive=setup.offense;defensive=setup.defense;campaign={side:campaignSide,index};side=campaignSide;selected=sidePlay().players[0]?.id||'';campaignBaseline=C.clone({offense:offensive,defense:defensive});
- campaignDrive=lesson.drive?{yardLine:campaignSide==='offense'?80:50,down:1,toGain:10,snaps:0}:null;campaignAttempt=0;campaignSuccess=false;undo=[];redo=[];dirty=false;
+ campaignDrillCleared=false;campaignQuizCleared=false;campaignDrive=lesson.drive?{yardLine:campaignSide==='offense'?80:50,down:1,toGain:10,snaps:0}:null;campaignAttempt=0;campaignSuccess=false;undo=[];redo=[];dirty=false;
  $('seedInput').value=lesson.seed;setMode('select');modeCampaignUI();refresh(true);
 }
 function launchCampaign(which){if(which==='free'){campaign=null;campaignDrive=null;campaignBaseline=null;campaignSuccess=false;invalidate();offensive=C.clone(offPresets[0]);defensive=C.clone(defPresets[0]);side='offense';selected='oSL';undo=[];redo=[];modeCampaignUI();refresh(true);return;}
  loadLesson(which,Math.min(campaignProgress[which],K.lessons[which].length-1));}
+function markDrillComplete(){campaignDrillCleared=true;if(campaignQuizCleared)grantLesson();else {$('campaignFeedback').textContent='Field objective completed. Answer the coaching check correctly to finish this lesson.';}}
 function grantLesson(){campaignSuccess=true;const side=campaign.side,idx=campaign.index;
  if(campaignProgress[side]===idx){campaignProgress[side]=idx+1;safeProgress();}
  modeCampaignUI();$('campaignFeedback').textContent='✓ Objective cleared. '+(idx===K.lessons[side].length-1?'Campaign complete! Return to Free play or replay lessons.':'Choose Next lesson to advance.');
@@ -873,16 +1141,16 @@ function gradeCampaign(sim){
  if(!campaign||campaignSuccess)return;const lesson=K.lessons[campaign.side][campaign.index];
  const check=K.assess(lesson,campaignBaseline,offensive,defensive,sim);
  if(!check.pass && !(lesson.drive && K.changed(campaignBaseline,{offense:offensive,defense:defensive},lesson,campaign.side))){$('campaignFeedback').textContent='Not yet: '+check.message;return;}
- if(!lesson.drive){if(check.pass)grantLesson();else $('campaignFeedback').textContent='Try again: '+check.message;return;}
+ if(!lesson.drive){if(check.pass)markDrillComplete();else $('campaignFeedback').textContent='Try again: '+check.message;return;}
  const d=campaignDrive,r=sim.result;d.snaps++;
  const gain=Math.max(0,r.yards);const verdict=r.verdict;
  if(campaign.side==='offense'){
-  if(verdict.startsWith('Touchdown')){grantLesson();return;}
+  if(verdict.startsWith('Touchdown')){markDrillComplete();return;}
   if(verdict.includes('Interception')){d.down=1;d.toGain=10;d.yardLine=80;d.snaps=0;$('campaignFeedback').textContent='Interception! Drive restarted at the 20. Edit and try again.';}
   else {d.yardLine=Math.min(99,d.yardLine+gain);d.toGain-=gain;if(d.toGain<=0){d.down=1;d.toGain=Math.min(10,100-d.yardLine);$('campaignFeedback').textContent='First down! Call the next play.';}else if(d.down>=4){d.down=1;d.toGain=10;d.yardLine=80;d.snaps=0;$('campaignFeedback').textContent='Turnover on downs. New drive at the 20.';}else{d.down++;$('campaignFeedback').textContent='+'+gain.toFixed(1)+' yards. Keep moving toward the end zone.';}}
  }else{
   if(verdict.startsWith('Touchdown')||gain>=d.toGain){d.down=1;d.toGain=10;d.yardLine=50;d.snaps=0;$('campaignFeedback').textContent='They converted. Reset the stand, adjust your defense, and try again.';}
-  else if(d.down>=4){grantLesson();return;}
+  else if(d.down>=4){markDrillComplete();return;}
   else {d.down++;d.toGain-=gain;d.yardLine+=gain;$('campaignFeedback').textContent='Stop '+d.snaps+' recorded. '+(4-d.down+1)+' more downs to defend.';}
  }
  $('campaignScore').textContent=campaignDriveText();
@@ -893,9 +1161,8 @@ $('campaignFreeBtn').onclick=()=>launchCampaign('free');
 $('campaignRestartBtn').onclick=()=>{if(campaign)loadLesson(campaign.side,campaign.index);};
 $('campaignNextBtn').onclick=()=>{if(!campaignSuccess)return;const side=campaign.side,i=campaign.index+1;if(i<K.lessons[side].length)loadLesson(side,i);else launchCampaign('free');};
 $('campaignStageList').onclick=e=>{const b=e.target.closest('[data-stage]');if(b&&campaign)loadLesson(campaign.side,+b.dataset.stage);};
-bindEvents();fillPresets();refresh();modeCampaignUI();document.getElementById('startupFallback')?.remove();
+bindEncyclopedia();bindEvents();fillPresets();refresh();modeCampaignUI();document.getElementById('startupFallback')?.remove();
 
 })();
-
 </script>
 </body></html>

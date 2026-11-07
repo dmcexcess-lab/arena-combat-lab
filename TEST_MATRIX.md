@@ -157,3 +157,10 @@ Operational checklist for humans + AIs. Keep compact; add only behaviors whose r
 - Lesson progression requires the requested route/block/man/zone changes and an observed outcome, not a button-only unlock.
 - Offensive finale supports downs, first downs, turnover on downs, and touchdown; defensive finale supports four-down defensive stand.
 - Free play, custom play editing, existing Arena Godot export and Tavern Keeper tests must remain functional.
+
+## Route Lab teaching and QB regression (2026-11-06)
+- All 12 lessons expose at least three substantial conceptual explanations, three interactive workshop steps, a film analysis question, ≥4 encyclopedia cross-links and a valid knowledge check. Advancement must require both observed field outcome and quiz success.
+- The encyclopedia opens from every mode, supports text search and category filtering, cross-links from clinics, and closes from the button, backdrop or Escape on desktop and mobile.
+- Simulate the same play+seed twice for identical decisions and frames. Run 30 distinct seeds against one matchup: at least two credible chosen targets and outcomes must occur. Distinct defenses must affect QB choices.
+- Consecutive Run clicks increment seed; manually restored seed must reproduce previous result. QB Film Room must show selected and rejected candidate reads.
+- `index.html` embedded modules must match `engine.js`, `plays.js`, `campaign.js`, `encyclopedia.js`, `app.js` checked into source.

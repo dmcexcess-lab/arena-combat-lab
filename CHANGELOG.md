@@ -1,3 +1,11 @@
+## 2026-11-06 — Route Lab tactical QB, teaching clinics and encyclopedia
+- Replaced static primary receiver targeting with seeded tactical QB read evaluation (projected catch-point separation, throwing lane risk, pressure, timing, depth, first-down value and read priority), weighted viable-target selection and throwaway decisions.
+- Added QB Film Room exposing chosen target, reasons, alternative reads, tactical separation and risk scores. Repeated Run uses a new seed; prior seed can be re-entered for deterministic replay.
+- Added 57+ searchable, categorized football encyclopedia entries, accessible during any campaign or free play, with rules references and interactive lesson links.
+- Deepened all 12 campaign lessons with reading, plan construction exercises, analysis prompts, and mandatory knowledge checks alongside existing real simulation objectives.
+- Added curriculum, choice-variation and reference consistency tests; preserved prior engine, Arena and Tavern Keeper regressions.
+- Simulation remains a teaching approximation: no NFL-tracking calibration, full route recognition, or exhaustive enforcement.
+
 ## 2026-11-06 — Route Lab offense and defense teaching campaigns
 - Added twelve interactive lessons (six offense, six defense) with small-sided scrimmages that progress into legal 11v11 play design.
 - Offensive route, blocker, hot-read and snap-formation exercises culminate in a multi-down custom touchdown drive.

@@ -1,6 +1,6 @@
 (function(){
 'use strict';
-const C=window.GridironCore,P=window.GridironPlays,K=window.RouteCampaign;
+const C=window.GridironCore,P=window.GridironPlays,K=window.RouteCampaign,E=window.RouteEncyclopedia;
 const $=id=>document.getElementById(id),esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
 const W=1080,H=900,OX=540,OY=745,XS=18,YS=15;
 const pos=(p)=>({x:OX+p.x*XS,y:OY-p.y*YS}), world=(x,y)=>({x:C.clamp((x-OX)/XS,-26.6,26.6),y:C.clamp((OY-y)/YS,-9.2,39.5)});
@@ -9,6 +9,7 @@ const initCustom=()=>{try{let v=JSON.parse(localStorage.getItem('route-lab-custo
 const custom=initCustom();
 let offensive=C.clone(offPresets[0]), defensive=C.clone(defPresets[0]);
 let side='offense',selected='oSL',tool='select',drag=null,undo=[],redo=[],running=false,playback=null,frameIndex=0,lastFrameTime=0,raf=0,dirty=false,zoom=1;
+let campaignDrillCleared=false,campaignQuizCleared=false,encyCategory='All',encySearch='';
 let campaign=null,campaignBaseline=null,campaignProgress=K.readProgress({getItem:k=>{try{return localStorage.getItem(k);}catch{return null;}}}),campaignDrive=null,campaignSuccess=false,campaignAttempt=0;
 const OFF_JOBS=['route','passblock','runblock','block','pull','carry','release','quarterback'], DEF_JOBS=['rush','blitz','man','zone','spy','contain','runfit','deep'];
 const routeKinds=['go','fade','slant','flat','out','in','dig','corner','post','curl','hitch','drag','wheel','seam','comeback','swing','angle','bubble','shallow'];
@@ -251,6 +252,7 @@ function bindEvents(){
   dirty=true;invalidate();refresh();
  });
  document.addEventListener('keydown',e=>{
+  if(e.key==='Escape'&&!$('encyOverlay').hidden){closeEncyclopedia();return;}
   if(['INPUT','TEXTAREA','SELECT'].includes(e.target.tagName))return;
   if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='z'){e.preventDefault();history(e.shiftKey?'redo':'undo');}
   else if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='y'){e.preventDefault();history('redo');}
@@ -264,12 +266,13 @@ function setZoom(v){const shell=document.querySelector('.field-shell'), oldW=she
  $('zoomOut').disabled=zoom<=1;$('zoomIn').disabled=zoom>=3.5;
 }
 function run(){const validation=validationUI();if(!validation.valid){$('resultMain').textContent='Cannot run: illegal alignment';$('resultMeta').textContent=validation.errors[0]||'Fix highlighted validation issues.';return;}
- const seed=(Number($('seedInput').value)||71)+(campaign?campaignAttempt:0);if(campaign && campaignDrive)offensive.yardLine=campaignDrive.yardLine;const sim=C.simulate(offensive,defensive,seed);if(!sim.valid)return;
+ const seed=(Number($('seedInput').value)||71);if(campaign && campaignDrive)offensive.yardLine=campaignDrive.yardLine;const sim=C.simulate(offensive,defensive,seed);if(!sim.valid)return;
+ $('seedInput').value=seed+1; // A new click is a new attempt; type an old seed to reproduce it exactly.
  if(campaign){campaignAttempt++;gradeCampaign(sim);}
  playback=sim;frameIndex=0;running=true;lastFrameTime=performance.now();$('timeline').disabled=false;$('timeline').max=sim.frames.length-1;$('timeline').value='0';
  $('pauseBtn').disabled=false;$('stepBtn').disabled=false;$('rewindBtn').disabled=false;$('editBtn').disabled=false;$('pauseBtn').textContent='Ⅱ Pause';
  $('duration').textContent=sim.result.seconds.toFixed(2)+'s';$('resultMain').textContent=sim.result.verdict;$('resultMeta').textContent=(sim.result.yards>=0?'+':'')+sim.result.yards.toFixed(1)+' yards • '+sim.result.seconds.toFixed(2)+' seconds • seed '+sim.result.seed;
- $('modeChip').textContent='SIMULATION';$('viewLabel').textContent='REPLAY';renderFrame();cancelAnimationFrame(raf);raf=requestAnimationFrame(tick);
+ renderDecisions(sim);$('modeChip').textContent='SIMULATION';$('viewLabel').textContent='REPLAY';renderFrame();cancelAnimationFrame(raf);raf=requestAnimationFrame(tick);
 }
 function renderFrame(){if(!playback)return;frameIndex=C.clamp(frameIndex,0,playback.frames.length-1);const f=playback.frames[frameIndex];
  $('timeline').value=frameIndex;$('clock').textContent=f.t.toFixed(2)+'s';$('eventLog').innerHTML=playback.events.filter(e=>e.t<=f.t+.05).map(e=>`<div><em>${e.t.toFixed(2)}s</em>${esc(e.text)}</div>`).join('')||'Waiting for snap.';
@@ -287,6 +290,61 @@ function togglePause(){if(!playback)return;running=!running;$('pauseBtn').textCo
 function step(){if(!playback)return;running=false;cancelAnimationFrame(raf);frameIndex=Math.min(playback.frames.length-1,Math.floor(frameIndex)+1);$('pauseBtn').textContent='▶ Play';renderFrame();}
 function rewind(){if(!playback)return;running=false;cancelAnimationFrame(raf);frameIndex=0;$('pauseBtn').textContent='▶ Play';renderFrame();}
 
+
+function renderDecisions(sim){
+ const slot=$('decisionLog');if(!slot)return;
+ if(!sim.decisions?.length){slot.innerHTML='<p>No QB passing decision on this snap (run, sack, or no viable release).</p>';return;}
+ slot.innerHTML=sim.decisions.map(dec=>{
+  if(dec.action==='throwaway')return `<div class="decision-card"><b>${esc(dec.t)}s: QB threw away</b><p>${esc(dec.reason)}</p></div>`;
+  return `<div class="decision-card"><div><b>${esc(dec.t)}s: ${esc(dec.target)}</b> <span>${esc(dec.reason)} · nearest rusher ${esc(dec.pressure)} yd</span></div><div class="decision-table">${dec.candidates.map((r,i)=>`<div class="decision-row ${r.target===dec.target?'picked':''}"><b>${esc(r.target)}</b><span>Read ${i+1}</span><span>Separation ${Math.round(r.separation*100)}%</span><span>Risk ${Math.round(r.risk*100)}%</span><span>Value ${esc(r.score)}</span></div>`).join('')}</div><small>Scores are simplified tactical estimates used by the simulator, not real NFL quarterback ratings.</small></div>`;
+ }).join('');
+}
+function renderClinic(lesson){
+ const info=lesson.clinic;if(!info){$('clinicPanel').innerHTML='';return;}
+ const link=term=>`<button class="term-link" data-term="${esc(term)}">${esc(term)} ↗</button>`;
+ $('clinicPanel').innerHTML=`<details class="coach-manual" open><summary>COACH'S CLINIC — learning objective, tactics & film study</summary>
+ <div class="coach-content"><h3>Learning objective</h3><p>${esc(info.objective)}</p><h3>The breakdown</h3>${info.theory.map(p=>`<p>${esc(p)}</p>`).join('')}
+ <h3>Design workshop</h3><ol>${info.craft.map(t=>`<li>${esc(t)}</li>`).join('')}</ol><h3>What to study on replay</h3><p>${esc(info.observe)}</p>
+ <div class="coach-references"><strong>Look up:</strong> ${info.terms.map(link).join('')}</div></div></details>
+ <div class="coach-quiz"><h3>COACHING CHECK ${campaignQuizCleared?'✓':''}</h3><p>${esc(info.question)}</p><div class="quiz-options">${info.choices.map((choice,i)=>`<button data-answer="${i}" ${campaignQuizCleared?'disabled':''}>${String.fromCharCode(65+i)}. ${esc(choice)}</button>`).join('')}</div><p class="quiz-feedback" id="quizFeedback">${campaignQuizCleared?'Correct — knowledge check completed.':'Choose an answer to confirm the principle before finishing the lesson.'}</p></div>`;
+}
+function bindEncyclopedia(){
+ $('encyBtn').onclick=()=>openEncyclopedia();$('encyClose').onclick=closeEncyclopedia;
+ $('encyOverlay').addEventListener('click',e=>{if(e.target===$('encyOverlay'))closeEncyclopedia();});
+ $('encySearch').addEventListener('input',e=>{encySearch=e.target.value;renderEncyclopedia();});
+ $('encyCategories').onclick=e=>{const btn=e.target.closest('[data-category]');if(!btn)return;encyCategory=btn.dataset.category;renderEncyclopedia();};
+ $('encyResults').onclick=e=>{const btn=e.target.closest('[data-entry]');if(!btn)return;renderEncyclopediaEntry(btn.dataset.entry);};
+ $('clinicPanel').onclick=e=>{
+  const term=e.target.closest('[data-term]');if(term){openEncyclopedia(term.dataset.term);return;}
+  const answer=e.target.closest('[data-answer]');if(!answer||!campaign||campaignQuizCleared)return;
+  const c=K.lessons[campaign.side][campaign.index].clinic;
+  if(+answer.dataset.answer===c.answer){campaignQuizCleared=true;renderClinic(K.lessons[campaign.side][campaign.index]);$('quizFeedback').textContent='Correct. '+c.explain;
+    if(campaignDrillCleared&&!campaignSuccess)grantLesson();
+  }else{$('quizFeedback').textContent='Not quite. '+c.explain+' Review the breakdown and try again.';}
+ };
+}
+function openEncyclopedia(term){
+ $('encyOverlay').hidden=false;document.body.classList.add('ency-open');
+ if(term){encySearch='';encyCategory='All';$('encySearch').value='';}
+ renderEncyclopedia();
+ if(term){const found=E.byTitle(term);if(found)renderEncyclopediaEntry(found.id);}
+ $('encySearch').focus();
+}
+function closeEncyclopedia(){$('encyOverlay').hidden=true;document.body.classList.remove('ency-open');}
+function renderEncyclopedia(){
+ const cats=['All',...new Set(E.entries.map(e=>e.category))];
+ $('encyCategories').innerHTML=cats.map(c=>`<button data-category="${esc(c)}" class="${c===encyCategory?'active':''}">${esc(c)}</button>`).join('');
+ const q=encySearch.toLowerCase().trim();const found=E.entries.filter(e=>(encyCategory==='All'||e.category===encyCategory)&&(!q||[e.title,e.category,e.description,...e.tags].join(' ').toLowerCase().includes(q)));
+ $('encyCount').textContent=found.length+' of '+E.entries.length+' entries';
+ $('encyResults').innerHTML=found.length?found.map(e=>`<button class="ency-result" data-entry="${e.id}"><span>${esc(e.category)}</span><b>${esc(e.title)}</b><small>${esc(e.description.slice(0,104))}…</small></button>`).join(''):'<p>No matching terms. Try another formation, assignment or rule.</p>';
+ if(found.length)renderEncyclopediaEntry(found[0].id);else $('encyArticle').innerHTML='';
+}
+function renderEncyclopediaEntry(id){
+ const e=E.entries.find(x=>x.id===id);if(!e)return;
+ $('encyResults').querySelectorAll('[data-entry]').forEach(btn=>btn.classList.toggle('selected',btn.dataset.entry===id));
+ $('encyArticle').innerHTML=`<span class="eyebrow">${esc(e.category)}</span><h2>${esc(e.title)}</h2><p>${esc(e.description)}</p><h3>Try it in Route Lab</h3><p>${esc(e.practice)}</p><div class="ency-tags">${e.tags.map(t=>`<span>${esc(t)}</span>`).join('')}</div><p class="ency-authority">Educational coaching reference. The official NFL rulebook controls detailed legality and enforcement.</p><a href="https://operations.nfl.com/rules-officiating/2026-nfl-rulebook/" target="_blank" rel="noopener noreferrer">Official 2026 NFL rulebook ↗</a>`;
+}
+
 function safeProgress(){try{localStorage.setItem('route-lab-campaign-v1',JSON.stringify(campaignProgress));}catch{}}
 function modeCampaignUI(){
  const banner=$('campaignBanner');banner.hidden=!campaign;
@@ -296,7 +354,7 @@ function modeCampaignUI(){
  $('sideTabs').querySelectorAll('[data-side]').forEach(b=>{b.disabled=!!campaign&&b.dataset.side!==campaign.side;b.classList.toggle('active',b.dataset.side===side);});
  $('resetBtn').textContent=campaign?'↶ Restart lesson':'Reset play';
  $('campaignOffBtn').classList.toggle('active',campaign?.side==='offense');$('campaignDefBtn').classList.toggle('active',campaign?.side==='defense');$('campaignFreeBtn').classList.toggle('active',!campaign);
- if(!campaign){$('campaignStageList').innerHTML='';return;}
+ if(!campaign){$('campaignStageList').innerHTML='';$('clinicPanel').innerHTML='';return;}
  const lesson=K.lessons[campaign.side][campaign.index],progress=campaignProgress[campaign.side];
  $('campaignKicker').textContent=(campaign.side==='offense'?'OFFENSIVE':'DEFENSIVE')+' CAMPAIGN • LESSON '+(campaign.index+1)+' / '+K.lessons[campaign.side].length;
  $('campaignTitle').textContent=lesson.title;$('campaignRole').textContent=lesson.role;
@@ -304,6 +362,7 @@ function modeCampaignUI(){
  $('campaignNextBtn').disabled=!campaignSuccess;$('campaignNextBtn').textContent=campaign.index===K.lessons[campaign.side].length-1?'Finish campaign →':'Next lesson →';
  $('campaignStageList').innerHTML=K.lessons[campaign.side].map((l,i)=>`<button data-stage="${i}" ${i>progress?'disabled':''} class="campaign-stage ${i===campaign.index?'current':''}" title="${esc(l.title)}">${i<progress?'✓':i+1}</button>`).join('');
  $('campaignScore').textContent=campaignDrive?campaignDriveText():(campaignSuccess?'LESSON COMPLETE':'TRAINING FIELD');
+ renderClinic(lesson);
  $('campaignFeedback').textContent=campaignSuccess?'Objective cleared. Advance when ready.':'Edit your play and run the simulation to test your idea.';
 }
 function campaignDriveText(){if(!campaignDrive)return '';const d=campaignDrive;return (campaign.side==='offense'?'DRIVE':'DEFENSIVE STAND')+' • '+d.down+' & '+Math.max(1,Math.ceil(d.toGain))+' • BALL AT '+d.yardLine.toFixed(1)+' • '+d.snaps+' SNAPS';}
@@ -311,11 +370,12 @@ function loadLesson(campaignSide,index){
  if(!K.lessons[campaignSide]||index<0||index>=K.lessons[campaignSide].length||index>campaignProgress[campaignSide])return;
  const lesson=K.lessons[campaignSide][index],setup=K.setup(lesson.off,lesson.def,lesson.os,lesson.ds,lesson.drive?{yardLine:campaignSide==='offense'?80:50}:{});
  invalidate();offensive=setup.offense;defensive=setup.defense;campaign={side:campaignSide,index};side=campaignSide;selected=sidePlay().players[0]?.id||'';campaignBaseline=C.clone({offense:offensive,defense:defensive});
- campaignDrive=lesson.drive?{yardLine:campaignSide==='offense'?80:50,down:1,toGain:10,snaps:0}:null;campaignAttempt=0;campaignSuccess=false;undo=[];redo=[];dirty=false;
+ campaignDrillCleared=false;campaignQuizCleared=false;campaignDrive=lesson.drive?{yardLine:campaignSide==='offense'?80:50,down:1,toGain:10,snaps:0}:null;campaignAttempt=0;campaignSuccess=false;undo=[];redo=[];dirty=false;
  $('seedInput').value=lesson.seed;setMode('select');modeCampaignUI();refresh(true);
 }
 function launchCampaign(which){if(which==='free'){campaign=null;campaignDrive=null;campaignBaseline=null;campaignSuccess=false;invalidate();offensive=C.clone(offPresets[0]);defensive=C.clone(defPresets[0]);side='offense';selected='oSL';undo=[];redo=[];modeCampaignUI();refresh(true);return;}
  loadLesson(which,Math.min(campaignProgress[which],K.lessons[which].length-1));}
+function markDrillComplete(){campaignDrillCleared=true;if(campaignQuizCleared)grantLesson();else {$('campaignFeedback').textContent='Field objective completed. Answer the coaching check correctly to finish this lesson.';}}
 function grantLesson(){campaignSuccess=true;const side=campaign.side,idx=campaign.index;
  if(campaignProgress[side]===idx){campaignProgress[side]=idx+1;safeProgress();}
  modeCampaignUI();$('campaignFeedback').textContent='✓ Objective cleared. '+(idx===K.lessons[side].length-1?'Campaign complete! Return to Free play or replay lessons.':'Choose Next lesson to advance.');
@@ -325,16 +385,16 @@ function gradeCampaign(sim){
  if(!campaign||campaignSuccess)return;const lesson=K.lessons[campaign.side][campaign.index];
  const check=K.assess(lesson,campaignBaseline,offensive,defensive,sim);
  if(!check.pass && !(lesson.drive && K.changed(campaignBaseline,{offense:offensive,defense:defensive},lesson,campaign.side))){$('campaignFeedback').textContent='Not yet: '+check.message;return;}
- if(!lesson.drive){if(check.pass)grantLesson();else $('campaignFeedback').textContent='Try again: '+check.message;return;}
+ if(!lesson.drive){if(check.pass)markDrillComplete();else $('campaignFeedback').textContent='Try again: '+check.message;return;}
  const d=campaignDrive,r=sim.result;d.snaps++;
  const gain=Math.max(0,r.yards);const verdict=r.verdict;
  if(campaign.side==='offense'){
-  if(verdict.startsWith('Touchdown')){grantLesson();return;}
+  if(verdict.startsWith('Touchdown')){markDrillComplete();return;}
   if(verdict.includes('Interception')){d.down=1;d.toGain=10;d.yardLine=80;d.snaps=0;$('campaignFeedback').textContent='Interception! Drive restarted at the 20. Edit and try again.';}
   else {d.yardLine=Math.min(99,d.yardLine+gain);d.toGain-=gain;if(d.toGain<=0){d.down=1;d.toGain=Math.min(10,100-d.yardLine);$('campaignFeedback').textContent='First down! Call the next play.';}else if(d.down>=4){d.down=1;d.toGain=10;d.yardLine=80;d.snaps=0;$('campaignFeedback').textContent='Turnover on downs. New drive at the 20.';}else{d.down++;$('campaignFeedback').textContent='+'+gain.toFixed(1)+' yards. Keep moving toward the end zone.';}}
  }else{
   if(verdict.startsWith('Touchdown')||gain>=d.toGain){d.down=1;d.toGain=10;d.yardLine=50;d.snaps=0;$('campaignFeedback').textContent='They converted. Reset the stand, adjust your defense, and try again.';}
-  else if(d.down>=4){grantLesson();return;}
+  else if(d.down>=4){markDrillComplete();return;}
   else {d.down++;d.toGain-=gain;d.yardLine+=gain;$('campaignFeedback').textContent='Stop '+d.snaps+' recorded. '+(4-d.down+1)+' more downs to defend.';}
  }
  $('campaignScore').textContent=campaignDriveText();
@@ -345,6 +405,6 @@ $('campaignFreeBtn').onclick=()=>launchCampaign('free');
 $('campaignRestartBtn').onclick=()=>{if(campaign)loadLesson(campaign.side,campaign.index);};
 $('campaignNextBtn').onclick=()=>{if(!campaignSuccess)return;const side=campaign.side,i=campaign.index+1;if(i<K.lessons[side].length)loadLesson(side,i);else launchCampaign('free');};
 $('campaignStageList').onclick=e=>{const b=e.target.closest('[data-stage]');if(b&&campaign)loadLesson(campaign.side,+b.dataset.stage);};
-bindEvents();fillPresets();refresh();modeCampaignUI();document.getElementById('startupFallback')?.remove();
+bindEncyclopedia();bindEvents();fillPresets();refresh();modeCampaignUI();document.getElementById('startupFallback')?.remove();
 
 })();

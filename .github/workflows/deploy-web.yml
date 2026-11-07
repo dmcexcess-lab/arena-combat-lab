@@ -95,6 +95,7 @@ jobs:
           node --check route-lab/engine.js
           node --check route-lab/plays.js
           node --check route-lab/campaign.js
+          node --check route-lab/encyclopedia.js
           node --check route-lab/app.js
           node --test route-lab/tests/*.test.cjs
 

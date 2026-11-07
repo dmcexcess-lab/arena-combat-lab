@@ -88,12 +88,12 @@ function speedOf(p){let mult=clamp(p.speed??1,.5,1.5);if(['WR','SL','RB','HB','F
 function simulate(off,def,seed=71){
  const v=validate(off,def); if(!v.valid)return {valid:false,validation:v,frames:[],events:[]};
  const rand=rng(seed), dt=.05, maxT=12;
- const o=clone(off.players).map(p=>({...p,side:'o',vx:0,vy:0,routeIndex:0,engaged:false}));
- const d=clone(def.players).map(p=>({...p,side:'d',vx:0,vy:0,engaged:false}));
+ const o=clone(off.players).map(p=>({...p,side:'o',vx:0,vy:0,routeIndex:0,engaged:false,speed:(p.speed??1)*(.96+rand()*.08)}));
+ const d=clone(def.players).map(p=>({...p,side:'d',vx:0,vy:0,engaged:false,speed:(p.speed??1)*(.94+rand()*.12)}));
  const byId=(id)=>o.find(p=>p.id===id), defenders=(id)=>d.find(p=>p.id===id);
  const qb=byId(off.snapToId||'oQB')||o.find(p=>p.label==='QB'), runner=byId(off.runnerId)||qb;
  let carrier=qb, state='live', ball={x:qb.x,y:qb.y,kind:'held'}, targetPass=null,flight=null, thrown=false, handoff=false, playOver=false, verdict='', yards=0, time=0, sack=false;
- const frames=[],events=[]; const log=(t,text)=>events.push({t:+t.toFixed(2),text});
+ const frames=[],events=[],decisions=[]; const log=(t,text)=>events.push({t:+t.toFixed(2),text});
  const isRun=['run','option'].includes(off.type),directRun=isRun&&runner===qb;
  const eligible=new Set(off.training?o.filter(p=>p.job==='route').map(p=>p.id):v.eligible);
  const receivers=o.filter(p=>p.job==='route'&&eligible.has(p.id));
@@ -212,22 +212,73 @@ function simulate(off,def,seed=71){
     }
     const ready=t>=Math.max(1.15,off.qbDropTime??1.15);
     if(!playOver&&ready&&receivers.length){
-      const scored=receivers.map(r=>{
-        const cover=nearest(r,d,a=>!['rush','blitz'].includes(a.job));
-        const progress=r.y;const open=cover.d;
-        return {r,score:open*.8+Math.min(progress,18)*.04-(r.read||3)*.16+(r.hot?1.1:0)+(r.id===off.primaryTarget?.7:0),open};
-      }).filter(s=>s.r.y>-.2).sort((a,b)=>b.score-a.score);
+      // Evaluate the RECEIVER AT BALL ARRIVAL, not just at the current frame.
+      // Each candidate carries a coverage, trajectory, urgency and risk estimate.
+      const rushDistance=rush.d;
+      const desperate=rushDistance<3.1;
       const maxWait=off.throwAt??3.2;
-      if(scored.length&&(scored[0].open>=2.4||t>=maxWait)){
-        const pick=scored[0],r=pick.r;
-        let approximate=Math.max(.35,dist(qb,r)/25);
-        let aim={x:clamp(r.x+r.vx*approximate*.60,-26.5,26.5),y:r.y+r.vy*approximate*.60};
-        let accuracy=clamp(.92 - dist(qb,r)*.005 - (rush.d<2.6?.25:0),.37,.96);
-        if(rand()>accuracy){aim.x+= (rand()-.5)*7;aim.y+=(rand()-.5)*5;}
-        const duration=Math.max(.2,dist(qb,aim)/28);
-        targetPass=r;flight={from:{x:qb.x,y:qb.y},to:aim,t0:t,duration};
-        thrown=true;carrier=null;state='air';log(t,'Pass aimed at '+r.label+(r.hot?' (hot)':''));
+      const clockPressure=clamp((t-maxWait+.6)/.8,0,1);
+      const firstDown=Number.isFinite(off.toGain)?off.toGain:10;
+      const graded=receivers.map(r=>{
+        const travel=Math.max(.25,dist(qb,r)/28);
+        const predict={x:clamp(r.x+r.vx*travel*.45,-26.5,26.5),y:r.y+r.vy*travel*.45};
+        const closest=nearest(predict,d,a=>!['rush','blitz'].includes(a.job));
+        const man=d.filter(a=>a.job==='man'&&a.coverTarget===r.id);
+        const shadow=man.length?nearest(predict,man).d:99;
+        // Defender can arrive on the throwing lane before the football.
+        const lane=d.filter(a=>!['rush','blitz'].includes(a.job)).reduce((risk,player)=>{
+          const dx=predict.x-qb.x,dy=predict.y-qb.y,mag=dx*dx+dy*dy;
+          if(mag<.1)return risk;
+          const along=clamp(((player.x-qb.x)*dx+(player.y-qb.y)*dy)/mag,0,1);
+          const projected={x:qb.x+dx*along,y:qb.y+dy*along};
+          return Math.max(risk,along>.08&&along<.93?clamp((2.6-dist(player,projected))/2.6,0,1):0);
+        },0);
+        const cushion=Math.min(closest.d,shadow+1);
+        const separation=clamp((cushion-1.2)/4.2,0,1);
+        const depth=clamp(predict.y,0,30);
+        const risk=clamp((1-separation)*.50+lane*.43+Math.max(0,depth-20)*.008,0,1);
+        const conversion=depth>=firstDown?1:0;
+        const timing=clamp(1-Math.abs(t-(r.read||3)*.42-.55)/3.7,.1,1);
+        // Pocket urgency makes open hot outlets more valuable than deeper contested throws.
+        const urgency=desperate||clockPressure>.55;
+        const value=separation*2.65+risk*-1.75+Math.min(depth,24)*.044+conversion*.36+timing*.20+
+          (r.hot&&urgency?.84:0)+(r.id===off.primaryTarget?.10:0)-
+          (urgency?Math.max(0,depth-12)*.055:0)+
+          (rand()-.5)*.55;
+        return {r,predict,risk,separation,lane,depth,score:value,open:cushion};
+      }).filter(a=>a.predict.y>-.2).sort((a,b)=>b.score-a.score);
+      // Softmax within a credible read window. A different seed can produce a
+      // different defensible choice while clear, low-risk winners stay favored.
+      const viable=graded.filter(a=>a.score>=graded[0].score-1.25&&a.risk<.82);
+      const weights=viable.map(a=>Math.exp((a.score-graded[0].score)*1.15));
+      let roll=rand()*weights.reduce((a,b)=>a+b,0),best=viable[0]||graded[0];
+      for(let j=0;j<viable.length;j++){roll-=weights[j];if(roll<=0){best=viable[j];break;}}
+      if(best&&(best.separation>.33||desperate||t>=maxWait)){
+        // A high-risk throw is sometimes worse than throwing away or scrambling.
+        const unsafe=best.risk>.72;
+        if(unsafe && (desperate||t>=maxWait) && rand()<.44){
+          if(off.allowScramble!==false&&rushDistance>1.6&&t<maxWait+1){
+            log(t,'QB rejects covered reads and extends the play');
+          }else{
+            thrown=true;carrier=null;state='dead';
+            decisions.push({t:+t.toFixed(2),action:'throwaway',reason:'No acceptable window; pressure and interception risk',candidates:graded.map(a=>({target:a.r.label,score:+a.score.toFixed(2),separation:+a.separation.toFixed(2),risk:+a.risk.toFixed(2)}))});
+            finish('Throwaway — incomplete pass',t,point(0,0));
+          }
+        }else{
+          const pick=best,r=pick.r;
+          const aim={x:pick.predict.x,y:pick.predict.y};
+          const accuracy=clamp(.93-dist(qb,aim)*.005-pick.risk*.15-(desperate?.16:0),.35,.97);
+          if(rand()>accuracy){aim.x+=(rand()-.5)*7;aim.y+=(rand()-.5)*5;}
+          const duration=Math.max(.2,dist(qb,aim)/28);
+          targetPass=r;flight={from:{x:qb.x,y:qb.y},to:aim,t0:t,duration};
+          thrown=true;carrier=null;state='air';
+          const why=desperate?'pressure/hot answer':pick.separation>.65?'separation':'timing/window';
+          decisions.push({t:+t.toFixed(2),action:'pass',targetId:r.id,target:r.label,reason:why,pressure:+rushDistance.toFixed(1),candidates:graded.map(a=>({target:a.r.label,score:+a.score.toFixed(2),separation:+a.separation.toFixed(2),risk:+a.risk.toFixed(2),depth:+a.depth.toFixed(1)}))});
+          log(t,'QB reads '+graded.slice(0,3).map(a=>a.r.label+' '+a.score.toFixed(1)).join(' / '));
+          log(t,'Pass aimed at '+r.label+' — '+why+(r.hot?' (hot)':''));
+        }
       }
+
     }
   }
   if(thrown&&flight){
@@ -235,8 +286,9 @@ function simulate(off,def,seed=71){
     ball={x:flight.from.x+(flight.to.x-flight.from.x)*pct,y:flight.from.y+(flight.to.y-flight.from.y)*pct,kind:'air'};
     if(pct>=1){
       const closeD=nearest(ball,d,a=>a.y>=-.5), receiverDist=dist(ball,targetPass);
-      if(closeD.d<1.25 && (closeD.d<receiverDist+.4 || rand()<.27)){
-        if(rand()<.31&&closeD.d<.8){carrier=closeD.agent;ball={x:carrier.x,y:carrier.y,kind:'held-d'};finish('Interception by '+carrier.label,t,carrier);}
+      const disruption=clamp((1.6-closeD.d)*.36+(receiverDist>1.65?.27:0)+(closeD.d<receiverDist?.18:0),0,.77);
+      if(closeD.d<1.65 && rand()<disruption){
+        if(rand()<.18&&closeD.d<.8){carrier=closeD.agent;ball={x:carrier.x,y:carrier.y,kind:'held-d'};finish('Interception by '+carrier.label,t,carrier);}
         else finish('Pass broken up by '+closeD.agent.label,t,point(0,0));
       } else if(receiverDist<=2.3){carrier=targetPass;state='runafter';ball={x:carrier.x,y:carrier.y,kind:'held'};flight=null;log(t,'Completed to '+carrier.label);}
       else finish('Incomplete pass',t,point(0,0));
@@ -261,7 +313,7 @@ function simulate(off,def,seed=71){
   copyFrame(t);
  }
  if(!playOver&&frames.length)finish('Play ended',time,carrier||point(0,0));
- return {valid:true,validation:v,frames,events,result:{verdict,yards,seconds:+time.toFixed(2),seed,offense:off.name,defense:def.name,sack}};
+ return {valid:true,validation:v,frames,events,decisions,result:{verdict,yards,seconds:+time.toFixed(2),seed,offense:off.name,defense:def.name,sack}};
 }
 const api={validate,simulate,eligibleNumber,clone,clamp,dist};
 root.GridironCore=api;

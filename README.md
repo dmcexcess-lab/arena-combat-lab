@@ -8,7 +8,7 @@
 
 **Play Route Lab — Football X/O Play Designer:** https://dmcexcess-lab.github.io/arena-combat-lab/route-lab/
 
-Route Lab also includes two guided, six-lesson campaigns. **Offense Campaign** introduces QB, receivers, blocking, spacing and full 11-on-11 legality before a custom touchdown drive. **Defense Campaign** introduces tackling, man assignments, rush, zones and coordinated coverage before a four-down defensive stand. Reduced-player drills use explicit training rules; the final lessons use the full simulator. Progress saves locally in your browser.
+Route Lab also includes a searchable, always-available 57+ entry football encyclopedia, a QB Film Room showing candidate passing reads, variable simulation attempts with reproducible seeds, and two guided, six-lesson campaigns. **Offense Campaign** introduces QB, receivers, blocking, spacing and full 11-on-11 legality before a custom touchdown drive. **Defense Campaign** introduces tackling, man assignments, rush, zones and coordinated coverage before a four-down defensive stand. Reduced-player drills use explicit training rules; the final lessons use the full simulator. Progress saves locally in your browser.
 
 ## The game
 
@@ -91,3 +91,9 @@ The player is a layered code-drawn paper doll: body appearance stays underneath 
 
 - [ROADMAP.md](ROADMAP.md) — where the game is intended to go.
 - [CHANGELOG.md](CHANGELOG.md) — what has changed.
+
+### Route Lab curriculum and simulation (2026-11-06)
+- Each of the twelve campaign lessons includes a learning objective, coaching breakdown, three-step interactive workshop, replay-analysis prompts, encyclopedia cross-links, and a multiple-choice knowledge check. Both the field outcome and knowledge check are needed to advance.
+- The QB evaluates predicted receiver separation at catch time, throw-lane risk, defensive leverage, expected yards, timing, read priority and pressure; it can reject covered reads, select another receiver or throw away.
+- Each Run advances the seed automatically for variation; enter a previous seed manually to replay a precise result. The QB Film Room explains target selection and compares candidate scores. This is still a simplified coaching simulator, not validated NFL film tracking or complete officiating.
+- Open the Encyclopedia from the top navigation in campaigns or Free Play. Its entries include an applied Route Lab example and a link to the official 2026 NFL rulebook.
