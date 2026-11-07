@@ -347,3 +347,9 @@ Current truth: `PROJECT_CONTEXT.md` · Future: `ROADMAP.md`
 - Variable-tick combat, facing/FOV/fog, remembered enemies, physical sound, stealth, Fear, doors/hazards and `!! SPOTTED !!`.
 - Noise changes existing enemy behavior; it never spawns enemies.
 
+## 2026-11-06 — Route Lab after-catch movement and rules scope
+- Let receivers advance beyond route endpoints after a completion, with vision-guided open-field lanes, nearby support blocks, and whole-defense pursuit.
+- Kept interceptions live for returns and changed-possession scoring; preserved signed gains in campaign downs and added basic safeties on end-zone sacks/tackles.
+- Tightened full-squad jersey-report validation and ball landing boundaries; documented implemented slices and gaps against the official 2026 NFL rulebook in `route-lab/RULES_AUDIT.md`.
+- Added seeded regression cases for receiver advance, zone pursuit, interception returns, negative gains, safeties, and formation legality.
+

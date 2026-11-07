@@ -474,15 +474,16 @@ function gradeCampaign(sim){
  if(!check.pass && !(lesson.drive && K.changed(campaignBaseline,{offense:offensive,defense:defensive},lesson,campaign.side))){$('campaignFeedback').textContent='Not yet: '+check.message;return;}
  if(!lesson.drive){if(check.pass)markDrillComplete();else $('campaignFeedback').textContent='Try again: '+check.message;return;}
  const d=campaignDrive,r=sim.result;d.snaps++;
- const gain=Math.max(0,r.yards);const verdict=r.verdict;
+ const gain=r.yards,verdict=r.verdict;
  if(campaign.side==='offense'){
   if(verdict.startsWith('Touchdown')){markDrillComplete();return;}
-  if(verdict.includes('Interception')){d.down=1;d.toGain=10;d.yardLine=80;d.snaps=0;$('campaignFeedback').textContent='Interception! Drive restarted at the 20. Edit and try again.';}
-  else {d.yardLine=Math.min(99,d.yardLine+gain);d.toGain-=gain;if(d.toGain<=0){d.down=1;d.toGain=Math.min(10,100-d.yardLine);$('campaignFeedback').textContent='First down! Call the next play.';}else if(d.down>=4){d.down=1;d.toGain=10;d.yardLine=80;d.snaps=0;$('campaignFeedback').textContent='Turnover on downs. New drive at the 20.';}else{d.down++;$('campaignFeedback').textContent='+'+gain.toFixed(1)+' yards. Keep moving toward the end zone.';}}
+  if(r.possession==='defense'||verdict.startsWith('Safety')){d.down=1;d.toGain=10;d.yardLine=80;d.snaps=0;$('campaignFeedback').textContent=(verdict.startsWith('Safety')?'Safety':'Turnover')+'! Drive restarted at the 20. Edit and try again.';}
+  else {const spot=K.advanceSeries(d,gain);d.yardLine=spot.yardLine;d.toGain=spot.toGain;if(spot.converted){d.down=1;d.toGain=Math.min(10,100-d.yardLine);$('campaignFeedback').textContent='First down! Call the next play.';}else if(d.down>=4){d.down=1;d.toGain=10;d.yardLine=80;d.snaps=0;$('campaignFeedback').textContent='Turnover on downs. New drive at the 20.';}else{d.down++;$('campaignFeedback').textContent=(gain>=0?'+':'')+gain.toFixed(1)+' yards. Keep moving toward the end zone.';}}
  }else{
+  if(r.possession==='defense'||verdict.startsWith('Safety')){markDrillComplete();return;}
   if(verdict.startsWith('Touchdown')||gain>=d.toGain){d.down=1;d.toGain=10;d.yardLine=50;d.snaps=0;$('campaignFeedback').textContent='They converted. Reset the stand, adjust your defense, and try again.';}
   else if(d.down>=4){markDrillComplete();return;}
-  else {d.down++;d.toGain-=gain;d.yardLine+=gain;$('campaignFeedback').textContent='Stop '+d.snaps+' recorded. '+(4-d.down+1)+' more downs to defend.';}
+  else {const spot=K.advanceSeries(d,gain);d.down++;d.toGain=spot.toGain;d.yardLine=spot.yardLine;$('campaignFeedback').textContent='Stop '+d.snaps+' recorded. '+(4-d.down+1)+' more downs to defend.';}
  }
  $('campaignScore').textContent=campaignDriveText();
 }

@@ -181,3 +181,11 @@ Operational checklist for humans + AIs. Keep compact; add only behaviors whose r
 - A moving receiver is led to a projected catch point; defenders can break up a catch there. Changing a corner's coverage and awareness changes seeded completion rate.
 - Failed tackle attempts recover before another attempt, while Mission One and the progressive campaign drills remain solvable under the shared simulation.
 
+## Route Lab live-ball and 2026 rules pass (2026-11-06)
+- A completed receiver crosses a short route endpoint and advances the live ball; replay with the same seed is identical.
+- Zone defenders abandon landmarks for pursuit after a catch, and nearby offensive routes can become support blocks.
+- An interception yields a live return phase, defense possession, and zero offensive yards; a return can end by tackle, boundary, or score.
+- A four-yard loss adds four yards to the distance to gain, while a sack behind the offense's goal line produces a safety.
+- A full-squad ineligible-numbered backfield player must report eligible; a compliant report passes validation.
+- Keep `route-lab/index.html` embedded scripts identical to the five maintained modules and run the Route Lab CI suites.
+

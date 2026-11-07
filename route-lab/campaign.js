@@ -199,6 +199,12 @@ function changed(before,after,lesson,side){const bp=before[side].players,ap=afte
  if(e==='defense')return pairs.some(([a,b])=>diff(a,b,['job','coverTarget','zone','x','y']));
  return pairs.some(([a,b])=>diff(a,b,['job','blockTarget','coverTarget','route','hot','zone','motion','x','y','pattern']))||JSON.stringify(before[side].type)!==JSON.stringify(after[side].type);
 }
+function advanceSeries(d,yards){
+ const gain=Number.isFinite(yards)?yards:0;
+ const yardLine=C.clamp(d.yardLine+gain,1,99);
+ const toGain=d.toGain-gain;
+ return {yardLine,toGain,converted:toGain<=0};
+}
 function assess(lesson,before,offense,defense,sim){const s=lesson.role.startsWith('Defensive')?'defense':null;
  const team=lessons.defense.includes(lesson)?'defense':'offense';
  if(!sim?.valid)return {pass:false,message:'Fix the formation and run the simulation.'};
@@ -209,7 +215,7 @@ function assess(lesson,before,offense,defense,sim){const s=lesson.role.startsWit
  if(lesson.goal==='stop')return {pass:y<lesson.maximum&&!verdict.includes('Touchdown'),message:`Keep the offense below ${lesson.maximum} yards (last play ${y.toFixed(1)}).`};
  return {pass:false,message:'Finish the drive objective.'};
 }
-root.RouteCampaign={lessons,setup,readProgress,changed,assess,SCRIMMAGE_WAVES,SCRIMMAGE_ROSTERS,scrimmageSetup,objectiveForWave};
+root.RouteCampaign={lessons,setup,readProgress,changed,assess,advanceSeries,SCRIMMAGE_WAVES,SCRIMMAGE_ROSTERS,scrimmageSetup,objectiveForWave};
 if(typeof module!=='undefined'&&module.exports)module.exports=root.RouteCampaign;
 })(typeof window!=='undefined'?window:globalThis);
 
