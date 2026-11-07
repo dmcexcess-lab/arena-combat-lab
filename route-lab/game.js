@@ -232,7 +232,7 @@ function kick(state,kind,seed=71,choice='auto'){
   if(!winner)winner=near(ball,players).p;
   kick.recovery={team:winner.team,player:winner.id,yard:+ball.yard.toFixed(1),kind:kindOfLoose};event(winner.id+' recovers for '+winner.team.toUpperCase());
   if(winner.team===team&&!canAdvance){newSeries(s,team,clamp(ball.yard,1,99));call=`${kindOfLoose} — ${team.toUpperCase()} recovery at ${spotText(s)}; ball dead`;endedTeam=receive;s.clockRunning=false;return;}
-  if(winner.team===receive&&choice==='fairCatch'&&kindOfLoose==='Muffed fair catch'){
+  if(winner.team===receive&&kick.fairSignaled&&kindOfLoose==='Muffed fair catch'){
    receiveAt(ball.yard,'Muffed fair catch recovered by receiving team');s.clockRunning=false;return;
   }
   if(winner.team===team&&canAdvance&&ball.yard===goal(team)){
@@ -305,6 +305,7 @@ function kick(state,kind,seed=71,choice='auto'){
   else if(inEnd&&receivingDepth<-10){kick.touchback=true;receiveAt(along(receive,kickStart===50?20:35),'Kickoff through end zone — touchback');s.clockRunning=false;runSeconds=0;}
   else{
    const returner=players.find(p=>p.id==='KR'),fair=choice==='fairCatch'||choice==='auto'&&punt&&recv.returner.vision>=78&&rand()<.16;
+   kick.fairSignaled=fair;
    const touchback=inEnd&&!punt&&rand()<.48;
    if(touchback){kick.touchback=true;receiveAt(along(receive,kickStart===50?20:35),'Kickoff downed in end zone — touchback');s.clockRunning=false;runSeconds=0;}
    else{
