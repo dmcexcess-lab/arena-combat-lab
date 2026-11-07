@@ -166,8 +166,11 @@ Operational checklist for humans + AIs. Keep compact; add only behaviors whose r
 - `index.html` embedded modules must match `engine.js`, `plays.js`, `campaign.js`, `encyclopedia.js`, `app.js` checked into source.
 
 ## Route Lab scouting and opponent rotation (2026-11-06)
+- Mission One's opening unchanged run is observation only; progression requires a scoped RB route edit and a qualifying simulated gain in SCOUT, MAN, ZONE and BLITZ. Its assignment scout displays live jobs, targets and coverage areas from the current play.
+- Standalone HTML must embed exact current modules; Mission One tests compare unchanged and edited seeded outcomes in every wave and reject advancement from baseline yardage alone.
 - Stats have role-specific defaults, clamp to valid 1–99, and alter simulation outcomes deterministically across seeds while equal seed reproduces frames.
 - For each campaign, every non-final stage generates the same four ordered opponent defensive assignments: Scout, Man, Zone, Blitz. Players increase 3v1 → 3v3 virtual snap → 5v5 → 7v7 → 11v11; all variants must pass current legality checks.
 - Man targets exist, blitz has a rusher, zone shapes render, and full 11v11 never uses virtual snap.
 - Assignment, coverage, protection, pressure, run fits, schematic open space, and mismatch overlays must be selectable and reflect the current player assignments; player stat inspector edits persist in the play definition and affect subsequent simulations.
 - Advancing non-final campaign stages requires winning each scrimmage and modifying the tactical plan for each subsequent opponent.
+

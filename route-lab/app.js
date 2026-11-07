@@ -408,10 +408,36 @@ function modeCampaignUI(){
  $('campaignScore').textContent=campaignDrive?campaignDriveText():(campaignSuccess?'LESSON COMPLETE':'TRAINING FIELD');
  const w=K.SCRIMMAGE_WAVES[campaignWave],wName=lesson.drive?'FULL DRIVE':w.name;
  $('campaignKicker').textContent+=' • '+wName+' • '+offensive.players.length+'v'+defensive.players.length;
- $('campaignTask').textContent=lesson.task+(lesson.drive?'':' Beat this '+wName+' opponent before it rotates to the next defense.');
- $('scrimmageScout').innerHTML=lesson.drive?'<b>FULL-SQUAD CHALLENGE</b><p>Analyze each defense and build the response that moves the ball or prevents a conversion.</p>':'<b>'+esc(wName)+' • '+offensive.players.length+'v'+defensive.players.length+'</b><p>'+esc(w.brief)+'</p><small>Rotation '+(campaignWave+1)+' / '+K.SCRIMMAGE_WAVES.length+' · scout → man → zone → blitz</small>';
+ const missionOne=campaign.side==='offense'&&campaign.index===0;
+ const missionOneLook=[
+  'Baseline: one MLB protects a central area and reacts to the run. Observe the fit before changing the RB path.',
+  'Same 3v1 run with the MLB shadowing the RB. Watch how pursuit changes when the defender follows the carrier.',
+  'Same backfield against an area assignment. Read where the MLB zone meets the RB lane.',
+  'The MLB attacks the backfield as a blitzer. Scout the pressure, then test a changed RB path against it.'
+ ];
+ $('campaignTask').textContent=missionOne&&campaignWave>0?'Scout the '+wName+' look, then edit the RB path and gain at least 2 yards.':lesson.task+(lesson.drive?'':' Beat this '+wName+' opponent before it rotates to the next defense.');
+ $('campaignHint').textContent=missionOne&&campaignWave>0?'Run once to observe the same matchup context against this new assignment. Then select RB, draw a different path, and compare the yards and contact point.':lesson.hint;
+ const brief=missionOne?missionOneLook[campaignWave]:w.brief;
+ $('scrimmageScout').innerHTML=lesson.drive?'<b>FULL-SQUAD CHALLENGE</b><p>Analyze each defense and build the response that moves the ball or prevents a conversion.</p>':'<b>'+esc(wName)+' • '+offensive.players.length+'v'+defensive.players.length+'</b><p>'+esc(brief)+'</p><small>Rotation '+(campaignWave+1)+' / '+K.SCRIMMAGE_WAVES.length+' · scout → man → zone → blitz</small>'+(missionOne?renderMissionOneBoard():'' );
  renderClinic(lesson);
  $('campaignFeedback').textContent=campaignSuccess?'Objective cleared. Advance when ready.':'Edit your play and run the simulation to test your idea.';
+}
+function renderMissionOneBoard(){
+ const off=offensive.players,def=defensive.players;
+ const describe=(p,side)=>{
+  const target=(side==='offense'?def:off).find(q=>q.id===(side==='offense'?p.blockTarget:p.coverTarget));
+  if(p.job==='quarterback')return 'Receives the snap and executes the handoff decision.';
+  if(p.job==='carry')return 'Carries the ball along the drawn run path.';
+  if(['runblock','passblock','block','pull'].includes(p.job))return target?'Blocks '+target.label+'.':'Blocks the nearest available threat.';
+  if(p.job==='man')return target?'Man responsibility: '+target.label+'.':'Man coverage with no named target.';
+  if(p.job==='zone')return 'Protects the area near ('+Number(p.zone?.x||0).toFixed(0)+', '+Number(p.zone?.y||0).toFixed(0)+') and reacts to threats.';
+  if(p.job==='runfit')return 'Fits the run near x='+Number(p.fitX??0).toFixed(0)+' and pursues the carrier.';
+  if(p.job==='rush'||p.job==='blitz')return p.job==='blitz'?'Adds pressure as a blitzer.':'Rushes the quarterback or ball carrier.';
+  if(p.job==='route')return 'Runs the assigned route to stress coverage.';
+  return 'Assignment: '+p.job+'.';
+ };
+ const rows=[...off.map(p=>['O',p,describe(p,'offense')]),...def.map(p=>['D',p,describe(p,'defense')])];
+ return '<div style="margin-top:9px;padding:9px;border:1px solid #31514e;border-radius:8px;background:#071b20"><b>Mission One assignment scout</b><ul style="margin:6px 0;padding-left:19px;line-height:1.5">'+rows.map(([team,p,text])=>'<li><b>'+team+' · '+esc(p.label)+'</b> — '+esc(text)+'</li>').join('')+'</ul><small>Intended matchup: trace the RB’s lane against the lone MLB. Run the unchanged play first, then redraw only the RB path and compare the result.</small></div>';
 }
 function campaignDriveText(){if(!campaignDrive)return '';const d=campaignDrive;return (campaign.side==='offense'?'DRIVE':'DEFENSIVE STAND')+' • '+d.down+' & '+Math.max(1,Math.ceil(d.toGain))+' • BALL AT '+d.yardLine.toFixed(1)+' • '+d.snaps+' SNAPS';}
 function loadLesson(campaignSide,index){
@@ -440,8 +466,9 @@ function grantLesson(){
 }
 function gradeCampaign(sim){
  if(!campaign||campaignSuccess)return;const lesson=K.lessons[campaign.side][campaign.index];
- const check=K.assess(lesson,campaignBaseline,offensive,defensive,sim);
- if(campaignWave>0 && !K.changed(campaignBaseline,{offense:offensive,defense:defensive},{...lesson,edit:lesson.edit||'any'},campaign.side)){
+ const objective=K.objectiveForWave(lesson,campaign.side,campaignWave);
+ const check=K.assess(objective,campaignBaseline,offensive,defensive,sim);
+ if(campaignWave>0 && !K.changed(campaignBaseline,{offense:offensive,defense:defensive},objective,campaign.side)){
   $('campaignFeedback').textContent='Edit an assignment, route or alignment for this specific opponent before running again.';return;
  }
  if(!check.pass && !(lesson.drive && K.changed(campaignBaseline,{offense:offensive,defense:defensive},lesson,campaign.side))){$('campaignFeedback').textContent='Not yet: '+check.message;return;}
@@ -469,3 +496,4 @@ $('coachLayer').addEventListener('change',e=>{coachLayer=e.target.value;renderFi
 bindEncyclopedia();bindEvents();fillPresets();refresh();modeCampaignUI();document.getElementById('startupFallback')?.remove();
 
 })();
+

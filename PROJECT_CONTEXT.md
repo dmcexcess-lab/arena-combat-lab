@@ -44,3 +44,8 @@ Primary owners: Setup=Developer Screen + launch boundary; Visuals=player paper d
 
 ## Route Lab scouting/rotation update
 The authoritative `GridironCore.statsOf(player)` produces editable 1–99 skill ratings with role-based defaults; movement, throwing, blocking, coverage, catches and tackling consume ratings. The player inspector edits `player.stats` and the coach-layer selector renders links/areas for responsibilities, protection, coverage, blitz, run-fit, schematic open grass and player matchups. `RouteCampaign.scrimmageSetup(lesson,side,wave)` generates deterministic SCOUT/MAN/ZONE/BLITZ sub-scrimmages for each of the first five lessons; `SCRIMMAGE_ROSTERS` advances 3v1, virtual-snap 3v3, 5v5, 7v7 and legal 11v11. The final campaign stages stay drive challenges. Virtual snap is tagged `trainingVirtualSnap` and only relaxes the center requirement in explicitly reduced-player training; never in 11v11. Updating standalone `route-lab/index.html` requires embedding updated engine/campaign/app modules exactly. CI runs scouting tests.
+
+
+## Route Lab Mission One update
+Mission One now presents a live per-player assignment scout for its opening 3v1 run. The unchanged play is an observation rep; the outcome gate then requires an RB route edit plus the yardage objective through all four defensive looks, keeping the roster constant for comparison. The standalone HTML embeds the current maintained modules.
+

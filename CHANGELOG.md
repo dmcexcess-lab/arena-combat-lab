@@ -1,3 +1,8 @@
+## 2026-11-06 — Route Lab Mission One assignment scout
+- Made the opening 3v1 run lesson an observe → adjust → test exercise: the unchanged rep is film study, and advancement requires editing the RB path and earning the stated simulated gain.
+- Added a live assignment brief for each player in Mission One, including blocking/coverage jobs and the RB-versus-MLB matchup; retained the same roster while Scout, Man, Zone and Blitz rotate.
+- Added tests for baseline gating, RB counterplay across all four defensive looks, and standalone HTML/module parity.
+
 ## 2026-11-06 — Route Lab opponent ladder, ratings and tactical overlays
 - Added editable player scouting attributes (1–99) and connected speed/acceleration, blocking and strength, coverage, QB passing accuracy, hands and tackling to deterministic simulator decisions.
 - Added seven coaching overlay modes: assignments, coverage shell, pass protection, pressure paths, run fits, open turf and matchup advantage; color legend and player-rating inspector.
@@ -335,3 +340,4 @@ Current truth: `PROJECT_CONTEXT.md` · Future: `ROADMAP.md`
 ## Earlier Arena Foundation
 - Variable-tick combat, facing/FOV/fog, remembered enemies, physical sound, stealth, Fear, doors/hazards and `!! SPOTTED !!`.
 - Noise changes existing enemy behavior; it never spawns enemies.
+

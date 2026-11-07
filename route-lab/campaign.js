@@ -21,7 +21,7 @@ function setup(offName,defName,os,ds,options={}){
 }
 const lessons={
  offense:[
- {title:'The Snap & the Ball',role:'Quarterback',detail:'The center starts the play. The quarterback receives the snap and decides whether to hand off, throw or keep it. Here only the center, QB and running back face one defender.',task:'Run the starter play, then get at least 2 yards. You can edit the runner’s path with Draw route.',hint:'Select the RB, choose Draw route, and plot a path away from the defender.',off:'Inside Zone',def:'4–3 Cover 2',os:3,ds:1,goal:'gain',minimum:2,editable:['oRB','oQB'],seed:71},
+ {title:'The Snap & the Ball',role:'Quarterback',detail:'The center snaps to the QB, who gives the ball to the RB. One middle linebacker reads the run. First run the unchanged play to scout the fit; then redraw the RB path to find a different lane and test whether the result changes.',task:'Scout the starter run, then edit the RB route and gain at least 2 yards. The baseline run is for observation; advancement requires a changed RB path.',hint:'Run once and inspect the center, QB, RB and MLB responsibilities. Then select RB, choose Draw route, and shape a different path before running again.',off:'Inside Zone',def:'4–3 Cover 2',os:3,ds:1,goal:'gain',minimum:2,edit:'route',editable:['oRB'],seed:71},
  {title:'Getting Open',role:'Receivers & routes',detail:'An eligible receiver runs a route to create separation. A defender can follow in man coverage or protect an area. Change the X receiver’s route to attack open space.',task:'Edit a receiver route, then execute a positive-gain passing play.',hint:'Select X, try a Curl or Drag in the Route preset, then run the play. The QB will choose an open target.',off:'Slant / Flat',def:'4–3 Cover 2',os:4,ds:2,goal:'pass',minimum:1,edit:'route',editable:['oX'],seed:83},
  {title:'Protection Matters',role:'The offensive line',detail:'Linemen control the pocket. A blocker can be assigned to a specific rusher, which changes the pressure and gives routes time to develop.',task:'Assign the left tackle to the defensive edge, then complete a pass.',hint:'Select LT, choose Assign target, then tap the opposing DE (or set Block target in the inspector).',off:'Shotgun Mesh',def:'4–3 Cover 2',os:6,ds:3,goal:'pass',minimum:1,edit:'block',editable:['oLT','oX','oSL'],seed:91},
  {title:'Use the Whole Field',role:'Spacing, reads & hot routes',detail:'Multiple receivers stretch the coverage. Change a hot route or read priority to give your quarterback an answer against pressure.',task:'Set a hot route or change a receiver route and gain at least 3 yards.',hint:'Select a receiver and check Hot route, or draw a route that separates from the defenders.',off:'Shotgun Mesh',def:'4–3 Cover 2',os:8,ds:5,goal:'gain',minimum:3,edit:'receiver',editable:['oX','oSL','oTE'],seed:121},
@@ -168,6 +168,16 @@ function scrimmageSetup(lesson,side,wave=0){
  }
  return {offense:off,defense:defenseSanitize(def,off),wave:SCRIMMAGE_WAVES[wave],roster:group};
 }
+function objectiveForWave(lesson,side,wave=0){
+ const objective={...lesson};
+ // Mission One keeps its 3v1 roster throughout the four defensive looks, so
+ // the learner can compare the same RB path against each assignment.
+ if(side==='offense'&&lessons.offense[0]===lesson){
+  objective.edit='route';
+  objective.editable=['oRB'];
+ }
+ return objective;
+}
 function defenseSanitize(def,off){
  for(const p of def.players){if(p.coverTarget&&!off.players.some(q=>q.id===p.coverTarget)){p.coverTarget='';p.job='zone';p.zone={x:p.x,y:12,r:7,rY:8};}}
  return def;
@@ -199,6 +209,7 @@ function assess(lesson,before,offense,defense,sim){const s=lesson.role.startsWit
  if(lesson.goal==='stop')return {pass:y<lesson.maximum&&!verdict.includes('Touchdown'),message:`Keep the offense below ${lesson.maximum} yards (last play ${y.toFixed(1)}).`};
  return {pass:false,message:'Finish the drive objective.'};
 }
-root.RouteCampaign={lessons,setup,readProgress,changed,assess,SCRIMMAGE_WAVES,SCRIMMAGE_ROSTERS,scrimmageSetup};
+root.RouteCampaign={lessons,setup,readProgress,changed,assess,SCRIMMAGE_WAVES,SCRIMMAGE_ROSTERS,scrimmageSetup,objectiveForWave};
 if(typeof module!=='undefined'&&module.exports)module.exports=root.RouteCampaign;
 })(typeof window!=='undefined'?window:globalThis);
+
