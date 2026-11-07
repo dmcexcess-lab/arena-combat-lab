@@ -96,6 +96,7 @@ jobs:
           node --check route-lab/plays.js
           node --check route-lab/campaign.js
           node --check route-lab/encyclopedia.js
+          node --check route-lab/game.js
           node --check route-lab/app.js
           node --test route-lab/tests/*.test.cjs
 
@@ -134,7 +135,7 @@ jobs:
           mkdir -p build/web/route-lab
           cp route-lab/index.html build/web/route-lab/index.html
           test -s build/web/route-lab/index.html
-          grep -q 'bindEvents();fillPresets();refresh();' build/web/route-lab/index.html
+          grep -q 'id="fullField"' build/web/route-lab/index.html
           touch build/web/.nojekyll
 
       - name: Keep downloadable build artifact
