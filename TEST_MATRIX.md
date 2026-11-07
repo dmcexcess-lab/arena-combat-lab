@@ -164,3 +164,10 @@ Operational checklist for humans + AIs. Keep compact; add only behaviors whose r
 - Simulate the same play+seed twice for identical decisions and frames. Run 30 distinct seeds against one matchup: at least two credible chosen targets and outcomes must occur. Distinct defenses must affect QB choices.
 - Consecutive Run clicks increment seed; manually restored seed must reproduce previous result. QB Film Room must show selected and rejected candidate reads.
 - `index.html` embedded modules must match `engine.js`, `plays.js`, `campaign.js`, `encyclopedia.js`, `app.js` checked into source.
+
+## Route Lab scouting and opponent rotation (2026-11-06)
+- Stats have role-specific defaults, clamp to valid 1–99, and alter simulation outcomes deterministically across seeds while equal seed reproduces frames.
+- For each campaign, every non-final stage generates the same four ordered opponent defensive assignments: Scout, Man, Zone, Blitz. Players increase 3v1 → 3v3 virtual snap → 5v5 → 7v7 → 11v11; all variants must pass current legality checks.
+- Man targets exist, blitz has a rusher, zone shapes render, and full 11v11 never uses virtual snap.
+- Assignment, coverage, protection, pressure, run fits, schematic open space, and mismatch overlays must be selectable and reflect the current player assignments; player stat inspector edits persist in the play definition and affect subsequent simulations.
+- Advancing non-final campaign stages requires winning each scrimmage and modifying the tactical plan for each subsequent opponent.

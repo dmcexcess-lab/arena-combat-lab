@@ -45,7 +45,7 @@ function validate(off,def){
     }
   }
   const centers=off.players.filter(p=>p.label==='C');
-  if(centers.length!==1||!centers[0].onLine||Math.abs(centers[0].x)>1.0) err('One center (C) must be on the line at the snap.');
+  if(!(off.training&&off.trainingVirtualSnap)&&(centers.length!==1||!centers[0].onLine||Math.abs(centers[0].x)>1.0)) err('One center (C) must be on the line at the snap.');
   const qb=off.players.find(p=>p.id===(off.snapToId||'oQB'))||off.players.find(p=>p.label==='QB');
   if(!qb) err('Offense needs a designated snap receiver.'); else if(qb.onLine||qb.y>=-.65)err('Snap receiver must be in the backfield.');
   const legalTargets=new Set(def.players.map(p=>p.id)), oTargets=new Set(off.players.map(p=>p.id));
@@ -75,16 +75,34 @@ function move(agent,target,dt,speed,accel=15){
   let dx=target.x-agent.x,dy=target.y-agent.y, d=Math.hypot(dx,dy);
   if(d<.16){agent.vx*=.5;agent.vy*=.5;return;}
   let vx=dx/d*speed,vy=dy/d*speed;
-  let change=Math.min(1,accel*dt/Math.max(speed,.5));
+  let change=Math.min(1,accel*dt*(.73+statsOf(agent).acceleration/330)/Math.max(speed,.5));
   agent.vx+=(vx-agent.vx)*change; agent.vy+=(vy-agent.vy)*change;
   let f=Math.min(1,d/Math.max(.01,Math.hypot(agent.vx,agent.vy)*dt));
   agent.x=clamp(agent.x+agent.vx*dt*f,-26.6,26.6); agent.y+=agent.vy*dt*f;
 }
-function speedOf(p){let mult=clamp(p.speed??1,.5,1.5);if(['WR','SL','RB','HB','FB','CB','FS','SS','S'].includes(p.label))return 7.8*mult;
+// Ratings are educational 0–100 scouting grades; they are not calibrated NFL tracking data.
+const RATING_KEYS=['speed','acceleration','agility','strength','blocking','coverage','tackling','hands','awareness','throwAccuracy','throwPower'];
+function defaultStats(player) {
+ const p=player.label||'',o=player.id?.startsWith('o');
+ const line=['LT','LG','C','RG','RT'].includes(p), pass=p==='QB', skill=['X','Z','SL','WR','TE','RB','HB','FB'].includes(p);
+ const secondary=['CB','CB1','CB2','FS','SS','S'].some(k=>p===k||p.startsWith(k));
+ const linebacker=['LB','MLB','OLB','ILB','W','M'].some(k=>p===k||p.startsWith(k));
+ const base={speed:line?56:pass?68:secondary?89:linebacker?77:skill?85:72,
+ acceleration:line?62:pass?69:secondary?86:skill?84:76,agility:line?52:pass?72:secondary?86:skill?84:67,
+ strength:line?90:linebacker?80:secondary?58:pass?53:73,blocking:line?88:p==='TE'?72:skill?42:45,
+ coverage:secondary?88:linebacker?73:42,tackling:secondary?77:linebacker?85:pass?36:70,
+ hands:skill?86:secondary?72:pass?66:53,awareness:pass?87:secondary?77:line?75:76,
+ throwAccuracy:pass?85:38,throwPower:pass?87:38};
+ if(o&&p==='RB'){base.speed=85;base.agility=86;}
+ return base;
+}
+function statsOf(p){const defaults=defaultStats(p);const given=p.stats||{};return Object.fromEntries(RATING_KEYS.map(k=>[k,clamp(Number.isFinite(+given[k])?+given[k]:defaults[k],1,99)]));}
+function speedOf(p){let ratings=statsOf(p);let mult=clamp(p.speed??1,.5,1.5)*(.72+ratings.speed/330);if(['WR','SL','RB','HB','FB','CB','FS','SS','S'].includes(p.label))return 7.8*mult;
   if(['QB'].includes(p.label))return 5.6*mult;
   if(defFront.has(p.label))return 6.1*mult;
   if(linemen.has(p.label)||p.label==='TE')return 5.0*mult;
   return 7.0*mult;}
+function pickupCoverage(pos,defenders){return clamp((2.5-nearest(pos,defenders,a=>a.y>=-.5).d)/2.5,0,1);}
 function simulate(off,def,seed=71){
  const v=validate(off,def); if(!v.valid)return {valid:false,validation:v,frames:[],events:[]};
  const rand=rng(seed), dt=.05, maxT=12;
@@ -174,7 +192,7 @@ function simulate(off,def,seed=71){
       move(p,(carrier!==qb&&handoff)?carrier:edge,dt,speedOf(p)*.78);
     }else if(p.job==='man'){
       let m=byId(p.coverTarget)||nearest(p,o,a=>a.job==='route').agent;
-      if(m){const direction=carrier===m?0:-.8;move(p,{x:m.x,y:m.y+direction},dt,speedOf(p)*.92);}
+      if(m){const direction=carrier===m?0:-.8;move(p,{x:m.x,y:m.y+direction},dt,speedOf(p)*(.74+statsOf(p).coverage/470));}
     }else if(p.job==='zone'){
       const z=p.zone||{x:p.x,y:p.y,r:5};
       const threats=receivers.filter(r=>dist(r,z)<(z.r||7)*1.6);
@@ -193,7 +211,7 @@ function simulate(off,def,seed=71){
     if(!enemy)enemy=nearest(blocker,d,a=>['rush','blitz','contain','runfit'].includes(a.job)&&(!a.engaged||isRun)).agent;
     if(enemy&&dist(blocker,enemy)<2.15){
       blocker.engaged=enemy.engaged=true;
-      const power=(blocker.power??.72), defense=(enemy.power??.66);
+      const power=(blocker.power??.72)*(.55+statsOf(blocker).blocking/155)*(.7+statsOf(blocker).strength/300), defense=(enemy.power??.66)*(.62+statsOf(enemy).strength/200);
       const advantage=clamp(power/(power+defense),.35,.7);
       // Friction: linemen redirect toward pocket; running assignments can create a lane.
       enemy.x+=(enemy.x-blocker.x)*dt*advantage*(isRun?1.7:1.2);
@@ -234,7 +252,7 @@ function simulate(off,def,seed=71){
           return Math.max(risk,along>.08&&along<.93?clamp((2.6-dist(player,projected))/2.6,0,1):0);
         },0);
         const cushion=Math.min(closest.d,shadow+1);
-        const separation=clamp((cushion-1.2)/4.2,0,1);
+        const separation=clamp((cushion-1.2)/4.2+(statsOf(r).agility-75)/560,0,1);
         const depth=clamp(predict.y,0,30);
         const risk=clamp((1-separation)*.50+lane*.43+Math.max(0,depth-20)*.008,0,1);
         const conversion=depth>=firstDown?1:0;
@@ -267,7 +285,7 @@ function simulate(off,def,seed=71){
         }else{
           const pick=best,r=pick.r;
           const aim={x:pick.predict.x,y:pick.predict.y};
-          const accuracy=clamp(.93-dist(qb,aim)*.005-pick.risk*.15-(desperate?.16:0),.35,.97);
+          const accuracy=clamp(.66+statsOf(qb).throwAccuracy*.0031-dist(qb,aim)*.005-pick.risk*.15-(desperate?.16:0),.24,.98);
           if(rand()>accuracy){aim.x+=(rand()-.5)*7;aim.y+=(rand()-.5)*5;}
           const duration=Math.max(.2,dist(qb,aim)/28);
           targetPass=r;flight={from:{x:qb.x,y:qb.y},to:aim,t0:t,duration};
@@ -286,11 +304,11 @@ function simulate(off,def,seed=71){
     ball={x:flight.from.x+(flight.to.x-flight.from.x)*pct,y:flight.from.y+(flight.to.y-flight.from.y)*pct,kind:'air'};
     if(pct>=1){
       const closeD=nearest(ball,d,a=>a.y>=-.5), receiverDist=dist(ball,targetPass);
-      const disruption=clamp((1.6-closeD.d)*.36+(receiverDist>1.65?.27:0)+(closeD.d<receiverDist?.18:0),0,.77);
+      const disruption=clamp((1.6-closeD.d)*.36+(receiverDist>1.65?.27:0)+(closeD.d<receiverDist?.18:0)+(closeD.agent?(statsOf(closeD.agent).coverage-75)*.002:0),0,.88);
       if(closeD.d<1.65 && rand()<disruption){
         if(rand()<.18&&closeD.d<.8){carrier=closeD.agent;ball={x:carrier.x,y:carrier.y,kind:'held-d'};finish('Interception by '+carrier.label,t,carrier);}
         else finish('Pass broken up by '+closeD.agent.label,t,point(0,0));
-      } else if(receiverDist<=2.3){carrier=targetPass;state='runafter';ball={x:carrier.x,y:carrier.y,kind:'held'};flight=null;log(t,'Completed to '+carrier.label);}
+      } else if(receiverDist<=2.3 && rand()<clamp(.70+statsOf(targetPass).hands*.0030-pickupCoverage(ball,d)*.11,.5,.985)){carrier=targetPass;state='runafter';ball={x:carrier.x,y:carrier.y,kind:'held'};flight=null;log(t,'Completed to '+carrier.label);}
       else finish('Incomplete pass',t,point(0,0));
     }
   }
@@ -303,7 +321,7 @@ function simulate(off,def,seed=71){
     ball={x:carrier.x,y:carrier.y,kind:carrier.side==='d'?'held-d':'held'};
     if((isRun&&handoff)||(state==='runafter')){
       const near=nearest(carrier,d);
-      if(near.d<.99 && !near.agent?.engaged && t>.8){finish('Tackle by '+near.agent.label,t,carrier);}
+      if(near.d<.99 && !near.agent?.engaged && t>.8){const success=clamp(.70+(statsOf(near.agent).tackling-75)*.005-(statsOf(carrier).agility-75)*.003,.35,.97);if(rand()<success)finish('Tackle by '+near.agent.label,t,carrier);}
       if(Math.abs(carrier.x)>=26.5)finish('Out of bounds',t,carrier);
       const toGoal=100-(off.yardLine??50);
       if(carrier.y>=toGoal)finish('Touchdown',t,carrier);
@@ -315,7 +333,7 @@ function simulate(off,def,seed=71){
  if(!playOver&&frames.length)finish('Play ended',time,carrier||point(0,0));
  return {valid:true,validation:v,frames,events,decisions,result:{verdict,yards,seconds:+time.toFixed(2),seed,offense:off.name,defense:def.name,sack}};
 }
-const api={validate,simulate,eligibleNumber,clone,clamp,dist};
+const api={validate,simulate,eligibleNumber,clone,clamp,dist,statsOf,defaultStats,RATING_KEYS};
 root.GridironCore=api;
 if(typeof module!=='undefined'&&module.exports)module.exports=api;
 })(typeof window!=='undefined'?window:globalThis);

@@ -108,6 +108,67 @@ const clinics={
 };
 for(const side of ['offense','defense'])lessons[side].forEach((lesson,index)=>{lesson.clinic=clinics[side][index];});
 
+// Ordered, repeatable counter-scout rotations. Early training may omit a physical
+// snapper to isolate QB/receivers; full 11v11 retains ordinary legality.
+const SCRIMMAGE_WAVES=[
+ {id:'base',name:'SCOUT',brief:'First watch the base look: identify personnel, leverage, the ball, the free defender and your matchup. Build a specific answer.'},
+ {id:'man',name:'MAN',brief:'Defenders track named receivers. Crossers, picks in space (without illegal contact) and route breaks can create separation.'},
+ {id:'zone',name:'ZONE',brief:'Defenders protect grass instead of chasing a single receiver. Stress seams and overload a zone with two receiving threats.'},
+ {id:'blitz',name:'BLITZ',brief:'One extra defender attacks the QB, leaving fewer underneath. Protect the free rusher or give the QB an immediate hot outlet.'}
+];
+const SCRIMMAGE_ROSTERS=[
+ {off:['oC','oQB','oRB'],def:['dM']},
+ {off:['oQB','oX','oSL'],def:['dM','dCB1','dCB2'],virtual:true},
+ {off:['oC','oQB','oLT','oX','oSL'],def:['dM','dCB1','dLE','dW','dCB2']},
+ {off:['oC','oQB','oLT','oLG','oX','oSL','oRB'],def:['dM','dCB1','dLE','dW','dCB2','dDT1','dS']},
+ {off:null,def:null},{off:null,def:null}
+];
+function scrimmageSetup(lesson,side,wave=0){
+ const index=lessons[side].indexOf(lesson);
+ if(index<0)throw new Error('Unknown lesson');
+ const group=SCRIMMAGE_ROSTERS[index],base=setup(lesson.off,lesson.def,11,11);
+ const off=base.offense,def=base.defense;
+ if(group.off){off.players=off.players.filter(p=>group.off.includes(p.id));off.training=true;off.trainingVirtualSnap=!!group.virtual;}
+ if(group.def){def.players=def.players.filter(p=>group.def.includes(p.id));off.training=true;def.training=true;}
+ off.name=lesson.off+' • '+SCRIMMAGE_WAVES[wave].name;
+ def.name=lesson.def+' • '+SCRIMMAGE_WAVES[wave].name;
+ // Clean all targets that disappear in reduced-personnel exercises.
+ for(const p of off.players){if(p.blockTarget&&!def.players.some(q=>q.id===p.blockTarget))p.blockTarget='';}
+ for(const p of def.players){if(p.coverTarget&&!off.players.some(q=>q.id===p.coverTarget))p.coverTarget='';}
+ if(!off.players.some(p=>p.id===off.runnerId))off.runnerId='oQB';
+ if(!off.players.some(p=>p.id===off.primaryTarget))off.primaryTarget=off.players.find(p=>p.job==='route')?.id||'oQB';
+ const threat=off.players.filter(p=>p.job==='route');
+ const defenders=def.players;
+ if(wave===1){ // explicit man coverage: no disguised auto-targets
+  const backs=defenders.filter(p=>['CB','LB','MLB','SS','FS','S','W'].some(t=>p.label.startsWith(t))||p.id==='dM');
+  backs.forEach((p,i)=>{if(threat.length){p.job='man';p.coverTarget=threat[i%threat.length].id;}else{p.job='runfit';p.fitX=off.runGapX||2;}});
+ }else if(wave===2){
+  defenders.forEach((p,i)=>{if(p.id==='dLE'||p.id==='dRE'||p.id.startsWith('dDT')){p.job='rush';p.coverTarget='';return;}
+   p.job='zone';p.coverTarget='';p.zone={x:Math.max(-19,Math.min(19,p.x)),y:i%3===0?8:i%3===1?16:23,r:8,rY:7};});
+ }else if(wave===3){
+  const rusher=defenders.find(p=>p.id==='dM')||defenders[0];
+  defenders.filter(p=>p.id==='dLE'||p.id==='dRE'||p.id.startsWith('dDT')).forEach(p=>{p.job='rush';p.coverTarget='';});
+  if(rusher){rusher.job='blitz';rusher.coverTarget='';}
+  for(const p of defenders){if(p.job==='man'&&!p.coverTarget){p.job='zone';p.zone={x:p.x,y:11,r:7,rY:8};}}
+ }
+ if(side==='defense' && index<4){
+   // Defensive students also see a repeatable opposing attack rather than an arbitrary random call.
+   if(wave===0){off.type='run';off.runnerId=off.players.some(p=>p.id==='oRB')?'oRB':'oQB';}
+   else if(wave===1){off.type='pass';off.throwAt=2.0;}
+   else if(wave===2){off.type='pass';off.throwAt=3.3;}
+   else {off.type='pass';off.throwAt=1.85;}
+ }
+ if(off.type==='run'){
+   const runner=off.players.find(p=>p.id===off.runnerId);
+   if(runner){runner.job='carry';if(!runner.route?.length)runner.route=[{x:off.runGapX||2,y:4},{x:off.runGapX||2,y:18}];}
+ }
+ return {offense:off,defense:defenseSanitize(def,off),wave:SCRIMMAGE_WAVES[wave],roster:group};
+}
+function defenseSanitize(def,off){
+ for(const p of def.players){if(p.coverTarget&&!off.players.some(q=>q.id===p.coverTarget)){p.coverTarget='';p.job='zone';p.zone={x:p.x,y:12,r:7,rY:8};}}
+ return def;
+}
+
 const START_PROGRESS={offense:0,defense:0};
 function readProgress(storage){try{const p=JSON.parse(storage.getItem('route-lab-campaign-v1')||'{}');return {offense:Math.max(0,Math.min(lessons.offense.length,Number(p.offense)||0)),defense:Math.max(0,Math.min(lessons.defense.length,Number(p.defense)||0))};}catch{return {...START_PROGRESS};}}
 function changed(before,after,lesson,side){const bp=before[side].players,ap=after[side].players;const e=lesson.edit;if(!e)return true;
@@ -134,6 +195,6 @@ function assess(lesson,before,offense,defense,sim){const s=lesson.role.startsWit
  if(lesson.goal==='stop')return {pass:y<lesson.maximum&&!verdict.includes('Touchdown'),message:`Keep the offense below ${lesson.maximum} yards (last play ${y.toFixed(1)}).`};
  return {pass:false,message:'Finish the drive objective.'};
 }
-root.RouteCampaign={lessons,setup,readProgress,changed,assess};
+root.RouteCampaign={lessons,setup,readProgress,changed,assess,SCRIMMAGE_WAVES,SCRIMMAGE_ROSTERS,scrimmageSetup};
 if(typeof module!=='undefined'&&module.exports)module.exports=root.RouteCampaign;
 })(typeof window!=='undefined'?window:globalThis);

@@ -1,3 +1,10 @@
+## 2026-11-06 — Route Lab opponent ladder, ratings and tactical overlays
+- Added editable player scouting attributes (1–99) and connected speed/acceleration, blocking and strength, coverage, QB passing accuracy, hands and tackling to deterministic simulator decisions.
+- Added seven coaching overlay modes: assignments, coverage shell, pass protection, pressure paths, run fits, open turf and matchup advantage; color legend and player-rating inspector.
+- Reworked first five stages of both campaigns into four-opponent scrimmage rotations: SCOUT, MAN, ZONE, BLITZ. Opponents are deterministic and require a tactical re-edit; lesson progression waits for full rotation, while finales retain the touchdown drive / defensive stand.
+- Scales training roster 3v1 → 3v3 → 5v5 → 7v7 → 11v11, with explicit virtual-snap 3v3 exception rather than confusing it with a legal NFL formation.
+- Existing playbooks, encyclopedia and independent Arena / Tavern Keeper games are preserved.
+
 ## 2026-11-06 — Route Lab tactical QB, teaching clinics and encyclopedia
 - Replaced static primary receiver targeting with seeded tactical QB read evaluation (projected catch-point separation, throwing lane risk, pressure, timing, depth, first-down value and read priority), weighted viable-target selection and throwaway decisions.
 - Added QB Film Room exposing chosen target, reasons, alternative reads, tactical separation and risk scores. Repeated Run uses a new seed; prior seed can be re-entered for deterministic replay.
