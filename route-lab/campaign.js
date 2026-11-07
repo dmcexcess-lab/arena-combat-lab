@@ -152,7 +152,10 @@ function scrimmageSetup(lesson,side,wave=0){
   if(rusher){rusher.job='blitz';rusher.coverTarget='';}
   for(const p of defenders){if(p.job==='man'&&!p.coverTarget){p.job='zone';p.zone={x:p.x,y:11,r:7,rY:8};}}
  }
- if(side==='defense' && index<4){
+ // Do not pre-solve a defender's assignment exercise when presenting its opponent.
+ if(side==='defense' && index===0){const mlb=defenders.find(p=>p.id==='dM');if(mlb){mlb.job='runfit';mlb.coverTarget='';mlb.fitX=off.runGapX||2;}}
+ if(side==='defense' && index===1){const cb=defenders.find(p=>p.id==='dCB1');if(cb&&cb.job==='man'&&cb.coverTarget==='oX'){cb.job='zone';cb.coverTarget='';cb.zone={x:cb.x,y:9,r:8,rY:8};}}
+ if(side==='defense' && index>0 && index<4){
    // Defensive students also see a repeatable opposing attack rather than an arbitrary random call.
    if(wave===0){off.type='run';off.runnerId=off.players.some(p=>p.id==='oRB')?'oRB':'oQB';}
    else if(wave===1){off.type='pass';off.throwAt=2.0;}

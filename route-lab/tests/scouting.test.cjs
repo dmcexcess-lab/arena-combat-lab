@@ -59,3 +59,15 @@ test('QB arm and awareness ratings participate in core pass logic',()=>{
  assert.ok(source.includes('statsOf(qb).throwPower'));
  assert.ok(source.includes('statsOf(qb).awareness'));
 });
+
+test('defensive assignments remain user tasks across the opponent rotation',()=>{
+ for(let wave=0;wave<4;wave++){
+  const intro=K.scrimmageSetup(K.lessons.defense[0],'defense',wave);
+  assert.equal(intro.offense.type,'run');
+  const mlb=intro.defense.players.find(p=>p.id==='dM');
+  assert.ok(mlb.job!=='man'||mlb.coverTarget!=='oRB','intro assignment must remain teachable at wave '+wave);
+  const man=K.scrimmageSetup(K.lessons.defense[1],'defense',wave);
+  const cb=man.defense.players.find(p=>p.id==='dCB1');
+  assert.ok(cb.job!=='man'||cb.coverTarget!=='oX','man assignment must remain teachable at wave '+wave);
+ }
+});
