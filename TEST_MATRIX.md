@@ -206,3 +206,11 @@ Operational checklist for humans + AIs. Keep compact; add only behaviors whose r
 - A loose ball entering the opponent end zone and going out gives the defense a 20-yard touchback; a ball sent out behind the team's own goal gives up a safety. Recovery in an end zone resolves by possession and impetus.
 - A teammate recovering a fourth-down or post-two-minute fumble cannot advance it beyond the fumble spot. Interception in the defender's end zone is a 20-yard touchback; momentum into that end zone retains the interception spot.
 - Replays, referee log, and play report identify the live loose ball and recovery. Standalone HTML embeds exact current modules.
+
+
+## Route Lab special teams slice (2026-11-07)
+- Published kickoff replay shows ten coverage players on the receiving 40, nine setup players with five on the receiving 35, two deep receivers, and all 22 moving after landing.
+- Fair-catch calls stop a caught kick at its spot; a muff stays live and either team can recover. A kick-team recovery beyond the scrimmage line is dead, while a blocked kick behind the line can be advanced.
+- Return contacts and lane choices move the 22 replay actors; a carrier reaching the opposite goal scores, and the ensuing try or kickoff state is correct.
+- A kick short of the 20-yard landing-zone front line awards the favorable landing/25-yard spot (30 for a safety kick). Direct end-zone touchbacks use 35, while punt touchbacks use 20.
+- The standalone HTML embeds the maintained modules exactly. Existing Route Lab and site CI remain the deployment gate.

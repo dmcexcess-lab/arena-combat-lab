@@ -1,3 +1,8 @@
+## 2026-11-07 — Route Lab special teams slice
+- Replaced summary-only kick returns with seeded 22-player full-field frames: coverage, rush/protection, return blocking, lane choices, contact, loose-ball pursuit and return touchdowns are visible in the replay and report.
+- Added receiving-team fair-catch selection, muffed kick and blocked punt/field-goal/try recovery, including change of possession and returns where the ball remains live.
+- Applied 2026 dynamic kickoff and onside alignments, the pre-landing movement restriction with a five-yard rekick, landing-zone short-kick awards, safety-kick awards, and 35/20-yard kickoff and punt touchbacks. Remaining special-teams exceptions are listed in `route-lab/RULES_AUDIT.md`.
+
 ## 2026-11-06 — Route Lab live-ball possession slice
 - Fumbles from contact, sacks, and muffed handoffs now release a moving ball that all 22 players pursue and can recover. Recovery can change possession and continue as a return; the replay and report show who lost and recovered the ball.
 - Added a designed backward-pass target and release time to the play editor, plus a Pitch Back play that the CPU can call. A pass is released only when its target is behind the carrier; a loose pitch remains recoverable by either team.

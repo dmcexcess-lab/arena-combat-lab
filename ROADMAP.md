@@ -83,6 +83,6 @@ Keep this a **small finishable game**. Core world: **Prison + Arena**. Do not re
 
 ## Route Lab rule-simulation slices
 
-The exhibition setup/game-rhythm and live-ball possession slices are implemented. The remaining slices are special-teams catches, muffs, blocks and returns; broader live-ball officiating and replay; then full clock and overtime edge cases. See `route-lab/RULES_AUDIT.md` for the detailed boundary and official-rule references.
+The exhibition setup/game-rhythm, live-ball possession, and special-teams slices are implemented. The remaining slices are broader live-ball officiating and replay, then full clock and overtime edge cases. See `route-lab/RULES_AUDIT.md` for the detailed boundary and official-rule references.
 
 Current playtest problems outrank roadmap order.
