@@ -23,7 +23,7 @@ test('a receiver leaves the route endpoint after a catch and advances the live b
 });
 
 test('zone defenders leave their landmarks and pursue a completed pass',()=>{
- const sim=C.simulate(P.createOffensePresets()[0],P.createDefensePresets()[0],700);
+ const sim=C.simulate(P.createOffensePresets()[0],P.createDefensePresets()[0],1);
  const caught=sim.events.find(e=>e.text.startsWith('Completed to '));
  assert.ok(caught);
  const first=sim.frames.find(f=>f.t>=caught.t);

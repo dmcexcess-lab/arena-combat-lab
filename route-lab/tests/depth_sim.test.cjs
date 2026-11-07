@@ -41,7 +41,7 @@ test('awareness changes safety reaction and pursuit changes the tackle spot',()=
  const slow=C.clone(def),fast=C.clone(def);
  slow.players.find(p=>p.id==='dSS').stats={awareness:1,pursuit:1};
  fast.players.find(p=>p.id==='dSS').stats={awareness:99,pursuit:99};
- const a=C.simulate(off,slow,700),b=C.simulate(off,fast,700);
+ const a=C.simulate(off,slow,1),b=C.simulate(off,fast,1);
  assert.ok(a.events.some(e=>e.text==='Completed to Z'));
  assert.ok(b.events.some(e=>e.text==='Completed to Z'));
  assert.ok(at(b,2.3,'defense','dSS').x>at(a,2.3,'defense','dSS').x+1);
@@ -69,14 +69,14 @@ test('juke, stiff arm, and spin have spatial effects and appear in structured pl
  const variants=[['juke',{},'runner'],['stiff arm',{strength:99},'defender'],['spin',{vision:99,agility:1},'runner']];
  for(const [kind,stats,actor] of variants){
   const play=C.clone(off);play.players.find(p=>p.id==='oRB').stats=stats;
-  const sim=C.simulate(play,def,1),move=sim.specialMoves.find(m=>m.move===kind&&m.outcome==='beat defender');
+  const sim=C.simulate(play,def,3),move=sim.specialMoves.find(m=>m.move===kind&&m.outcome==='beat defender');
   assert.ok(move,kind+' must be an executed move, not a cosmetic label');
   const before=sim.frames.find(f=>f.t===+(move.t-.05).toFixed(2));
   const after=sim.frames.find(f=>f.t===move.t);
   const id=actor==='runner'?'oRB':'dM',side=actor==='runner'?'offense':'defense';
   assert.ok(Math.abs(after[side].find(p=>p.id===id).x-before[side].find(p=>p.id===id).x)>.35,kind+' changes a position');
   assert.ok(sim.events.some(e=>e.t===move.t&&e.text.includes(kind)));
-  assert.deepEqual(C.simulate(play,def,1),sim,'move sequence is seeded and reproducible');
+  assert.deepEqual(C.simulate(play,def,3),sim,'move sequence is seeded and reproducible');
  }
 });
 

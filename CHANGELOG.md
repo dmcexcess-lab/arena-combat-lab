@@ -1,3 +1,9 @@
+## 2026-11-07 — Route Lab timing, medical events and foul exposure
+- Added per-player tackle/block contact records and movement exposure to the live 11-on-11 simulation. Seeded medical events now cause recorded evaluations, limited availability or game removal, with automatic depth-chart substitution and replay/report evidence.
+- Added close-rusher false starts, coverage-based defensive holding, post-release roughing, tackle facemasks, and support blocks in the back, while conditioning existing holding and illegal-contact hazards on the actual engagement. Tightened defender break, pursuit and tackle geometry and balanced CPU first-down calls. No player-facing frequency slider or scheduled event count.
+- Improved injury timeout and late-game runoff administration, out-of-bounds clock restarts, change-of-possession play clocks, overtime toss and initial-possession resolution. Added deterministic scenario coverage and a repeatable eight-game rate audit.
+- Updated `route-lab/RULES_AUDIT.md` with published NFL frequency references and explicit remaining calibration and rule gaps.
+
 ## 2026-11-07 — Route Lab officiating slice
 - Added frame-evidenced offensive holding, illegal contact and defensive pass interference calls with player, time and field spot in the replay report and game book.
 - Live-ball flags now offer Accept and Decline choices; a one-button Next uses the default, and opposing pre-possession-change fouls offset with a replayed down.

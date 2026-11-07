@@ -24,8 +24,9 @@ test('interception uses return spot, and punt kicker is current possession',()=>
  G.setSpot(s,'home',40);const k=G.kick(s,'punt',4);assert.equal(k.kick.team,'home');assert.equal(k.state.possession,'away');assert.ok(k.kick.returnYards>=0);
 });
 test('timeouts are limited and delay of game is enforced without a snap',()=>{
- let s=G.createGame();G.setSpot(s,'home',50);for(let i=0;i<3;i++)assert.equal(G.timeout(s,'home'),true);assert.equal(G.timeout(s,'home'),false);
- const r=G.finishScrimmage(s,fake('Tackle',5),41);assert.equal(r.accepted,false);assert.equal(r.state.ball,45);assert.equal(r.state.down,1);assert.equal(r.state.toGain,15);
+ let s=G.createGame();G.setSpot(s,'home',50);assert.equal(G.timeout(s,'home'),true);assert.equal(G.timeout(s,'home'),false,'same team cannot take consecutive timeouts before a snap');
+ for(let i=0;i<2;i++){s=G.finishScrimmage(s,fake('Tackle',0),0).state;assert.equal(G.timeout(s,'home'),true);}assert.equal(s.timeouts.home,0);assert.equal(G.timeout(s,'home'),false);
+ const delay=G.createGame();G.setSpot(delay,'home',50);const r=G.finishScrimmage(delay,fake('Tackle',5),41);assert.equal(r.accepted,false);assert.equal(r.state.ball,45);assert.equal(r.state.down,1);assert.equal(r.state.toGain,15);
 });
 test('real play outcome enters the same persistent game-state path',()=>{
  const off=P.createOffensePresets()[8],def=P.createDefensePresets()[0];let s=G.createGame();G.setSpot(s,'home',50);off.yardLine=50;const sim=C.simulate(off,def,9),result=G.finishScrimmage(s,sim,10);assert.equal(result.accepted,true);assert.equal(result.state.plays,1);assert.ok(result.state.clock<900);
