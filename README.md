@@ -6,6 +6,8 @@
 
 **Play Tavern Keeper — Spatial Tavern Sim:** https://dmcexcess-lab.github.io/arena-combat-lab/tavern-keeper/
 
+**Play Route Lab — Football X/O Play Designer:** https://dmcexcess-lab.github.io/arena-combat-lab/route-lab/
+
 ## The game
 
 The long-term game has two connected halves:

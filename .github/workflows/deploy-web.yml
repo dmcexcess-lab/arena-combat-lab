@@ -120,6 +120,10 @@ jobs:
           test -s build/web/tavern-keeper/profiles.js
           test -f build/web/tavern-keeper/index.html
           test -f build/web/tavern-keeper/core.js
+          mkdir -p build/web/route-lab
+          cp route-lab/index.html build/web/route-lab/index.html
+          test -s build/web/route-lab/index.html
+          grep -q 'bindEvents();fillPresets();refresh();' build/web/route-lab/index.html
           touch build/web/.nojekyll
 
       - name: Keep downloadable build artifact

@@ -1,3 +1,8 @@
+## 2026-11-06 — Route Lab hosted sibling prototype
+- Added self-contained 11-on-11 football play designer at `route-lab/index.html` and deployed it under the existing GitHub Pages site at `/route-lab/`.
+- Extended Pages packaging to include Route Lab without changing the Arena or Tavern Keeper entrypoints.
+- Route Lab has 11 offensive / 8 defensive presets, custom assignments, validation and seeded replay; alpha-level fidelity.
+
 # Arena Combat Lab — Changelog
 
 ## 2026-10-11 — Tavern Keeper: Local Profiles & Safe Restart
