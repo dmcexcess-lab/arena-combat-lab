@@ -197,3 +197,12 @@ Operational checklist for humans + AIs. Keep compact; add only behaviors whose r
 - Juke, stiff arm and spin records correspond to coordinate/velocity or tackle-recovery changes, replay deterministically, and appear in the play result.
 - Full 11-on-11 replays return 22 measured player participation records; contact is observed for blockers and rushers.
 
+
+## Route Lab live-ball possession slice (2026-11-06)
+- Same play and seed reproduce the loose-ball frames, pursuit paths, recovering player, dead-ball spot and ruling.
+- Contact strip, sack strip and muffed handoff can release a fumble; the ball moves independently until recovery or boundary, and both teams pursue it.
+- Pitch Back and a user-selected backward-pass target release only to a teammate behind the carrier. Either team may recover and advance a loose backward pass.
+- A forward fumble out of bounds returns to the fumble spot; a backward fumble or backward pass uses the out-of-bounds spot. A late-half backward pass out before a change of possession loses a down and five yards.
+- A loose ball entering the opponent end zone and going out gives the defense a 20-yard touchback; a ball sent out behind the team's own goal gives up a safety. Recovery in an end zone resolves by possession and impetus.
+- A teammate recovering a fourth-down or post-two-minute fumble cannot advance it beyond the fumble spot. Interception in the defender's end zone is a 20-yard touchback; momentum into that end zone retains the interception spot.
+- Replays, referee log, and play report identify the live loose ball and recovery. Standalone HTML embeds exact current modules.

@@ -1,3 +1,8 @@
+## 2026-11-06 — Route Lab live-ball possession slice
+- Fumbles from contact, sacks, and muffed handoffs now release a moving ball that all 22 players pursue and can recover. Recovery can change possession and continue as a return; the replay and report show who lost and recovered the ball.
+- Added a designed backward-pass target and release time to the play editor, plus a Pitch Back play that the CPU can call. A pass is released only when its target is behind the carrier; a loose pitch remains recoverable by either team.
+- Game-state officiating now applies backward/forward fumble out-of-bounds spots, end-zone touchbacks and safeties, fourth-down and late-half teammate recovery limits, and interception end-zone/momentum spots. This remains a simplified single-loose-ball-per-snap model.
+
 ## 2026-11-06 — Route Lab exhibition setup and game rhythm
 - Added a Free / Campaign / Load start menu, a saved first-time coin call and home uniform color, and an animated toss for every new Free exhibition.
 - Fresh games generate randomized ratings and two candidates for each team depth-chart slot. Home starters chosen before kickoff dress the live 11-on-11 plays; skipping setup uses the CPU lineup.

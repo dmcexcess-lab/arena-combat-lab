@@ -40,6 +40,8 @@ function fillPresets(){
   const current=key==='offense'?offensive:defensive;
   el.value=arr.some(p=>p.id===current.id)?current.id:(arr.some(p=>p.id===prior)?prior:arr[0]?.id||'');}
  fill($('offPreset'),allOff(),'offense');fill($('defPreset'),allDef(),'defense');
+ $('lateralTarget').innerHTML='<option value="">None</option>'+offensive.players.filter(p=>p.id!==offensive.runnerId).map(p=>`<option value="${esc(p.id)}">${esc(p.label)} #${esc(p.number)}</option>`).join('');
+ $('lateralTarget').value=offensive.lateralToId||'';$('lateralAt').value=String(offensive.lateralAt??1.7);
 }
 function changePreset(which){if(campaign)return;const value=$(which==='offense'?'offPreset':'defPreset').value;const source=(which==='offense'?allOff():allDef()).find(p=>p.id===value);if(!source)return;
  checkpoint();const team=which==='offense'?gameState.possession:(gameState.possession==='home'?'away':'home');if(which==='offense')offensive=G.dressPlay(gameState,source,team,'offense');else defensive=G.dressPlay(gameState,source,team,'defense');selected=(sidePlay().players[0]?.id||'');dirty=false;invalidate();refresh(true);saveExhibition();}
@@ -177,7 +179,7 @@ function renderField(){
  s+=renderCoachLayer(live,offCoords,defCoords);
  for(const p of defensive.players)s+=drawPlayer(p,'d',defCoords.get(p.id),live?.carrierId);
  for(const p of offensive.players)s+=drawPlayer(p,'o',offCoords.get(p.id),live?.carrierId);
- if(live?.ball){const b=pos(live.ball);s+=`<ellipse cx="${b.x}" cy="${b.y}" rx="7.5" ry="5.2" transform="rotate(-20 ${b.x} ${b.y})" fill="#ffcc69" stroke="#fff3c7" stroke-width="1.6"/><path d="M${b.x-3} ${b.y}h6" stroke="#734b2f" stroke-width="1.5"/>`;}
+ if(live?.ball){const b=pos(live.ball);if(live.ball.kind==='loose')s+=`<circle cx="${b.x}" cy="${b.y}" r="16" fill="#ffb369" fill-opacity=".13" stroke="#ffb369" stroke-width="2" stroke-dasharray="4 3"/>`;s+=`<ellipse cx="${b.x}" cy="${b.y}" rx="7.5" ry="5.2" transform="rotate(-20 ${b.x} ${b.y})" fill="#ffcc69" stroke="#fff3c7" stroke-width="1.6"/><path d="M${b.x-3} ${b.y}h6" stroke="#734b2f" stroke-width="1.5"/>`;}
  svg.innerHTML=s;
  $('matchupTitle').innerHTML=esc(offensive.name)+' <span class="muted">vs.</span> '+esc(defensive.name);
  $('losLabel').textContent=campaign?String(offensive.yardLine??50):G.spotText(gameState);
@@ -236,6 +238,8 @@ function fieldAction(p,wp){const sideMatch=side==='offense'?'o':'d';
 function bindEvents(){
  $('offPreset').addEventListener('change',()=>changePreset('offense'));
  $('defPreset').addEventListener('change',()=>changePreset('defense'));
+ $('lateralTarget').addEventListener('change',e=>{if(campaign)return;checkpoint();offensive.lateralToId=e.target.value||null;invalidate();refresh();});
+ $('lateralAt').addEventListener('change',e=>{if(campaign)return;checkpoint();offensive.lateralAt=C.clamp(Number(e.target.value)||1.7,.7,9);e.target.value=offensive.lateralAt;invalidate();refresh();});
  $('sideTabs').addEventListener('click',e=>{const b=e.target.closest('[data-side]');if(b)selectSide(b.dataset.side);});
  $('tools').addEventListener('click',e=>{const b=e.target.closest('[data-tool]');if(b)setMode(b.dataset.tool);});
  $('undoBtn').onclick=()=>history('undo');$('redoBtn').onclick=()=>history('redo');
@@ -355,10 +359,11 @@ function run(){const validation=validationUI();if(!validation.valid){$('resultMa
  if(campaign){campaignAttempt++;gradeCampaign(sim);}
  playback=sim;frameIndex=0;running=true;lastFrameTime=performance.now();$('timeline').disabled=false;$('timeline').max=sim.frames.length-1;$('timeline').value='0';
  $('pauseBtn').disabled=false;$('stepBtn').disabled=false;$('rewindBtn').disabled=false;$('editBtn').disabled=false;$('pauseBtn').textContent='Ⅱ Pause';
- $('duration').textContent=sim.result.seconds.toFixed(2)+'s';$('resultMain').textContent=gameRuling?.foul?gameRuling.call:sim.result.verdict;$('resultMeta').textContent=(gameRuling?.foul?'Flag on live play · ':((sim.result.yards>=0?'+':'')+sim.result.yards.toFixed(1)+' offense yards'+(sim.result.possession==='defense'?' • '+sim.result.returnYards.toFixed(1)+' return yards':'')+' · '))+sim.result.seconds.toFixed(2)+' seconds • seed '+sim.result.seed;
+ $('duration').textContent=sim.result.seconds.toFixed(2)+'s';$('resultMain').textContent=gameRuling?.foul||gameRuling?.loose?gameRuling.call:sim.result.verdict;$('resultMeta').textContent=(gameRuling?.foul?'Flag on live play · ':gameRuling?.loose?'Live loose-ball ruling · ':((sim.result.yards>=0?'+':'')+sim.result.yards.toFixed(1)+' offense yards'+(sim.result.possession==='defense'?' • '+sim.result.returnYards.toFixed(1)+' return yards':'')+' · '))+sim.result.seconds.toFixed(2)+' seconds • seed '+sim.result.seed;
  const active=sim.participation.filter(p=>p.yardsMoved>.5).length;
  $('moveReport').innerHTML='<b>ON-FIELD EXECUTION</b> · '+active+'/'+sim.participation.length+' players moved'+
-  '<div><b>SPECIAL MOVES</b> · '+(sim.specialMoves.length?sim.specialMoves.map(m=>esc(m.t.toFixed(2)+'s '+m.player+' '+m.move+' vs '+m.defender+' — '+m.outcome)).join('<br>'):'none attempted on this snap')+'</div>';
+  '<div><b>SPECIAL MOVES</b> · '+(sim.specialMoves.length?sim.specialMoves.map(m=>esc(m.t.toFixed(2)+'s '+m.player+' '+m.move+' vs '+m.defender+' — '+m.outcome)).join('<br>'):'none attempted on this snap')+'</div>'+
+  (sim.result.loose?'<div><b>LOOSE BALL</b> · '+esc(sim.result.loose.kind==='backwardPass'?'Backward pass':'Fumble')+'; '+esc(gameRuling?.call||sim.result.verdict)+'</div>':'');
  renderDecisions(sim);$('modeChip').textContent='SIMULATION';$('viewLabel').textContent='REPLAY';renderFrame();cancelAnimationFrame(raf);raf=requestAnimationFrame(tick);saveExhibition();
 }
 function renderFrame(){if(!playback)return;frameIndex=C.clamp(frameIndex,0,playback.frames.length-1);const f=playback.frames[frameIndex];
@@ -436,7 +441,7 @@ function safeProgress(){try{localStorage.setItem('route-lab-campaign-v1',JSON.st
 function modeCampaignUI(){
  const banner=$('campaignBanner');banner.hidden=!campaign;$('gamePanel').hidden=!!campaign;
  document.body.classList.toggle('campaign-on',!!campaign);
- $('offPreset').disabled=!!campaign;$('defPreset').disabled=!!campaign;
+ $('offPreset').disabled=!!campaign;$('defPreset').disabled=!!campaign;$('lateralTarget').disabled=!!campaign;$('lateralAt').disabled=!!campaign;
  for(const id of ['saveBtn','importBtn','copyBtn','exportBtn'])$(id).disabled=!!campaign;
  $('sideTabs').querySelectorAll('[data-side]').forEach(b=>{b.disabled=!!campaign&&b.dataset.side!==campaign.side;b.classList.toggle('active',b.dataset.side===side);});
  $('resetBtn').textContent=campaign?'↶ Restart lesson':'Reset play';

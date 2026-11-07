@@ -86,6 +86,9 @@ function createOffensePresets(){
  for(const id of ['oLT','oLG','oC','oRG','oRT'])setBlock(o,id,'',4,'runblock');
  setRoute(o,'oX','slant');setRoute(o,'oSL','slant');setRoute(o,'oTE','flat');setRoute(o,'oZ','go');
  runRoute(o,'oRB',[[2,-4],[2,1],[4,10],[6,25]]);o.runGapX=3;a.push(o);
+ o=COPY(a.find(play=>play.name==='Outside Zone Left'));
+ o.id='off-pitch-back';o.name='Pitch Back';o.lateralToId='oQB';o.lateralAt=1.7;
+ a.push(o);
  return a;
 }
 function defense(name){

@@ -160,6 +160,7 @@ function simulate(off,def,seed=71){
  const byId=(id)=>o.find(p=>p.id===id), defenders=(id)=>d.find(p=>p.id===id);
  const qb=byId(off.snapToId||'oQB')||o.find(p=>p.label==='QB'), runner=byId(off.runnerId)||qb;
  let carrier=qb, state='live', ball={x:qb.x,y:qb.y,kind:'held'}, targetPass=null,flight=null, thrown=false, handoff=false, playOver=false, verdict='', yards=0, time=0, sack=false,returnStartY=null,catchTime=-1;
+ let loose=null,looseResult=null,looseCount=0,lateralUsed=false,possessionChanged=false,interceptionY=null;
  const frames=[],events=[],decisions=[],specialMoves=[]; const log=(t,text)=>events.push({t:+t.toFixed(2),text});
  const isRun=['run','option'].includes(off.type),directRun=isRun&&runner===qb;
  const eligible=new Set(off.training?o.filter(p=>p.job==='route').map(p=>p.id):v.eligible);
@@ -176,6 +177,16 @@ function simulate(off,def,seed=71){
   if((msg.startsWith('Sack')||msg.startsWith('Tackle')||msg==='Out of bounds')&&
       pos?.y<=-(off.yardLine??50))msg='Safety — '+msg;
   verdict=msg;log(t,msg);playOver=kill;
+ }
+ function releaseLoose(kind,t,from,toward,source){
+  if(looseCount)return false;
+  looseCount++;state='loose';carrier=null;flight=null;thrown=true;
+  const dx=clamp((toward?.x??from.x)-from.x,-8,8),dy=clamp((toward?.y??from.y-2)-from.y,-8,3);
+  loose={kind,sourceId:source.id,sourceSide:source.side,originY:from.y,lastSide:source.side,
+   vx:dx*1.7+(rand()-.5)*3,vy:dy*1.7-1-rand()*2,at:t};
+  ball={x:from.x,y:from.y,kind:'loose'};
+  log(t,source.label+(kind==='backwardPass'?' pitches a backward pass':' fumbles')+' — ball is live');
+  return true;
  }
  function evade(r,opponents,t){
   if(t<(r.nextMoveAt??0))return;
@@ -214,6 +225,7 @@ function simulate(off,def,seed=71){
   for(const p of [...o,...d]){p.wasEngaged=p.engaged;p.engaged=false;p.supportBlock=false;}
   // Route pursuit with waypoints. A hot route is a read priority, not a speed boost.
   for(const p of o){
+    if(state==='loose'){move(p,ball,dt,speedOf(p)*(.76+statsOf(p).awareness/420),18);continue;}
     if(state==='return'){
       move(p,pursuitTarget(p,carrier),dt,speedOf(p)*.9,15);
       continue;
@@ -271,7 +283,7 @@ function simulate(off,def,seed=71){
     }
   }
   // QB drops, holds, or scrambles once pressure arrives.
-  if(!isRun){
+  if(!isRun&&state!=='loose'){
     const rush=nearest(qb,d,a=>['rush','blitz','contain'].includes(a.job));
     let pressure=rush.d<2.65+statsOf(qb).awareness/55;
     const reactAt=.85+clamp((95-statsOf(qb).awareness)/120,0,.7);
@@ -296,6 +308,7 @@ function simulate(off,def,seed=71){
   }else if(!handoff){move(qb,{x:runner.x*.3,y:-4.8},dt,2.4);}
   // Defensive assignments: rush, man, match-zone, spy, and contain.
   for(const p of d){
+    if(state==='loose'){move(p,ball,dt,speedOf(p)*(.79+statsOf(p).pursuit/380),18);continue;}
     if(state==='return'){
       if(p!==carrier){
         const pursuer=nearest(p,o,a=>dist(a,carrier)<9);
@@ -351,7 +364,7 @@ function simulate(off,def,seed=71){
     else if(p.job==='deep')move(p,{x:p.zone?.x??p.x,y:p.zone?.y??18},dt,speedOf(p)*.7);
   }
   // Blocking contacts: delay / deflect rushers; the pressure model uses assignments and matchups.
-  for(const blocker of o.filter(p=>p.supportBlock||['passblock','runblock','block','pull'].includes(p.job))){
+  for(const blocker of state==='loose'?[]:o.filter(p=>p.supportBlock||['passblock','runblock','block','pull'].includes(p.job))){
     let enemy=defenders(blocker.supportBlock?blocker.supportTarget:blocker.blockTarget);
     if(!enemy)enemy=nearest(blocker,d,a=>blocker.supportBlock?dist(a,carrier)<7:
       ['rush','blitz','contain','runfit'].includes(a.job)&&(!a.engaged||isRun)).agent;
@@ -370,12 +383,20 @@ function simulate(off,def,seed=71){
     }
   }
   // Handoff after QB meets RB; option currently uses preselected runner (not adaptive read).
-  if(isRun && !handoff && t>=.65){handoff=true;carrier=runner;ball={x:runner.x,y:runner.y,kind:'held'};log(t,'Handoff to '+runner.label);}
-  if(!isRun&&!thrown){
+  if(isRun && !handoff && t>=.65 && state!=='loose'){
+   handoff=true;
+   const muff=clamp(.003+(82-statsOf(qb).hands)*.00025+(82-statsOf(runner).hands)*.0003,.002,.035);
+   if(rand()<muff)releaseLoose('fumble',t,{x:(qb.x+runner.x)/2,y:(qb.y+runner.y)/2},runner,qb);
+   else{carrier=runner;ball={x:runner.x,y:runner.y,kind:'held'};log(t,'Handoff to '+runner.label);}
+  }
+  if(!isRun&&!thrown&&state!=='loose'){
     // A defensive rusher close to QB before release gets a sack.
     const rush=nearest(qb,d,a=>['rush','blitz','contain','spy'].includes(a.job));
     if(t>.35 && rush.d<.94 && !(rush.agent?.engaged&&rand()<.78)){
-      sack=true;carrier=qb;finish('Sack ('+Math.abs(qb.y).toFixed(1)+' yd loss)',t,qb);
+      sack=true;
+      const strip=clamp(.012+(statsOf(rush.agent).passRush-statsOf(qb).awareness)*.0005,.003,.065);
+      if(rand()<strip)releaseLoose('fumble',t,qb,{x:qb.x+(rush.agent.x-qb.x)*.4,y:qb.y-2},qb);
+      else{carrier=qb;finish('Sack ('+Math.abs(qb.y).toFixed(1)+' yd loss)',t,qb);}
     }
     const ready=t>=Math.max(1.15,off.qbDropTime??1.15);
     if(!playOver&&ready&&receivers.length){
@@ -468,11 +489,47 @@ function simulate(off,def,seed=71){
       if(Math.abs(ball.x)>=26.66||ball.y>110-(off.yardLine??50)){
         finish('Incomplete pass — out of bounds',t,point(0,0));
       }else if(closeD.d<3.3 && rand()<disruption){
-        if(rand()<.18&&closeD.d<.8){carrier=closeD.agent;state='return';returnStartY=carrier.y;flight=null;
+        if(rand()<.18&&closeD.d<.8){carrier=closeD.agent;state='return';returnStartY=carrier.y;interceptionY=carrier.y;possessionChanged=true;flight=null;
           ball={x:carrier.x,y:carrier.y,kind:'held-d'};log(t,'Interception by '+carrier.label+' — return is live');}
         else finish('Pass broken up by '+closeD.agent.label,t,point(0,0));
       } else if(receiverDist<=2.3 && rand()<clamp(.70+statsOf(targetPass).hands*.0030-pickupCoverage(ball,d)*.11,.5,.985)){carrier=targetPass;state='runafter';catchTime=t;ball={x:carrier.x,y:carrier.y,kind:'held'};flight=null;log(t,'Completed to '+carrier.label);}
       else finish('Incomplete pass',t,point(0,0));
+    }
+  }
+  if(carrier&&carrier.side==='o'&&!lateralUsed&&off.lateralToId&&t>=clamp(Number(off.lateralAt)||1.5,.7,9)){
+    lateralUsed=true;
+    const mate=byId(off.lateralToId);
+    if(mate&&mate!==carrier&&mate.y<=carrier.y-.3&&dist(mate,carrier)<18)
+      releaseLoose('backwardPass',t,carrier,mate,carrier);
+    else log(t,'Backward-pass option held — no teammate behind the ball');
+  }
+  if(state==='loose'&&loose){
+    ball.x+=loose.vx*dt;ball.y+=loose.vy*dt;
+    loose.vx*=.972;loose.vy*=.972;
+    const ownGoal=-(off.yardLine??50),farGoal=100-(off.yardLine??50);
+    if(Math.abs(ball.x)>=26.66||ball.y<=ownGoal-10||ball.y>=farGoal+10){
+      looseResult={kind:loose.kind,sourceSide:loose.sourceSide,sourceId:loose.sourceId,
+       originY:loose.originY,outY:ball.y,outX:ball.x,dead:'out'};
+      finish(loose.kind==='backwardPass'?'Backward pass out of bounds':'Fumble out of bounds',t,ball);
+    }else{
+      const candidates=[...o,...d].filter(p=>dist(p,ball)<1.28).sort((a,b)=>dist(a,ball)-dist(b,ball));
+      for(const p of candidates){
+        const skill=statsOf(p),chance=clamp(.18+skill.hands*.003+skill.awareness*.0018-(dist(p,ball)-.4)*.18,.22,.74);
+        if(rand()>=chance)continue;
+        carrier=p;state=p.side==='d'?'return':'runafter';catchTime=t;returnStartY=p.side==='d'?p.y:null;
+        if(p.side!==loose.sourceSide)possessionChanged=true;
+        looseResult={kind:loose.kind,sourceSide:loose.sourceSide,sourceId:loose.sourceId,
+         originY:loose.originY,recoverySide:p.side,recoveryId:p.id,recoveryY:p.y,dead:'recovered'};
+        ball={x:p.x,y:p.y,kind:p.side==='d'?'held-d':'held'};
+        log(t,p.label+' recovers the '+(loose.kind==='backwardPass'?'backward pass':'fumble')+' for '+(p.side==='d'?'defense':'offense'));
+        if(p.y<=ownGoal||p.y>=farGoal)finish('Recovery in end zone',t,p);
+        break;
+      }
+      if(!carrier&&t-loose.at>3.5){
+        looseResult={kind:loose.kind,sourceSide:loose.sourceSide,sourceId:loose.sourceId,
+         originY:loose.originY,outY:ball.y,outX:ball.x,dead:'unrecovered'};
+        finish('Loose ball dead at spot',t,ball);
+      }
     }
   }
   if(carrier){
@@ -485,17 +542,21 @@ function simulate(off,def,seed=71){
         const success=clamp(.54+(a.tackling-70)*.005+(a.strength-b.strength)*.0018-
           (b.agility-70)*.0025,.24,.95);
         tackler.agent.tackleCooldown=.65;
-        if(rand()<success)finish('Interception return tackled by '+tackler.agent.label,t,carrier);
+        if(rand()<success){
+          const strip=clamp(.008+(a.tackling-b.hands)*.00045+carrier.fatigue*.035,.003,.055);
+          if(!looseCount&&rand()<strip)releaseLoose('fumble',t,carrier,{x:carrier.x+(rand()-.5)*3,y:carrier.y-2},carrier);
+          else finish((possessionChanged?'Recovery':'Interception')+' return tackled by '+tackler.agent.label,t,carrier);
+        }
         else log(t,'Missed return tackle by '+tackler.agent.label);
       }
-      if(Math.abs(carrier.x)>=26.5)finish('Interception return out of bounds',t,carrier);
-      if(carrier.y<=-(off.yardLine??50))finish('Interception return touchdown',t,carrier);
+      if(carrier&&Math.abs(carrier.x)>=26.5)finish('Interception return out of bounds',t,carrier);
+      if(carrier&&carrier.y<=-(off.yardLine??50))finish('Interception return touchdown',t,carrier);
     }
-    if(carrier!==qb && !isRun && state==='runafter'){
+    if(carrier&&state==='runafter'){
       move(carrier,openFieldTarget(carrier,d,t,1,o),dt,speedOf(carrier),18);
     }
-    ball={x:carrier.x,y:carrier.y,kind:carrier.side==='d'?'held-d':'held'};
-    if((isRun&&handoff)||(state==='runafter')){
+    if(carrier)ball={x:carrier.x,y:carrier.y,kind:carrier.side==='d'?'held-d':'held'};
+    if(carrier&&((isRun&&handoff)||(state==='runafter'))){
       evade(carrier,d,t);
       const near=nearest(carrier,d,a=>!a.engaged&&a.tackleCooldown<=0);
       if(near.d<1.05 && t>.8){
@@ -505,12 +566,16 @@ function simulate(off,def,seed=71){
           momentum*.08-(b.agility-70)*.0025-(b.vision-70)*.0014-
           tackler.fatigue*.13+carrier.fatigue*.08,.24,.95);
         tackler.tackleCooldown=.65;
-        if(rand()<success)finish('Tackle by '+tackler.label,t,carrier);
+        if(rand()<success){
+          const strip=clamp(.009+(a.tackling-b.hands)*.0005+momentum*.025+carrier.fatigue*.04,.003,.07);
+          if(!looseCount&&rand()<strip)releaseLoose('fumble',t,carrier,{x:carrier.x+(rand()-.5)*3,y:carrier.y-2},carrier);
+          else finish('Tackle by '+tackler.label,t,carrier);
+        }
         else {tackler.vx*=.35;tackler.vy*=.35;log(t,'Missed tackle by '+tackler.label);}
       }
-      if(Math.abs(carrier.x)>=26.5)finish('Out of bounds',t,carrier);
+      if(carrier&&Math.abs(carrier.x)>=26.5)finish('Out of bounds',t,carrier);
       const toGoal=100-(off.yardLine??50);
-      if(carrier.y>=toGoal)finish('Touchdown',t,carrier);
+      if(carrier&&carrier.y>=toGoal)finish('Touchdown',t,carrier);
     }
   }
   for(const p of [...o,...d]){
@@ -519,7 +584,10 @@ function simulate(off,def,seed=71){
     p.fatigue=clamp(p.fatigue+dt*(.006+effort*.018+(p.engaged?.026:0))*(1.45-rating/180),0,.8);
     p.tackleCooldown=Math.max(0,(p.tackleCooldown||0)-dt);
   }
-  if(!playOver&&t>=11.95)finish(state==='return'?'Interception return — play duration limit':'Whistle — play duration limit',t,carrier||point(0,0));
+  if(!playOver&&t>=11.95){
+    if(state==='loose'&&loose)looseResult={kind:loose.kind,sourceSide:loose.sourceSide,sourceId:loose.sourceId,originY:loose.originY,outY:ball.y,outX:ball.x,dead:'unrecovered'};
+    finish(state==='return'?'Return — play duration limit':'Whistle — play duration limit',t,carrier||ball);
+  }
   copyFrame(t);
  }
  if(!playOver&&frames.length)finish(state==='return'?'Interception return ended':'Play ended',time,carrier||point(0,0));
@@ -533,7 +601,9 @@ function simulate(off,def,seed=71){
    yardsMoved:+travelled.toFixed(1),contactSeconds:+engaged.toFixed(2)};
  });
  return {valid:true,validation:v,frames,events,decisions,specialMoves,participation,result:{verdict,yards,seconds:+time.toFixed(2),seed,offense:off.name,defense:def.name,sack,
-  possession:state==='return'?'defense':'offense',returnYards:returnStartY===null?0:+(returnStartY-(carrier?.y??returnStartY)).toFixed(1)}};
+  possession:carrier?.side==='d'||!carrier&&looseResult?.sourceSide==='d'?'defense':'offense',
+  possessionChanged,interceptionY,deadBallY:+(ball?.y??carrier?.y??0).toFixed(2),loose:looseResult,
+  returnYards:returnStartY===null?0:+(returnStartY-(carrier?.y??returnStartY)).toFixed(1)}};
 }
 const api={validate,simulate,eligibleNumber,clone,clamp,dist,statsOf,defaultStats,RATING_KEYS};
 root.GridironCore=api;
