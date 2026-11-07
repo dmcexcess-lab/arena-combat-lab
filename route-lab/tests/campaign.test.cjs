@@ -26,9 +26,14 @@ for(const side of ['offense','defense']){
     assert.equal(prevOff,11);assert.equal(prevDef,11);
   });
 }
-test('offense first lesson earns an actual yardage result',()=>{
- const l=Camp.lessons.offense[0],s=Camp.setup(l.off,l.def,l.os,l.ds),start=Core.clone(s),out=Core.simulate(s.offense,s.defense,l.seed);
- assert.equal(Camp.assess(l,start,s.offense,s.defense,out).pass,true);
+test('offense first lesson observes the baseline, then requires an RB route counterplay',()=>{
+ const l=Camp.lessons.offense[0],s=Camp.scrimmageSetup(l,'offense',0),start=Core.clone(s),baseline=Core.simulate(s.offense,s.defense,l.seed);
+ assert.ok(baseline.result.yards>=l.minimum);
+ assert.equal(Camp.assess(l,start,s.offense,s.defense,baseline).pass,false);
+ s.offense.players.find(p=>p.id==='oRB').route=[{x:2,y:-3},{x:-4,y:1},{x:-8,y:9},{x:-10,y:25}];
+ const counter=Core.simulate(s.offense,s.defense,l.seed);
+ assert.notEqual(counter.result.yards,baseline.result.yards);
+ assert.equal(Camp.assess(l,start,s.offense,s.defense,counter).pass,true);
 });
 test('defense first lesson requires assignment and actual run stop',()=>{
  const l=Camp.lessons.defense[0],s=Camp.setup(l.off,l.def,l.os,l.ds),start=Core.clone(s);
@@ -53,3 +58,4 @@ test('campaign progress is bounded and robust to blocked storage',()=>{
  assert.deepEqual(Camp.readProgress({getItem(){throw Error('blocked');}}),{offense:0,defense:0});
  assert.deepEqual(Camp.readProgress({getItem(){return '{"offense":3,"defense":99}';}}),{offense:3,defense:6});
 });
+
