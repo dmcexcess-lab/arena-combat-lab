@@ -39,7 +39,7 @@ function dressPlay(s,play,team,unit){const dressed=copy(play);const slots=s.team
 function createExhibition(seed=1){const s=createGame();s.rosterSeed=(Number(seed)||1)>>>0;s.teams=roster(s.rosterSeed);syncSpecialists(s);s.phase='coinflip';s.clock=900;s.log=['Referee: captains at midfield for the opening coin toss.'];s.coin=null;return s;}
 function flipCoin(s,call,face,choice='receive'){if(s.phase!=='coinflip')return null;const called=call==='tails'?'tails':'heads',landed=face==='tails'?'tails':'heads',winner=called===landed?'home':'away';s.coin={called,landed,winner,choice:winner==='home'&&choice==='defer'?'defer':'receive'};s.kicking=winner==='home'&&choice!=='defer'?'away':'home';s.openingKick=s.kicking;s.phase='kickoff';s.ball=s.kicking==='home'?35:65;s.log.push(`Referee: ${landed.toUpperCase()}. ${winner.toUpperCase()} wins the toss${winner==='home'&&choice==='defer'?' and defers':''}. ${s.kicking.toUpperCase()} kicks.`);return s.coin;}
 function jumpTo(s,{quarter=1,clock=900,team='home',ball=50,down=1,toGain=10,homeScore=0,awayScore=0,phase='scrimmage'}={}){if(!s.teams)return false;s.quarter=clamp(Math.round(Number(quarter)||1),1,5);s.clock=clamp(Math.round(Number.isFinite(Number(clock))?Number(clock):900),0,s.quarter===5?600:900);s.score={home:clamp(Math.round(Number(homeScore)||0),0,999),away:clamp(Math.round(Number(awayScore)||0),0,999)};s.timeouts={home:s.quarter===5?2:3,away:s.quarter===5?2:3};s.pendingPeriodEnd=false;setSpot(s,team==='away'?'away':'home',clamp(Number(ball)||50,1,99),down,toGain);if(phase==='kickoff'){s.phase='kickoff';s.kicking=s.possession;s.ball=s.kicking==='home'?35:65;}else if(phase==='try'){s.phase='try';s.ball=s.possession==='home'?98:2;}s.clockRunning=false;s.log.push(`Referee: exhibition jump to Q${s.quarter} ${String(Math.floor(s.clock/60)).padStart(2,'0')}:${String(s.clock%60).padStart(2,'0')}.`);return true;}
-function createGame(){return {specialists:{home:{kicker:{power:86,accuracy:84},punter:{power:83,hang:82},returner:{speed:87,vision:81,agility:86},coverage:78,returnBlocking:77},away:{kicker:{power:83,accuracy:82},punter:{power:81,hang:84},returner:{speed:85,vision:84,agility:82},coverage:80,returnBlocking:79}},otSeen:{home:false,away:false},quarter:1,clock:900,score:{home:0,away:0},timeouts:{home:3,away:3},possession:'home',ball:35,down:1,toGain:10,phase:'kickoff',kicking:'away',openingKick:'away',playClock:40,clockRunning:false,plays:0,log:['Referee: opening kickoff.']};}
+function createGame(){return {specialists:{home:{kicker:{power:86,accuracy:84},punter:{power:83,hang:82},returner:{speed:87,vision:81,agility:86},coverage:78,returnBlocking:77},away:{kicker:{power:83,accuracy:82},punter:{power:81,hang:84},returner:{speed:85,vision:84,agility:82},coverage:80,returnBlocking:79}},otSeen:{home:false,away:false},challenges:{home:{used:0,won:0},away:{used:0,won:0}},quarter:1,clock:900,score:{home:0,away:0},timeouts:{home:3,away:3},possession:'home',ball:35,down:1,toGain:10,phase:'kickoff',kicking:'away',openingKick:'away',playClock:40,clockRunning:false,plays:0,log:['Referee: opening kickoff.']};}
 function spotText(s){const own=s.possession==='home'?s.ball:100-s.ball;return own<50?`${s.possession.toUpperCase()} ${Math.round(own)}`:own>50?`${other(s.possession).toUpperCase()} ${Math.round(100-own)}`:'50';}
 function periodEnd(s){if(s.clock>0)return; if(s.quarter===4){if(s.score.home===s.score.away){s.quarter=5;s.clock=600;s.timeouts={home:2,away:2};s.phase='kickoff';s.kicking=s.plays%2?'home':'away';s.clockRunning=false;s.log.push('Referee: tied after regulation. Coin toss; 10-minute overtime, both teams get a possession.');}else{s.phase='final';s.clock=0;s.log.push('Referee: end of regulation. Final score.');}return;}if(s.quarter===5){s.phase='final';s.clock=0;s.log.push('Referee: end of overtime. Final score.');return;}
  if(s.quarter===2){s.quarter=3;s.clock=900;s.timeouts={home:3,away:3};s.phase='kickoff';s.kicking=other(s.openingKick);s.clockRunning=false;s.log.push('Referee: halftime. Second-half kickoff.');return;}
@@ -53,7 +53,63 @@ function setSpot(s,team,ball,down=1,toGain=10){if(s.phase==='final')return false
 function preSnap(s,huddle=25){if(s.phase==='final')return {ok:false,call:'Game over'};if(s.phase==='try'||s.phase==='kickoff'||s.phase==='safetyKick')return {ok:true};const n=clamp(Number(huddle)||0,0,60);if(s.clockRunning){if((s.quarter===2||s.quarter===4)&&s.clock>120&&n>=s.clock-120){s.clock=120;s.clockRunning=false;s.log.push('Referee: two-minute warning.');return {ok:false,call:'Two-minute warning'};}const q=s.quarter;drain(s,n);if(s.quarter!==q)return {ok:false,call:'Period ended before the snap'};}if(s.phase!=='scrimmage')return {ok:false,call:'Period ended before the snap'};if(n>s.playClock){s.ball=clamp(s.ball-dir(s.possession)*5,1,99);s.toGain+=5;s.playClock=40;s.clockRunning=false;const call='Delay of game — 5 yards, repeat down';s.log.push('Referee: '+call+'.');return {ok:false,call};}s.playClock=40;return {ok:true};}
 function huddleSeconds(s){return Math.max(0,Math.min((s.playClock||40)-2,27+((s.rosterSeed||71)+s.plays*17+s.down*3)%9));}
 function snapOffside(def,seed){const rand=random((Number(seed)||1)^0x65a4b3f1);for(const p of def?.players||[]){if(!['rush','blitz'].includes(p.job)||p.y<.95||p.y>1.65)continue;const skill=C.statsOf(p),step=.45+rand()*.45,risk=.002+(99-skill.awareness)*.00007+skill.passRush*.00005;if(p.y-step<.95&&rand()<risk)return {player:p.label,step:+step.toFixed(2)};}return null;}
-function passInterference(off,def,sim){const throwRead=sim?.decisions?.find(d=>d.action==='pass'&&d.targetId);if(!throwRead||!sim.frames?.length)return null;const target=off?.players?.find(p=>p.id===throwRead.targetId);if(!target)return null;let contacts=0,at=null;for(const f of sim.frames){if(f.t<throwRead.t+.08||f.phase!=='air')continue;const r=f.offense?.find(p=>p.id===target.id);if(!r)continue;const ball=f.ball;if(!ball||Math.hypot(ball.x-r.x,ball.y-r.y)<2.2)continue;for(const d of f.defense||[]){const source=def?.players?.find(p=>p.id===d.id);if(!source||!['man','zone','deep'].includes(source.job))continue;if(Math.hypot(d.x-r.x,d.y-r.y)<.62){contacts++;at=r.y;break;}}if(contacts>=3)break;}return contacts>=3?{side:'defense',name:'Defensive pass interference',spotY:at,target:target.label}:null;}
+function passInterference(off,def,sim){const throwRead=sim?.decisions?.find(d=>d.action==='pass'&&d.targetId);if(!throwRead||!sim.frames?.length)return null;const target=off?.players?.find(p=>p.id===throwRead.targetId);if(!target)return null;let contacts=0,at=null,actor=null,when=null;for(const f of sim.frames){if(f.t<throwRead.t+.08||f.phase!=='air')continue;const r=f.offense?.find(p=>p.id===target.id);if(!r||r.y<=1)continue;const ball=f.ball;if(!ball||Math.hypot(ball.x-r.x,ball.y-r.y)<2.2)continue;for(const d of f.defense||[]){const source=def?.players?.find(p=>p.id===d.id);if(!source||!['man','zone','deep'].includes(source.job))continue;if(Math.hypot(d.x-r.x,d.y-r.y)<.62){contacts++;at=r.y;actor=source;when=f.t;break;}}if(contacts>=3)break;}return contacts>=3?{side:'defense',code:'DPI',name:'Defensive pass interference',spotY:at,target:target.label,player:actor?.rosterName||actor?.label||'defender',playerId:actor?.id,time:when,evidence:`${actor?.label||'Defender'} contacts ${target.label} while the pass is airborne at +${at.toFixed(1)} yd`}:null;}
+function liveFouls(off,def,sim){
+ if(!sim?.frames?.length)return [];
+ const fouls=[],rand=random((Number(sim.result.seed)||1)^0x9e3779b9),held=new Map(),contact=new Map();
+ const snap=sim.frames.filter(f=>f.t>=0),throwAt=sim.decisions?.find(d=>d.action==='pass')?.t??Infinity;
+ for(const f of snap){
+  for(const b of f.offense||[]){const source=off.players.find(p=>p.id===b.id);if(!source||!['passblock','runblock','block','pull'].includes(source.job)||!b.engaged)continue;
+   const d=(f.defense||[]).filter(v=>v.engaged).sort((a,c)=>Math.hypot(a.x-b.x,a.y-b.y)-Math.hypot(c.x-b.x,c.y-b.y))[0];if(!d||Math.hypot(d.x-b.x,d.y-b.y)>2.15)continue;
+   const key=b.id+':'+d.id,prior=held.get(key)||{n:0,last:-1};prior.n=f.t-prior.last<.06?prior.n+1:1;prior.last=f.t;held.set(key,prior);
+   if(prior.n===9&&fouls.every(v=>v.code!=='OH')){const defender=def.players.find(p=>p.id===d.id),bs=C.statsOf(source),ds=C.statsOf(defender);
+    const pressure=ds.passRush+ds.strength-bs.blocking-bs.strength;
+    if(pressure>5&&rand()<clamp(.025+pressure*.0015,.02,.18))fouls.push({side:'offense',code:'OH',name:'Offensive holding',yards:10,spotY:b.y,time:f.t,playerId:b.id,player:source.rosterName||source.label,evidence:`${source.label} keeps ${defender?.label||'rusher'} engaged for ${(prior.n*.05).toFixed(2)}s at ${b.y.toFixed(1)} yd as the rusher breaks through`});
+   }
+  }
+  const qb=f.offense?.find(p=>p.id===off.snapToId);if(off.type!=='pass'||!qb||Math.abs(qb.x)>8||f.t>=throwAt||f.phase==='runafter'||f.phase==='loose'||f.phase==='return')continue;
+  for(const r of f.offense||[]){const receiver=off.players.find(p=>p.id===r.id);if(!receiver||!['route','release'].includes(receiver.job)||r.y<=5)continue;
+   for(const d of f.defense||[]){const defender=def.players.find(p=>p.id===d.id);if(!defender||!['man','zone','deep'].includes(defender.job)||Math.hypot(d.x-r.x,d.y-r.y)>.68)continue;
+    const key=d.id+':'+r.id,prior=contact.get(key)||{n:0,last:-1};prior.n=f.t-prior.last<.06?prior.n+1:1;prior.last=f.t;contact.set(key,prior);
+    if(prior.n===5&&fouls.every(v=>v.code!=='ICT')&&rand()<clamp(.035+(C.statsOf(receiver).routeRunning-C.statsOf(defender).coverage)*.001,.015,.11))
+     fouls.push({side:'defense',code:'ICT',name:'Illegal contact',yards:5,automaticFirst:true,spotY:r.y,time:f.t,playerId:d.id,player:defender.rosterName||defender.label,evidence:`${defender.label} impedes ${receiver.label} beyond five yards before the QB releases the pass`});
+   }
+  }
+ }
+ const dpi=passInterference(off,def,sim);if(dpi)fouls.push(dpi);
+ return fouls.sort((a,b)=>a.time-b.time);
+}
+function enforceLive(state,base,foul){const s=copy(state),off=state.possession; s.clock=base.state.quarter===state.quarter?base.state.clock:0;s.plays=base.state.plays;s.playClock=25;s.clockRunning=false;
+ const previousOwn=off==='home'?state.ball:100-state.ball,goalDistance=100-previousOwn;
+ if(foul.code==='DPI'){
+  const target=state.ball+dir(off)*Math.max(1,foul.spotY);
+  s.ball=clamp(target,1,99);
+  if(foul.spotY>=goalDistance)s.ball=state.ball+dir(off)*(previousOwn>=98?goalDistance/2:goalDistance-1);
+ }else if(foul.side==='offense')s.ball=clamp(state.ball-dir(off)*Math.min(foul.yards,previousOwn/2),.5,99.5);
+ else s.ball=clamp(state.ball+dir(off)*Math.min(foul.yards,goalDistance/2),.5,99.5);
+ const gain=(s.ball-state.ball)*dir(off);
+ if(foul.side==='offense'){s.toGain=state.toGain-gain;}
+ else if(foul.automaticFirst||foul.code==='DPI'||gain>=state.toGain){s.down=1;s.toGain=Math.min(10,Math.max(.5,off==='home'?100-s.ball:s.ball));}
+ else s.toGain=state.toGain-gain;
+ const call=`${foul.name} on ${foul.player} (${foul.code}) at ${foul.time.toFixed(2)}s, ${foul.code==='DPI'?'spot foul':foul.yards+' yards'}${foul.side==='defense'?', automatic first down':''}; ${s.down} & ${Math.ceil(s.toGain)} at ${spotText(s)}`;
+ s.log.push('Referee: flag — '+call+'.');return {state:s,call};
+}
+function resolveLiveFouls(state,base,fouls){if(!fouls.length)return base;
+ const offense=fouls.filter(f=>f.side==='offense'),defense=fouls.filter(f=>f.side==='defense');
+ if(offense.length&&defense.length){const s=copy(state);s.clock=base.state.quarter===state.quarter?base.state.clock:0;s.plays=base.state.plays;s.clockRunning=false;s.playClock=25;const call=`Offsetting live-ball fouls: ${offense[0].code} on ${offense[0].player} and ${defense[0].code} on ${defense[0].player}; replay ${state.down} & ${Math.ceil(state.toGain)} at ${spotText(s)}`;s.log.push('Referee: '+call+'.');return {state:s,call,accepted:true,fouls,offsetting:true};}
+ const foul=(offense.length?offense:defense).sort((a,b)=>a.time-b.time)[0],enforced=enforceLive(state,base,foul),declined={state:copy(base.state),call:`${foul.code} declined — ${base.call}`};declined.state.log.push('Referee: '+foul.code+' declined.');
+ const benefit=foul.side==='offense'?'defense':'offense',beneficiary=benefit==='offense'?state.possession:other(state.possession);
+ const preferDecline=base.state.score[beneficiary]>state.score[beneficiary]||benefit==='defense'&&base.state.possession===beneficiary;
+ const defaultChoice=preferDecline?'decline':'accept',choice=preferDecline?declined:enforced;
+ return {...choice,accepted:true,foul,fouls,choices:{accept:enforced,decline:declined},defaultChoice};
+}
+function reviewSpot(ruling,team){if(!ruling?.review||ruling.review.done)return {ok:false,call:'No reviewable spot is pending'};const review=ruling.review,called=ruling.state;
+ const booth=review.booth,record=called.challenges?.[team]||{used:0,won:0};if(!booth&&(called.timeouts[team]<=0||record.used>=2+(record.won>0?1:0)))return {ok:false,call:'Challenge unavailable: timeout or challenge limit reached'};
+ const clear=Math.abs(review.exactSpot-review.calledSpot)>=.15,changed=clear&&(review.exactState.down!==called.down||review.exactState.possession!==called.possession);
+ const s=copy(changed?review.exactState:called);s.challenges??={home:{used:0,won:0},away:{used:0,won:0}};if(!booth){s.challenges[team].used++;if(changed)s.challenges[team].won++;else{s.timeouts[team]--;s.clockRunning=false;}}
+ const call=`${booth?'Replay official':'Coach '+team.toUpperCase()+' challenge'}: ${changed?`spot overturned to ${review.exactSpot.toFixed(2)} yd; ${review.exactState.down===1?'first down':'short of the line to gain'}`:`ruling stands at ${review.calledSpot.toFixed(2)} yd${booth?'':' — timeout charged'}`}`;
+ s.log.push('Referee: '+call+'.');review.done=true;return {ok:true,changed,state:s,call};
+}
 function otCheck(s,endedTeam){if(s.quarter===5&&endedTeam&&s.otSeen.home&&s.otSeen.away&&s.score.home!==s.score.away){s.phase='final';s.clockRunning=false;s.log.push('Referee: both teams possessed the ball; overtime winner decided.');}}
 function score(s,team,points,reason){s.score[team]+=points;s.log.push(`Referee: ${reason}. ${team.toUpperCase()} +${points}. Score ${s.score.home}–${s.score.away}.`);}
 function settleLoose(state,s,r,wasTry,expired,twoMinute){
@@ -112,8 +168,28 @@ function settleLoose(state,s,r,wasTry,expired,twoMinute){
  otCheck(s,endedTeam);
  return {state:s,call,accepted:true,loose:l};
 }
-function finishScrimmage(state,sim,huddle=25,plays=null){const s=copy(state);if(s.phase!=='scrimmage'&&s.phase!=='try')return {state:s,call:'No scrimmage snap available',accepted:false};const prep=preSnap(s,huddle);if(!prep.ok)return {state:s,call:prep.call,accepted:false};if(!sim?.valid)return {state:s,call:'Illegal formation — snap disallowed',accepted:false};const early=plays&&s.phase==='scrimmage'?snapOffside(plays.defense,sim.result.seed):null;if(early){const ruled=flag(s,'defense',`Offside — ${early.player} anticipated the snap (${early.step} yd)`,5);return {state:ruled.state,call:ruled.call,accepted:false,foul:early};}const wasTry=s.phase==='try',team=s.possession,op=other(team),r=sim.result;s.clock=Math.max(0,s.clock-Math.ceil(r.seconds));const expired=s.clock===0,twoMinute=(s.quarter===2||s.quarter===4)&&state.clock>120&&s.clock<=120;s.plays++;const v=r.verdict||'',advance=dir(team)*(Number(r.yards)||0);let call='',endedTeam=null;
- const interference=!wasTry&&plays?passInterference(plays.offense,plays.defense,sim):null;if(interference){s.ball=clamp(state.ball+dir(team)*Math.max(1,interference.spotY),1,99);s.down=1;s.toGain=Math.min(10,Math.max(1,team==='home'?100-s.ball:s.ball));s.clockRunning=false;s.playClock=25;call=`Defensive pass interference on ${interference.target} — spot foul, automatic first down at ${spotText(s)}`;s.log.push('Referee: flag — '+call+'.');if(expired)periodEnd(s);return {state:s,call,accepted:true,foul:interference};}
+function finishScrimmage(state,sim,huddle=25,plays=null,options={}){const s=copy(state);if(s.phase!=='scrimmage'&&s.phase!=='try')return {state:s,call:'No scrimmage snap available',accepted:false};const prep=preSnap(s,huddle);if(!prep.ok)return {state:s,call:prep.call,accepted:false};if(!sim?.valid)return {state:s,call:'Illegal formation — snap disallowed',accepted:false};const early=plays&&s.phase==='scrimmage'?snapOffside(plays.defense,sim.result.seed):null;if(early){const ruled=flag(s,'defense',`Offside — ${early.player} anticipated the snap (${early.step} yd)`,5);return {state:ruled.state,call:ruled.call,accepted:false,foul:early};}if(plays&&!options.noFouls&&s.phase==='scrimmage'){
+  const fouls=liveFouls(plays.offense,plays.defense,sim);
+  const raw=Number(sim.result.deadBallY),near=!sim.result.loose&&sim.result.possession!=='defense'&&Number.isFinite(raw)&&
+   !/Incomplete|Touchdown|Safety|Interception|Out of bounds|out of bounds/.test(sim.result.verdict||'')&&Math.abs(raw-state.toGain)<.8;
+  const calledSpot=near?Math.round(raw*2)/2:raw;
+  const marked=near?{...sim,result:{...sim.result,yards:calledSpot,deadBallY:calledSpot}}:sim;
+  let base=finishScrimmage(state,marked,huddle,plays,{noFouls:true});
+  if(near){
+   const inches=Math.round(Math.abs(state.toGain-calledSpot)*36),short=calledSpot<state.toGain;
+   const measure=`Chain crew: ${inches} inches ${short?'short of':'beyond'} the line to gain; on-field spot +${calledSpot.toFixed(2)} yd`;
+   base.state.log.push(measure);
+   base.call+=' · '+measure;
+   if(Math.abs(raw-calledSpot)>.001){
+    const exact=finishScrimmage(state,sim,huddle,plays,{noFouls:true});
+    const booth=state.quarter===5||[2,4].includes(state.quarter)&&state.clock<=120||state.down===4&&base.state.possession!==state.possession;
+    base.review={exactState:exact.state,exactSpot:raw,calledSpot,booth,done:false};
+    if(booth){const decision=reviewSpot(base,state.possession);if(decision.ok){base.state=decision.state;base.call=decision.call;}}
+   }
+  }
+  return resolveLiveFouls(state,base,fouls);
+ }
+ const wasTry=s.phase==='try',team=s.possession,op=other(team),r=sim.result;s.clock=Math.max(0,s.clock-Math.ceil(r.seconds));const expired=s.clock===0,twoMinute=(s.quarter===2||s.quarter===4)&&state.clock>120&&s.clock<=120;s.plays++;const v=r.verdict||'',advance=dir(team)*(Number(r.yards)||0);let call='',endedTeam=null;
  if(r.loose)return settleLoose(state,s,r,wasTry,expired,twoMinute);
  if(wasTry){if(v.startsWith('Touchdown')){score(s,team,2,'Two-point conversion');call='Two-point conversion good';}else call='Two-point conversion failed';s.phase='kickoff';s.kicking=team;s.clockRunning=false;s.log.push('Referee: try complete; kickoff follows.');if(expired||s.pendingPeriodEnd){s.pendingPeriodEnd=false;periodEnd(s);}otCheck(s,team);return {state:s,call,accepted:true};}
  if(v.startsWith('Safety')){score(s,op,2,'Safety');s.phase='safetyKick';s.kicking=team;s.clockRunning=false;call='Safety — '+op.toUpperCase()+' scores 2';endedTeam=team;}
@@ -329,5 +405,5 @@ function kick(state,kind,seed=71,choice='auto'){
  return {state:s,call,accepted:true,kick};
 }
 function autoPick(state,offenses,defenses){const s=state,d=s.toGain,own=s.possession==='home'?s.ball:100-s.ball,sequence=s.plays+(s.rosterSeed||0),short=d<=3,long=d>=8,red=own>=80;let wants=s.phase==='try'?['Inside Zone']:short?['Inside Zone','Power Right','RPO Glance']:long?['Slant / Flat','Shotgun Mesh','Trips Flood','Four Verticals']:red?['Power Right','Inside Zone','Slant / Flat']:['Outside Zone Left','Inside Zone','Play Action Cross','HB Screen'];if(s.down>=3&&long)wants=['Shotgun Mesh','Trips Flood','Slant / Flat','Four Verticals'];const want=s.down<=2&&!red&&sequence%17===0?'Pitch Back':wants[sequence%wants.length],defWants=long?['Nickel Cover 3','4–3 Cover 2','Quarters Match']:short?['4–3 Cover 2','3–4 Cover 3','Goal Line 6–2']:['4–3 Cover 2','Cover 1 Man','Nickel Cover 3'];const off=offenses.find(p=>p.name===want)||offenses[0],def=defenses.find(p=>p.name===defWants[(sequence+Math.round(d))%defWants.length])||defenses[0];return {offense:off?.id,defense:def?.id};}
-const api={createGame,createExhibition,roster,setStarter,dressPlay,syncSpecialists,flipCoin,jumpTo,huddleSeconds,passInterference,spotText,timeout,flag,setSpot,preSnap,finishScrimmage,kick,autoPick};root.RouteGame=api;if(typeof module!=='undefined'&&module.exports)module.exports=api;
+const api={createGame,createExhibition,roster,setStarter,dressPlay,syncSpecialists,flipCoin,jumpTo,huddleSeconds,passInterference,liveFouls,reviewSpot,spotText,timeout,flag,setSpot,preSnap,finishScrimmage,kick,autoPick};root.RouteGame=api;if(typeof module!=='undefined'&&module.exports)module.exports=api;
 })(typeof window!=='undefined'?window:globalThis);

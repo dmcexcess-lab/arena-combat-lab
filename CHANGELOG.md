@@ -1,7 +1,13 @@
+## 2026-11-07 — Route Lab officiating slice
+- Added frame-evidenced offensive holding, illegal contact and defensive pass interference calls with player, time and field spot in the replay report and game book.
+- Live-ball flags now offer Accept and Decline choices; a one-button Next uses the default, and opposing pre-possession-change fouls offset with a replayed down.
+- Near first-down markers, the chain crew announces a measured on-field spot. Coaches can challenge that spot before the next snap; the replay official handles final-two-minute, overtime and fourth-down-short reviews. Reviews use the precise simulation spot, track challenges, and charge a timeout for an unsuccessful coach challenge. Remaining Rule 14/15 limits are documented in `route-lab/RULES_AUDIT.md`.
+
 ## 2026-11-07 — Route Lab special teams slice
 - Replaced summary-only kick returns with seeded 22-player full-field frames: coverage, rush/protection, return blocking, lane choices, contact, loose-ball pursuit and return touchdowns are visible in the replay and report.
 - Added receiving-team fair-catch selection, muffed kick and blocked punt/field-goal/try recovery, including change of possession and returns where the ball remains live.
 - Applied 2026 dynamic kickoff and onside alignments, the pre-landing movement restriction with a five-yard rekick, landing-zone short-kick awards, safety-kick awards, and 35/20-yard kickoff and punt touchbacks. Remaining special-teams exceptions are listed in `route-lab/RULES_AUDIT.md`.
+
 
 ## 2026-11-06 — Route Lab live-ball possession slice
 - Fumbles from contact, sacks, and muffed handoffs now release a moving ball that all 22 players pursue and can recover. Recovery can change possession and continue as a return; the replay and report show who lost and recovered the ball.
@@ -377,4 +383,3 @@ Current truth: `PROJECT_CONTEXT.md` · Future: `ROADMAP.md`
 - Added spatial juke, spin, and stiff arm attempts with success/failure effects, structured move records, a visible special-move play report, and per-player movement/contact records.
 - Audited QB, RB, receivers, TE, line, front, linebackers, corners, nickel, and safeties in `route-lab/POSITION_AUDIT.md`; noted RPO, play action, screen timing and NFL-calibration gaps.
 - Added deterministic counterfactual checks for open lanes, awareness, pursuit, move effects, and all 22 player records.
-
