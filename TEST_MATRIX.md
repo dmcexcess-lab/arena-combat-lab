@@ -149,3 +149,11 @@ Operational checklist for humans + AIs. Keep compact; add only behaviors whose r
 - Armor restrictions grey/block incompatible physical gear.
 - Accessories remain unrestricted.
 - Epic/magic never rolls.
+
+## Route Lab sibling prototype regression
+- Route Lab core presets: every 11-offense × 8-defense matchup validates.
+- Offense and defense campaigns each have six stages, progressing from small squads to full 11-on-11. Reduced squads have explicit training-only legality; full squads retain seven-on-line and eligibility restrictions.
+- Valid training drills return actual simulated frames with the correct number of agents; illegal full-size formations fail.
+- Lesson progression requires the requested route/block/man/zone changes and an observed outcome, not a button-only unlock.
+- Offensive finale supports downs, first downs, turnover on downs, and touchdown; defensive finale supports four-down defensive stand.
+- Free play, custom play editing, existing Arena Godot export and Tavern Keeper tests must remain functional.

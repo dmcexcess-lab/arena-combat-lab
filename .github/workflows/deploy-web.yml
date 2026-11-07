@@ -88,6 +88,16 @@ jobs:
           node tavern-keeper/tests/test_profiles.js
           node tavern-keeper/tests/test_scene_ui.js
 
+      - name: Run Route Lab simulator and campaign tests
+        shell: bash
+        run: |
+          set -euxo pipefail
+          node --check route-lab/engine.js
+          node --check route-lab/plays.js
+          node --check route-lab/campaign.js
+          node --check route-lab/app.js
+          node --test route-lab/tests/*.test.cjs
+
       - name: Export Web builds and reject script errors
         shell: bash
         run: |

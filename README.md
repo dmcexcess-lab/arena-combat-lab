@@ -8,6 +8,8 @@
 
 **Play Route Lab — Football X/O Play Designer:** https://dmcexcess-lab.github.io/arena-combat-lab/route-lab/
 
+Route Lab also includes two guided, six-lesson campaigns. **Offense Campaign** introduces QB, receivers, blocking, spacing and full 11-on-11 legality before a custom touchdown drive. **Defense Campaign** introduces tackling, man assignments, rush, zones and coordinated coverage before a four-down defensive stand. Reduced-player drills use explicit training rules; the final lessons use the full simulator. Progress saves locally in your browser.
+
 ## The game
 
 The long-term game has two connected halves:

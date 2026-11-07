@@ -1,3 +1,11 @@
+## 2026-11-06 — Route Lab offense and defense teaching campaigns
+- Added twelve interactive lessons (six offense, six defense) with small-sided scrimmages that progress into legal 11v11 play design.
+- Offensive route, blocker, hot-read and snap-formation exercises culminate in a multi-down custom touchdown drive.
+- Defensive pursuit, man assignment, pass rush, zone and coordinated shell lessons culminate in a multi-down defensive stand.
+- Lesson outcomes use live deterministic football simulation; edited assignments are checked before advancement; progress persists per browser.
+- Kept sandbox playbooks and original Arena/Tavern Keeper independent; added Route Lab Node regression checks to the Pages pipeline.
+- Training explicitly relaxes full-squad formation checks for instructional small-sided drills, while 11v11 stages retain the existing validator.
+
 ## 2026-11-06 — Route Lab hosted sibling prototype
 - Added self-contained 11-on-11 football play designer at `route-lab/index.html` and deployed it under the existing GitHub Pages site at `/route-lab/`.
 - Extended Pages packaging to include Route Lab without changing the Arena or Tavern Keeper entrypoints.
