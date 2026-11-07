@@ -238,7 +238,7 @@ function simulate(off,def,seed=71){
       const clockPressure=clamp((t-maxWait+.6)/.8,0,1);
       const firstDown=Number.isFinite(off.toGain)?off.toGain:10;
       const graded=receivers.map(r=>{
-        const travel=Math.max(.25,dist(qb,r)/28);
+        const travel=Math.max(.25,dist(qb,r)/(20+statsOf(qb).throwPower*.1));
         const predict={x:clamp(r.x+r.vx*travel*.45,-26.5,26.5),y:r.y+r.vy*travel*.45};
         const closest=nearest(predict,d,a=>!['rush','blitz'].includes(a.job));
         const man=d.filter(a=>a.job==='man'&&a.coverTarget===r.id);
@@ -262,7 +262,7 @@ function simulate(off,def,seed=71){
         const value=separation*2.65+risk*-1.75+Math.min(depth,24)*.044+conversion*.36+timing*.20+
           (r.hot&&urgency?.84:0)+(r.id===off.primaryTarget?.10:0)-
           (urgency?Math.max(0,depth-12)*.055:0)+
-          (rand()-.5)*.55;
+          (rand()-.5)*(.9-statsOf(qb).awareness*.005);
         return {r,predict,risk,separation,lane,depth,score:value,open:cushion};
       }).filter(a=>a.predict.y>-.2).sort((a,b)=>b.score-a.score);
       // Softmax within a credible read window. A different seed can produce a
@@ -287,7 +287,7 @@ function simulate(off,def,seed=71){
           const aim={x:pick.predict.x,y:pick.predict.y};
           const accuracy=clamp(.66+statsOf(qb).throwAccuracy*.0031-dist(qb,aim)*.005-pick.risk*.15-(desperate?.16:0),.24,.98);
           if(rand()>accuracy){aim.x+=(rand()-.5)*7;aim.y+=(rand()-.5)*5;}
-          const duration=Math.max(.2,dist(qb,aim)/28);
+          const duration=Math.max(.2,dist(qb,aim)/(20+statsOf(qb).throwPower*.1));
           targetPass=r;flight={from:{x:qb.x,y:qb.y},to:aim,t0:t,duration};
           thrown=true;carrier=null;state='air';
           const why=desperate?'pressure/hot answer':pick.separation>.65?'separation':'timing/window';

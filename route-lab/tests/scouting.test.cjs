@@ -48,3 +48,14 @@ test('telestrator mode UI, attribute editor and opponent progress are present',(
  assert.ok(app.includes("campaignWave<K.SCRIMMAGE_WAVES.length-1"));
  assert.ok(app.includes("renderCoachLayer(live,offCoords,defCoords)"));
 });
+
+test('introductory man look shadows the ball carrier rather than pretending no one is assigned',()=>{
+ const l=K.lessons.offense[0],s=K.scrimmageSetup(l,'offense',1);
+ assert.equal(s.defense.players[0].job,'man');
+ assert.equal(s.defense.players[0].coverTarget,s.offense.runnerId);
+});
+test('QB arm and awareness ratings participate in core pass logic',()=>{
+ const source=fs.readFileSync(path.join(__dirname,'..','engine.js'),'utf8');
+ assert.ok(source.includes('statsOf(qb).throwPower'));
+ assert.ok(source.includes('statsOf(qb).awareness'));
+});

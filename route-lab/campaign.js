@@ -141,7 +141,8 @@ function scrimmageSetup(lesson,side,wave=0){
  const defenders=def.players;
  if(wave===1){ // explicit man coverage: no disguised auto-targets
   const backs=defenders.filter(p=>['CB','LB','MLB','SS','FS','S','W'].some(t=>p.label.startsWith(t))||p.id==='dM');
-  backs.forEach((p,i)=>{if(threat.length){p.job='man';p.coverTarget=threat[i%threat.length].id;}else{p.job='runfit';p.fitX=off.runGapX||2;}});
+  const targets=threat.length?threat:off.players.filter(p=>p.id===off.runnerId);
+  backs.forEach((p,i)=>{if(targets.length){p.job='man';p.coverTarget=targets[i%targets.length].id;}else{p.job='runfit';p.fitX=off.runGapX||2;}});
  }else if(wave===2){
   defenders.forEach((p,i)=>{if(p.id==='dLE'||p.id==='dRE'||p.id.startsWith('dDT')){p.job='rush';p.coverTarget='';return;}
    p.job='zone';p.coverTarget='';p.zone={x:Math.max(-19,Math.min(19,p.x)),y:i%3===0?8:i%3===1?16:23,r:8,rY:7};});
