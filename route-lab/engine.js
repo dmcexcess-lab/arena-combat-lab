@@ -162,7 +162,7 @@ function simulate(off,def,seed=71){
  let carrier=qb, state='live', ball={x:qb.x,y:qb.y,kind:'held'}, targetPass=null,flight=null, thrown=false, handoff=false, playOver=false, verdict='', yards=0, time=0, sack=false,returnStartY=null,catchTime=-1;
  let loose=null,looseResult=null,looseCount=0,lateralUsed=false,possessionChanged=false,interceptionY=null;
  const frames=[],events=[],decisions=[],specialMoves=[]; const log=(t,text)=>events.push({t:+t.toFixed(2),text});
- const isRun=['run','option'].includes(off.type),directRun=isRun&&runner===qb,allowLoose=!off.training&&!off.trainingVirtualSnap;
+ const isRun=['run','option'].includes(off.type),directRun=isRun&&runner===qb,allowLoose=off.enableLooseBall===true&&!off.training&&!off.trainingVirtualSnap;
  const eligible=new Set(off.training?o.filter(p=>p.job==='route').map(p=>p.id):v.eligible);
  const receivers=o.filter(p=>p.job==='route'&&eligible.has(p.id));
  let playDir=off.runGapX??2;
