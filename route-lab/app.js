@@ -22,7 +22,7 @@ function setCustom(){try{localStorage.setItem('route-lab-custom-v1',JSON.stringi
 function checkpoint(){undo.push(JSON.stringify({offensive,defensive,side,selected}));if(undo.length>70)undo.shift();redo=[];}
 function restore(str){const s=JSON.parse(str);offensive=s.offensive;defensive=s.defensive;side=s.side;selected=s.selected;dirty=true;setMode('select');invalidate();refresh(true);}
 function history(dir){let from=dir==='undo'?undo:redo,to=dir==='undo'?redo:undo;if(!from.length)return;to.push(JSON.stringify({offensive,defensive,side,selected}));restore(from.pop());}
-function invalidate(){running=false;playback=null;frameIndex=0;cancelAnimationFrame(raf);$('timeline').disabled=true;$('pauseBtn').disabled=true;$('stepBtn').disabled=true;$('rewindBtn').disabled=true;$('editBtn').disabled=true;$('clock').textContent='0.00s';$('duration').textContent='—';$('modeChip').textContent='EDIT MODE';$('viewLabel').textContent='DESIGN';$('resultMain').textContent='Ready for the snap';$('resultMeta').textContent='Run the matchup to see the tactical outcome.';$('eventLog').textContent='Simulation events will appear here.';}
+function invalidate(){running=false;playback=null;frameIndex=0;cancelAnimationFrame(raf);$('timeline').disabled=true;$('pauseBtn').disabled=true;$('stepBtn').disabled=true;$('rewindBtn').disabled=true;$('editBtn').disabled=true;$('clock').textContent='0.00s';$('duration').textContent='—';$('modeChip').textContent='EDIT MODE';$('viewLabel').textContent='DESIGN';$('resultMain').textContent='Ready for the snap';$('resultMeta').textContent='Run the matchup to see the tactical outcome.';$('moveReport').textContent='';$('eventLog').textContent='Simulation events will appear here.';}
 function fillPresets(){
  function fill(el,arr,key){const prior=el.value;el.innerHTML=arr.map(p=>`<option value="${esc(p.id)}">${esc(p.name)}</option>`).join('');
   const current=key==='offense'?offensive:defensive;
@@ -315,7 +315,10 @@ function run(){const validation=validationUI();if(!validation.valid){$('resultMa
  if(campaign){campaignAttempt++;gradeCampaign(sim);}
  playback=sim;frameIndex=0;running=true;lastFrameTime=performance.now();$('timeline').disabled=false;$('timeline').max=sim.frames.length-1;$('timeline').value='0';
  $('pauseBtn').disabled=false;$('stepBtn').disabled=false;$('rewindBtn').disabled=false;$('editBtn').disabled=false;$('pauseBtn').textContent='Ⅱ Pause';
- $('duration').textContent=sim.result.seconds.toFixed(2)+'s';$('resultMain').textContent=sim.result.verdict;$('resultMeta').textContent=(sim.result.yards>=0?'+':'')+sim.result.yards.toFixed(1)+' yards • '+sim.result.seconds.toFixed(2)+' seconds • seed '+sim.result.seed;
+ $('duration').textContent=sim.result.seconds.toFixed(2)+'s';$('resultMain').textContent=sim.result.verdict;$('resultMeta').textContent=(sim.result.yards>=0?'+':'')+sim.result.yards.toFixed(1)+' offense yards'+(sim.result.possession==='defense'?' • '+sim.result.returnYards.toFixed(1)+' return yards':'')+' • '+sim.result.seconds.toFixed(2)+' seconds • seed '+sim.result.seed;
+ const active=sim.participation.filter(p=>p.yardsMoved>.5).length;
+ $('moveReport').innerHTML='<b>ON-FIELD EXECUTION</b> · '+active+'/'+sim.participation.length+' players moved'+
+  '<div><b>SPECIAL MOVES</b> · '+(sim.specialMoves.length?sim.specialMoves.map(m=>esc(m.t.toFixed(2)+'s '+m.player+' '+m.move+' vs '+m.defender+' — '+m.outcome)).join('<br>'):'none attempted on this snap')+'</div>';
  renderDecisions(sim);$('modeChip').textContent='SIMULATION';$('viewLabel').textContent='REPLAY';renderFrame();cancelAnimationFrame(raf);raf=requestAnimationFrame(tick);
 }
 function renderFrame(){if(!playback)return;frameIndex=C.clamp(frameIndex,0,playback.frames.length-1);const f=playback.frames[frameIndex];

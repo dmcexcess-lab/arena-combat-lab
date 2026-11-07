@@ -37,7 +37,7 @@ test('zone defenders leave their landmarks and pursue a completed pass',()=>{
 });
 
 test('interception remains live for a return and counts as a turnover, not offensive yards',()=>{
- const sim=C.simulate(P.createOffensePresets()[0],P.createDefensePresets()[0],216);
+ const sim=C.simulate(P.createOffensePresets()[0],P.createDefensePresets()[0],418);
  assert.ok(sim.events.some(e=>e.text.startsWith('Interception by ')));
  assert.ok(sim.frames.some(f=>f.phase==='return'));
  assert.equal(sim.result.possession,'defense');

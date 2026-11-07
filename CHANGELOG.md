@@ -353,3 +353,10 @@ Current truth: `PROJECT_CONTEXT.md` · Future: `ROADMAP.md`
 - Tightened full-squad jersey-report validation and ball landing boundaries; documented implemented slices and gaps against the official 2026 NFL rulebook in `route-lab/RULES_AUDIT.md`.
 - Added seeded regression cases for receiver advance, zone pursuit, interception returns, negative gains, safeties, and formation legality.
 
+## 2026-11-06 — Route Lab position and decision depth audit
+- Fixed an unreachable RB carry branch so designed runs now use live hole selection and advance past the last path point; established runs trigger defensive pursuit.
+- Corrected slot WR, X/Z receiver, nickel, TE, and linebacker role mappings and speed branches; improved safety top leverage and QB pressure recognition by awareness.
+- Added spatial juke, spin, and stiff arm attempts with success/failure effects, structured move records, a visible special-move play report, and per-player movement/contact records.
+- Audited QB, RB, receivers, TE, line, front, linebackers, corners, nickel, and safeties in `route-lab/POSITION_AUDIT.md`; noted RPO, play action, screen timing and NFL-calibration gaps.
+- Added deterministic counterfactual checks for open lanes, awareness, pursuit, move effects, and all 22 player records.
+

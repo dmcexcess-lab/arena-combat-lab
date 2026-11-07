@@ -189,3 +189,11 @@ Operational checklist for humans + AIs. Keep compact; add only behaviors whose r
 - A full-squad ineligible-numbered backfield player must report eligible; a compliant report passes validation.
 - Keep `route-lab/index.html` embedded scripts identical to the five maintained modules and run the Route Lab CI suites.
 
+## Route Lab position and decision depth (2026-11-06)
+- Slot WR uses receiver ratings rather than safety ratings; X/Z and nickel receive their position-specific speed/coverage defaults.
+- A carry assignment with a route executes the run-specific branch, finds a different lane when a defender occupies the designed gap, and continues past the final waypoint.
+- On an established run, defenders leave zones to pursue. On a catch, awareness changes reaction and pursuit changes closing and the final spot.
+- A high-awareness QB recognizes approaching pressure earlier than a low-awareness QB in the same seed and can escape before a sack.
+- Juke, stiff arm and spin records correspond to coordinate/velocity or tackle-recovery changes, replay deterministically, and appear in the play result.
+- Full 11-on-11 replays return 22 measured player participation records; contact is observed for blockers and rushers.
+

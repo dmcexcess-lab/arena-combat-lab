@@ -97,13 +97,13 @@ const RATING_KEYS=['speed','acceleration','agility','stamina','strength','blocki
 function defaultStats(player) {
  const p=player.label||'',o=player.id?.startsWith('o');
  const line=['LT','LG','C','RG','RT'].includes(p), pass=p==='QB', skill=['X','Z','SL','WR','TE','RB','HB','FB'].includes(p);
- const secondary=['CB','CB1','CB2','FS','SS','S'].some(k=>p===k||p.startsWith(k));
- const linebacker=['LB','MLB','OLB','ILB','W','M'].some(k=>p===k||p.startsWith(k));
+ const secondary=['CB','CB1','CB2','NB','FS','SS','S'].includes(p);
+ const linebacker=['LB','MLB','OLB','ILB','W','M'].includes(p);
  const base={speed:line?56:pass?68:secondary?89:linebacker?77:skill?85:72,
  acceleration:line?62:pass?69:secondary?86:skill?84:76,agility:line?52:pass?72:secondary?86:skill?84:67,
  stamina:line?78:pass?80:secondary?82:skill?81:78,
- strength:line?90:linebacker?80:secondary?58:pass?53:73,blocking:line?88:p==='TE'?72:skill?42:45,
- passRush:!o&&defFront.has(p)?83:42,coverage:secondary?88:linebacker?73:42,
+ strength:line?90:linebacker?80:p==='TE'?72:['RB','HB','FB'].includes(p)?67:secondary||skill?58:pass?53:73,blocking:line?88:p==='TE'?72:skill?42:45,
+ passRush:!o&&['DE','DT','NT','EDGE'].includes(p)?83:!o&&linebacker?68:42,coverage:secondary?88:linebacker?73:42,
  pursuit:secondary?85:linebacker?86:!o&&defFront.has(p)?78:55,
  tackling:secondary?77:linebacker?85:pass?36:70,
  hands:skill?86:secondary?72:pass?66:53,routeRunning:skill?82:48,vision:p==='RB'||p==='HB'?84:pass?74:67,
@@ -113,28 +113,44 @@ function defaultStats(player) {
  return base;
 }
 function statsOf(p){const defaults=defaultStats(p);const given=p.stats||{};return Object.fromEntries(RATING_KEYS.map(k=>[k,clamp(Number.isFinite(+given[k])?+given[k]:defaults[k],1,99)]));}
-function speedOf(p){let ratings=statsOf(p);let mult=clamp(p.speed??1,.5,1.5)*(.72+ratings.speed/330);if(['WR','SL','RB','HB','FB','CB','FS','SS','S'].includes(p.label))return 7.8*mult;
+function speedOf(p){let ratings=statsOf(p);let mult=clamp(p.speed??1,.5,1.5)*(.72+ratings.speed/330);if(['X','Z','WR','SL','RB','HB','FB','CB','CB1','CB2','NB','FS','SS','S'].includes(p.label))return 7.8*mult;
   if(['QB'].includes(p.label))return 5.6*mult;
-  if(defFront.has(p.label))return 6.1*mult;
-  if(linemen.has(p.label)||p.label==='TE')return 5.0*mult;
+  if(['DE','DT','NT','EDGE'].includes(p.label))return 6.1*mult;
+  if(['LB','MLB','OLB','ILB','W','M'].includes(p.label))return 7.0*mult;
+  if(linemen.has(p.label))return 5.0*mult;
+  if(p.label==='TE')return 6.5*mult;
   return 7.0*mult;}
 function pickupCoverage(pos,defenders){return clamp((2.5-nearest(pos,defenders,a=>a.y>=-.5).d)/2.5,0,1);}
-function openFieldTarget(runner,defenders,t,forward=1){
+function openFieldTarget(runner,defenders,t,forward=1,blockers=[],plannedX=runner.x){
  const skill=statsOf(runner),look=3+skill.vision/20;
  if(t>=(runner.nextLaneAt??0)||runner.laneX===undefined){
   const stride=2.5+skill.vision/24;
   const options=[-1,-.5,0,.5,1].map(step=>{
    const x=clamp(runner.x+step*stride,-24.5,24.5);
    const probe={x,y:runner.y+forward*look};
-   const clearance=nearest(probe,defenders.map(p=>({x:p.x+p.vx*.4,y:p.y+p.vy*.4}))).d;
+   const threats=defenders.map(p=>({x:p.x+p.vx*.4,y:p.y+p.vy*.4}));
+   const clearance=nearest(probe,threats).d;
+   const immediate=nearest({x,y:runner.y+forward*2.5},threats).d;
+   const danger=clamp((4-immediate)/4,0,1)*2.8;
+   const shield=blockers.some(p=>(p.engaged||p.wasEngaged)&&dist(p,probe)<4.5)?1.25:0;
    const edge=Math.max(0,Math.abs(x)-22);
-   return {x,score:Math.min(clearance,9)*.6-Math.abs(x-runner.x)*.23-edge*1.6};
+   return {x,score:Math.min(clearance,9)*.6+shield-danger-
+     Math.abs(x-runner.x)*.23-Math.abs(x-plannedX)*.12-edge*1.6};
   });
   options.sort((a,b)=>b.score-a.score||Math.abs(a.x-runner.x)-Math.abs(b.x-runner.x));
   runner.laneX=options[0].x;
   runner.nextLaneAt=t+clamp(.65-skill.vision/220,.2,.65);
  }
  return {x:runner.laneX,y:runner.y+forward*12};
+}
+function pursuitTarget(defender,runner){
+ const rating=statsOf(defender),lead=clamp(rating.pursuit/220,.1,.48);
+ const far=clamp((dist(defender,runner)-5)/18,0,1);
+ const outside=defender.x<runner.x?-1:1;
+ const projectedY=runner.y+runner.vy*lead+far*1.1;
+ const keepTop=['FS','SS','S'].includes(defender.label)&&defender.y>runner.y&&Math.abs(defender.x-runner.x)>1.8;
+ return {x:clamp(runner.x+runner.vx*lead+outside*far*1.7,-26.4,26.4),
+   y:keepTop?Math.max(defender.y,projectedY):projectedY};
 }
 function simulate(off,def,seed=71){
  const v=validate(off,def); if(!v.valid)return {valid:false,validation:v,frames:[],events:[]};
@@ -143,8 +159,8 @@ function simulate(off,def,seed=71){
  const d=clone(def.players).map(p=>({...p,side:'d',homeY:p.y,vx:0,vy:0,fatigue:0,tackleCooldown:0,engaged:false,speed:(p.speed??1)*(.94+rand()*.12)}));
  const byId=(id)=>o.find(p=>p.id===id), defenders=(id)=>d.find(p=>p.id===id);
  const qb=byId(off.snapToId||'oQB')||o.find(p=>p.label==='QB'), runner=byId(off.runnerId)||qb;
- let carrier=qb, state='live', ball={x:qb.x,y:qb.y,kind:'held'}, targetPass=null,flight=null, thrown=false, handoff=false, playOver=false, verdict='', yards=0, time=0, sack=false,returnStartY=null;
- const frames=[],events=[],decisions=[]; const log=(t,text)=>events.push({t:+t.toFixed(2),text});
+ let carrier=qb, state='live', ball={x:qb.x,y:qb.y,kind:'held'}, targetPass=null,flight=null, thrown=false, handoff=false, playOver=false, verdict='', yards=0, time=0, sack=false,returnStartY=null,catchTime=-1;
+ const frames=[],events=[],decisions=[],specialMoves=[]; const log=(t,text)=>events.push({t:+t.toFixed(2),text});
  const isRun=['run','option'].includes(off.type),directRun=isRun&&runner===qb;
  const eligible=new Set(off.training?o.filter(p=>p.job==='route').map(p=>p.id):v.eligible);
  const receivers=o.filter(p=>p.job==='route'&&eligible.has(p.id));
@@ -161,6 +177,28 @@ function simulate(off,def,seed=71){
       pos?.y<=-(off.yardLine??50))msg='Safety — '+msg;
   verdict=msg;log(t,msg);playOver=kill;
  }
+ function evade(r,opponents,t){
+  if(t<(r.nextMoveAt??0))return;
+  const threat=nearest(r,opponents,a=>a.tackleCooldown<=0&&!a.engaged);
+  if(!threat.agent||threat.d>1.8||threat.d<.7)return;
+  const a=statsOf(r),b=statsOf(threat.agent);
+  const kind=a.strength>b.strength+13?'stiff arm':a.agility>=a.vision?'juke':'spin';
+  const skill=kind==='stiff arm'?a.strength:kind==='juke'?a.agility:a.vision;
+  const chance=clamp(.34+(skill-b.tackling)*.006+(a.awareness-b.awareness)*.0015,.16,.78);
+  const success=rand()<chance;
+  r.nextMoveAt=t+1.15;
+  if(success){
+   const side=r.x<=threat.agent.x?-1:1;
+   if(kind==='juke'){r.x=clamp(r.x+side*.75,-26.4,26.4);threat.agent.vx*=.35;}
+   else if(kind==='spin'){r.x=clamp(r.x+side*.4,-26.4,26.4);r.vy*=.78;}
+   else {threat.agent.x=clamp(threat.agent.x-side*.65,-26.4,26.4);threat.agent.vy*=.45;}
+   threat.agent.tackleCooldown=.5;
+  }else r.vy*=.84;
+  const item={t:+t.toFixed(2),playerId:r.id,player:r.label,defenderId:threat.agent.id,
+   defender:threat.agent.label,move:kind,outcome:success?'beat defender':'contained'};
+  specialMoves.push(item);
+  log(t,r.label+' '+kind+(success?' beats ':' contained by ')+threat.agent.label);
+ }
  // Animate one legal backfield player moving laterally/backward before snap.
  const moving=o.find(p=>p.motion);
  if(moving){
@@ -173,12 +211,11 @@ function simulate(off,def,seed=71){
  } else copyFrame(0);
  for(let step=1;step<=maxT/dt && !playOver;step++){
   time=step*dt; const t=time;
-  for(const p of [...o,...d]){p.engaged=false;p.supportBlock=false;}
+  for(const p of [...o,...d]){p.wasEngaged=p.engaged;p.engaged=false;p.supportBlock=false;}
   // Route pursuit with waypoints. A hot route is a read priority, not a speed boost.
   for(const p of o){
     if(state==='return'){
-      const lead=statsOf(p).pursuit/280;
-      move(p,{x:carrier.x+carrier.vx*lead,y:carrier.y+carrier.vy*lead},dt,speedOf(p)*.9,15);
+      move(p,pursuitTarget(p,carrier),dt,speedOf(p)*.9,15);
       continue;
     }
     if(p.id===qb.id)continue;
@@ -188,7 +225,7 @@ function simulate(off,def,seed=71){
       if(help.agent&&help.d<5){p.supportBlock=true;p.supportTarget=help.agent.id;
         move(p,{x:help.agent.x,y:help.agent.y-.8},dt,speedOf(p)*.75,14);continue;}
     }
-    if(p.job==='route'||p.job==='release'||(p.route?.length && !['passblock','runblock','pull'].includes(p.job))){
+    if(p.job==='route'||p.job==='release'||(p.route?.length && !['passblock','runblock','pull','carry','block'].includes(p.job))){
       const pts=p.route||[];
       if(!pts.length)continue;
       const dest=pts[Math.min(p.routeIndex,pts.length-1)];
@@ -200,9 +237,21 @@ function simulate(off,def,seed=71){
       if(dist(p,loc)<.6&&p.routeIndex<(p.route?.length||1)-1)p.routeIndex++;
       move(p,loc,dt,5.1);
     }else if(p.job==='carry'){
+      if(p!==runner){move(p,p.route?.[0]||{x:p.x,y:p.y+2},dt,speedOf(p)*.5,12);continue;}
       if(isRun && !handoff){const first=p.route?.[0]||{x:0,y:-4};move(p,{x:first.x,y:Math.min(-4,first.y)},dt,speedOf(p)*.78,18);}
       if(isRun && handoff){let goal= p.route?.[Math.min(p.routeIndex,p.route.length-1)]||{x:playDir,y:35};
-        if(dist(p,goal)<.7&&p.routeIndex<(p.route?.length||1)-1)p.routeIndex++;
+        if((dist(p,goal)<.8||p.y>=goal.y-.4)&&p.routeIndex<(p.route?.length||1)-1){
+          p.routeIndex++;goal=p.route[p.routeIndex];
+        }
+        if(p.routeIndex===(p.route?.length||1)-1&&p.y>=goal.y-.7)
+          goal={x:goal.x,y:p.y+12};
+        if(p.y>-2){
+          const lane=openFieldTarget(p,d,t,1,o,goal.x);
+          if(Math.abs(lane.x-goal.x)>2.4&&!p.loggedLane){
+            log(t,p.label+' reads an open lane');p.loggedLane=true;
+          }
+          goal={x:goal.x*.55+lane.x*.45,y:goal.y};
+        }
         const ahead=nearest(p,d,a=>a.y>p.y-.4&&a.y<p.y+5&&Math.abs(a.x-p.x)<3.5);
         if(ahead.agent){const avoid=clamp((5-ahead.d)/5,0,1)*(statsOf(p).vision/99)*1.8;
           goal={x:clamp(goal.x+(p.x<=ahead.agent.x?-avoid:avoid),-26.5,26.5),y:goal.y};}
@@ -224,15 +273,25 @@ function simulate(off,def,seed=71){
   // QB drops, holds, or scrambles once pressure arrives.
   if(!isRun){
     const rush=nearest(qb,d,a=>['rush','blitz','contain'].includes(a.job));
-    let pressure=rush.d<2.9;
-    if(!thrown && t<Math.max(1.0,off.qbDropTime??1.15))move(qb,{x:off.qbDrift??0,y:-(off.qbDepth??6.8)},dt,5.0);
+    let pressure=rush.d<2.65+statsOf(qb).awareness/55;
+    const reactAt=.85+clamp((95-statsOf(qb).awareness)/120,0,.7);
+    const mustEscape=pressure&&t>reactAt&&off.allowScramble!==false;
+    if(!thrown && t<Math.max(1.0,off.qbDropTime??1.15)&&!mustEscape)move(qb,{x:off.qbDrift??0,y:-(off.qbDepth??6.8)},dt,5.0);
     else if(!thrown){
-      if(pressure && t>1.1 && off.allowScramble!==false){
-        const s=qb.x<0?1:-1;move(qb,{x:qb.x+s*4.2,y:qb.y+2},dt,5.4);
+      if(mustEscape){
+        if(qb.escapeX===undefined){
+          const lanes=[-4,0,4].map(x=>({x,space:nearest({x:qb.x+x,y:qb.y+1.5},d,a=>['rush','blitz','contain'].includes(a.job)).d}));
+          lanes.sort((a,b)=>b.space-a.space);
+          qb.escapeX=clamp(qb.x+lanes[0].x,-22,22);
+          log(t,'QB senses pressure and '+(lanes[0].x===0?'climbs pocket':lanes[0].x<0?'escapes left':'escapes right'));
+        }
+        move(qb,{x:qb.escapeX,y:qb.y+2},dt,5.4);
       }else{move(qb,{x:qb.x,y:qb.y},dt,0);}
     }
   }else if(directRun){const path=qb.route||[];let target=path[Math.min(qb.routeIndex,path.length-1)]||{x:playDir,y:20};
-    if(dist(qb,target)<.7&&qb.routeIndex<path.length-1)qb.routeIndex++;
+    if((dist(qb,target)<.8||qb.y>=target.y-.4)&&qb.routeIndex<path.length-1){qb.routeIndex++;target=path[qb.routeIndex];}
+    if(qb.routeIndex===path.length-1&&qb.y>=target.y-.7)target={x:target.x,y:qb.y+12};
+    if(qb.y>-2)target={x:openFieldTarget(qb,d,t,1,o,target.x).x*.45+target.x*.55,y:target.y};
     move(qb,target,dt,speedOf(qb),18);
   }else if(!handoff){move(qb,{x:runner.x*.3,y:-4.8},dt,2.4);}
   // Defensive assignments: rush, man, match-zone, spy, and contain.
@@ -247,9 +306,14 @@ function simulate(off,def,seed=71){
     }
     if(state==='runafter'){
       const rating=statsOf(p);
-      const lead=rating.pursuit/230;
-      move(p,{x:carrier.x+carrier.vx*lead,y:carrier.y+carrier.vy*lead},dt,
-        speedOf(p)*(.76+rating.pursuit/360),15);
+      if(t<catchTime+clamp((82-rating.awareness)/160,0,.38))continue;
+      move(p,pursuitTarget(p,carrier),dt,
+        speedOf(p)*(.92+rating.pursuit/320),15);
+      continue;
+    }
+    if(isRun&&handoff&&carrier.y>1){
+      const rating=statsOf(p);
+      move(p,pursuitTarget(p,carrier),dt,speedOf(p)*(.82+rating.pursuit/440),15);
       continue;
     }
     if(p.job==='rush'||p.job==='blitz'){
@@ -347,11 +411,12 @@ function simulate(off,def,seed=71){
         const separation=clamp((cushion-1.2)/4.2+(statsOf(r).agility-75)/560,0,1);
         const depth=clamp(predict.y,0,30);
         const risk=clamp((1-separation)*.50+lane*.43+Math.max(0,depth-20)*.008,0,1);
+        const perceivedRisk=clamp(risk+(statsOf(qb).awareness-70)*.0025,0,1);
         const conversion=depth>=firstDown?1:0;
         const timing=clamp(1-Math.abs(t-(r.read||3)*.42-.55)/3.7,.1,1);
         // Pocket urgency makes open hot outlets more valuable than deeper contested throws.
         const urgency=desperate||clockPressure>.55;
-        const value=separation*2.65+risk*-1.75+Math.min(depth,24)*.044+conversion*.36+timing*.20+
+        const value=separation*2.65-perceivedRisk*1.75+Math.min(depth,24)*.044+conversion*.36+timing*.20+
           (r.hot&&urgency?.84:0)+(r.id===off.primaryTarget?.10:0)-
           (urgency?Math.max(0,depth-12)*.055:0)+
           (rand()-.5)*(.9-statsOf(qb).awareness*.005);
@@ -359,7 +424,7 @@ function simulate(off,def,seed=71){
       }).filter(a=>a.predict.y>-.2).sort((a,b)=>b.score-a.score);
       // Softmax within a credible read window. A different seed can produce a
       // different defensible choice while clear, low-risk winners stay favored.
-      const viable=graded.filter(a=>a.score>=graded[0].score-1.25&&a.risk<.82);
+      const viable=graded.filter(a=>a.score>=graded[0]?.score-1.25&&a.risk<.82);
       const weights=viable.map(a=>Math.exp((a.score-graded[0].score)*1.15));
       let roll=rand()*weights.reduce((a,b)=>a+b,0),best=viable[0]||graded[0];
       for(let j=0;j<viable.length;j++){roll-=weights[j];if(roll<=0){best=viable[j];break;}}
@@ -406,13 +471,14 @@ function simulate(off,def,seed=71){
         if(rand()<.18&&closeD.d<.8){carrier=closeD.agent;state='return';returnStartY=carrier.y;flight=null;
           ball={x:carrier.x,y:carrier.y,kind:'held-d'};log(t,'Interception by '+carrier.label+' — return is live');}
         else finish('Pass broken up by '+closeD.agent.label,t,point(0,0));
-      } else if(receiverDist<=2.3 && rand()<clamp(.70+statsOf(targetPass).hands*.0030-pickupCoverage(ball,d)*.11,.5,.985)){carrier=targetPass;state='runafter';ball={x:carrier.x,y:carrier.y,kind:'held'};flight=null;log(t,'Completed to '+carrier.label);}
+      } else if(receiverDist<=2.3 && rand()<clamp(.70+statsOf(targetPass).hands*.0030-pickupCoverage(ball,d)*.11,.5,.985)){carrier=targetPass;state='runafter';catchTime=t;ball={x:carrier.x,y:carrier.y,kind:'held'};flight=null;log(t,'Completed to '+carrier.label);}
       else finish('Incomplete pass',t,point(0,0));
     }
   }
   if(carrier){
     if(state==='return'){
       move(carrier,openFieldTarget(carrier,o,t,-1),dt,speedOf(carrier),18);
+      evade(carrier,o,t);
       const tackler=nearest(carrier,o);
       if(tackler.d<1.05&&tackler.agent?.tackleCooldown<=0){
         const a=statsOf(tackler.agent),b=statsOf(carrier);
@@ -426,12 +492,13 @@ function simulate(off,def,seed=71){
       if(carrier.y<=-(off.yardLine??50))finish('Interception return touchdown',t,carrier);
     }
     if(carrier!==qb && !isRun && state==='runafter'){
-      move(carrier,openFieldTarget(carrier,d,t),dt,speedOf(carrier),18);
+      move(carrier,openFieldTarget(carrier,d,t,1,o),dt,speedOf(carrier),18);
     }
     ball={x:carrier.x,y:carrier.y,kind:carrier.side==='d'?'held-d':'held'};
     if((isRun&&handoff)||(state==='runafter')){
-      const near=nearest(carrier,d);
-      if(near.d<1.05 && !near.agent?.engaged && near.agent?.tackleCooldown<=0 && t>.8){
+      evade(carrier,d,t);
+      const near=nearest(carrier,d,a=>!a.engaged&&a.tackleCooldown<=0);
+      if(near.d<1.05 && t>.8){
         const tackler=near.agent, a=statsOf(tackler),b=statsOf(carrier);
         const momentum=clamp((Math.hypot(tackler.vx-carrier.vx,tackler.vy-carrier.vy)-3)/12,0,1);
         const success=clamp(.54+(a.tackling-70)*.005+(a.strength-b.strength)*.0018+
@@ -456,7 +523,16 @@ function simulate(off,def,seed=71){
   copyFrame(t);
  }
  if(!playOver&&frames.length)finish(state==='return'?'Interception return ended':'Play ended',time,carrier||point(0,0));
- return {valid:true,validation:v,frames,events,decisions,result:{verdict,yards,seconds:+time.toFixed(2),seed,offense:off.name,defense:def.name,sack,
+ const participation=[...o,...d].map(p=>{
+  let travelled=0,engaged=0,previous=null;
+  for(const f of frames){const at=(p.side==='o'?f.offense:f.defense).find(x=>x.id===p.id);
+   if(previous&&f.t>=0)travelled+=dist(at,previous);
+   if(at.engaged&&f.t>=0)engaged+=dt;
+   previous=at;}
+  return {id:p.id,label:p.label,side:p.side,assignment:p.job,
+   yardsMoved:+travelled.toFixed(1),contactSeconds:+engaged.toFixed(2)};
+ });
+ return {valid:true,validation:v,frames,events,decisions,specialMoves,participation,result:{verdict,yards,seconds:+time.toFixed(2),seed,offense:off.name,defense:def.name,sack,
   possession:state==='return'?'defense':'offense',returnYards:returnStartY===null?0:+(returnStartY-(carrier?.y??returnStartY)).toFixed(1)}};
 }
 const api={validate,simulate,eligibleNumber,clone,clamp,dist,statsOf,defaultStats,RATING_KEYS};

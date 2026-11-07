@@ -1,0 +1,27 @@
+# Route Lab position and decision audit
+
+Evaluated on the deterministic 11-on-11 engine after the 2026-11-06 depth pass. Evidence includes all 88 offensive/defensive preset matchups at seed 71, a full Shotgun Mesh vs 4–3 Cover 2 snap at seed 700, and isolated counterfactual snaps. A participation record reports distance moved and contact time from replay frames, so a listed assignment alone is not counted as execution.
+
+| Position | What actually happens | Current depth / gap |
+| --- | --- | --- |
+| QB | Drops, senses nearby rush based on awareness, chooses an escape lane, evaluates projected receivers and pass lanes, then throws, throws away, hands off, or takes a sack. Awareness changes pressure recognition and risk weighting; accuracy and power change the throw. | Reads are one simplified decision window. No full progression across multiple seconds, protection calls, cadence, or true option read. |
+| RB / ball carrier | Receives a timed handoff, follows the designed run path, samples defender and blocker geometry for a safer lane, and continues beyond the last waypoint. After a catch, a receiver uses the same open-field lane search. Agility, vision, strength, tackling matchup, and seed govern juke, spin, or stiff arm attempts. | Gap choice is local and short horizon. No ball security, fumbles, true cutback plant animation, or full run-blocking scheme. |
+| X, Z, slot WR | Execute actual waypoint routes with acceleration and route-running effects; eligible receivers are considered at projected ball arrival. A receiver can catch, advance, evade, and get tackled. Nearby non-carriers can switch to support blocking after a catch. | Coverage recognition, sight adjustments, body positioning, foot placement, and contested-catch technique are simplified. Slot now receives WR defaults, not safety defaults; X/Z now use the receiver speed branch. |
+| TE | Runs an eligible route or blocks according to the selected job, using TE strength/blocking and a speed between WR and OL. Can become the carrier and attempt a stiff arm. | No separate chip-and-release, inline leverage, or route conversion logic. |
+| LT, LG, C, RG, RT | Move to their assigned threat or pass/run gap; block contact changes rusher movement and is recorded as contact time. LG can pull on a run. | Line protection is local matchup friction, with no pocket integrity, double teams, hand placement, or detailed blocking fouls. The center is validated at the snap, but snap exchange is abstracted. |
+| DE / DT / NT / EDGE | Rush or pursue according to job; pass-rush rating affects closing speed and strength contests blockers. They can sack before release and pursue a live run/catch. | No pass-rush move repertoire, gap discipline, stunt exchange, or contain technique beyond selected assignments. |
+| LB / MLB / OLB | Zone, man, blitz, spy, or run-fit assignments move the player; once a run breaks the line or a catch occurs, they pursue and can tackle. Awareness and pursuit affect reaction and closing. | Zone exchange and play-action recognition are coarse. 3v1 training drills can create unrealistic breakaways. |
+| CB / nickel | Zone or man assignment moves to threats; coverage/awareness affect read reaction and catch-point contest. After a catch they pursue and tackle. Nickel has DB defaults rather than linebacker defaults. | No press footwork, route distribution handoff, or true sideline technique. |
+| FS / SS | Hold a designated deep or zone responsibility before the catch; react to a live carrier, keep top leverage when approaching from ahead, and pursue/tackle. | Safety rotation, disguise, deep help decisions, and angle selection remain approximate. |
+
+## Measured checks
+
+- The seed-700 11-on-11 replay produced participation records for all 22 players; all 22 moved more than 0.5 yard and offensive/defensive contact was recorded. This establishes executed spatial behavior for that snap, not comprehensive football competence.
+- In an isolated run, putting a defender in the called gap shifted the RB more than a yard laterally by 2.00 seconds; moving that defender outside left the RB close to the called lane. The RB continued beyond a 15-yard final waypoint.
+- Against the same completed pass, changing SS awareness and pursuit from 1 to 99 changed his position shortly after the catch and reduced the final gain in the deterministic seed-700 example.
+- Against one unblocked rusher, the high-awareness QB recognized pressure earlier and avoided a sack in a fixed seed where the low-awareness QB was sacked.
+- Juke, stiff arm, and spin are attempted only near a defender. Success changes runner or defender coordinates and the defender's tackle recovery; failure slows the runner. Each attempt and outcome is recorded in `specialMoves`, the event log, and the play result panel.
+
+## Remaining realism limits
+
+This is a causal spatial teaching simulator, but it is not calibrated NFL game film or a full football engine. The RPO Glance preset currently always follows its designated run, Play Action Cross does not yet sell a handoff, and the HB Screen lacks a full release/block timing model. No drive-long fatigue, fumbles, detailed penalties, clock, or special teams are present. Pass gains remain high in some zone matchups, so yard distributions should not be presented as NFL-like. See [RULES_AUDIT.md](RULES_AUDIT.md) for the rules boundary.
