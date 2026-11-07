@@ -154,7 +154,7 @@ function pursuitTarget(defender,runner){
 }
 function simulate(off,def,seed=71){
  const v=validate(off,def); if(!v.valid)return {valid:false,validation:v,frames:[],events:[]};
- const rand=rng(seed), dt=.05, maxT=12;
+ const rand=rng(seed), looseRand=rng(((Number(seed)||71)^0x8b21d5f3)>>>0), dt=.05, maxT=12;
  const o=clone(off.players).map(p=>({...p,side:'o',vx:0,vy:0,fatigue:0,tackleCooldown:0,routeIndex:0,engaged:false,speed:(p.speed??1)*(.96+rand()*.08)}));
  const d=clone(def.players).map(p=>({...p,side:'d',homeY:p.y,vx:0,vy:0,fatigue:0,tackleCooldown:0,engaged:false,speed:(p.speed??1)*(.94+rand()*.12)}));
  const byId=(id)=>o.find(p=>p.id===id), defenders=(id)=>d.find(p=>p.id===id);
@@ -162,7 +162,7 @@ function simulate(off,def,seed=71){
  let carrier=qb, state='live', ball={x:qb.x,y:qb.y,kind:'held'}, targetPass=null,flight=null, thrown=false, handoff=false, playOver=false, verdict='', yards=0, time=0, sack=false,returnStartY=null,catchTime=-1;
  let loose=null,looseResult=null,looseCount=0,lateralUsed=false,possessionChanged=false,interceptionY=null;
  const frames=[],events=[],decisions=[],specialMoves=[]; const log=(t,text)=>events.push({t:+t.toFixed(2),text});
- const isRun=['run','option'].includes(off.type),directRun=isRun&&runner===qb;
+ const isRun=['run','option'].includes(off.type),directRun=isRun&&runner===qb,allowLoose=!off.training&&!off.trainingVirtualSnap;
  const eligible=new Set(off.training?o.filter(p=>p.job==='route').map(p=>p.id):v.eligible);
  const receivers=o.filter(p=>p.job==='route'&&eligible.has(p.id));
  let playDir=off.runGapX??2;
@@ -183,7 +183,7 @@ function simulate(off,def,seed=71){
   looseCount++;state='loose';carrier=null;flight=null;thrown=true;
   const dx=clamp((toward?.x??from.x)-from.x,-8,8),dy=clamp((toward?.y??from.y-2)-from.y,-8,3);
   loose={kind,sourceId:source.id,sourceSide:source.side,originY:from.y,lastSide:source.side,
-   vx:dx*1.7+(rand()-.5)*3,vy:dy*1.7-1-rand()*2,at:t};
+   vx:dx*1.7+(looseRand()-.5)*3,vy:dy*1.7-1-looseRand()*2,at:t};
   ball={x:from.x,y:from.y,kind:'loose'};
   log(t,source.label+(kind==='backwardPass'?' pitches a backward pass':' fumbles')+' — ball is live');
   return true;
@@ -386,7 +386,7 @@ function simulate(off,def,seed=71){
   if(isRun && !handoff && t>=.65 && state!=='loose'){
    handoff=true;
    const muff=clamp(.003+(82-statsOf(qb).hands)*.00025+(82-statsOf(runner).hands)*.0003,.002,.035);
-   if(rand()<muff)releaseLoose('fumble',t,{x:(qb.x+runner.x)/2,y:(qb.y+runner.y)/2},runner,qb);
+   if(allowLoose&&looseRand()<muff)releaseLoose('fumble',t,{x:(qb.x+runner.x)/2,y:(qb.y+runner.y)/2},runner,qb);
    else{carrier=runner;ball={x:runner.x,y:runner.y,kind:'held'};log(t,'Handoff to '+runner.label);}
   }
   if(!isRun&&!thrown&&state!=='loose'){
@@ -395,7 +395,7 @@ function simulate(off,def,seed=71){
     if(t>.35 && rush.d<.94 && !(rush.agent?.engaged&&rand()<.78)){
       sack=true;
       const strip=clamp(.012+(statsOf(rush.agent).passRush-statsOf(qb).awareness)*.0005,.003,.065);
-      if(rand()<strip)releaseLoose('fumble',t,qb,{x:qb.x+(rush.agent.x-qb.x)*.4,y:qb.y-2},qb);
+      if(allowLoose&&looseRand()<strip)releaseLoose('fumble',t,qb,{x:qb.x+(rush.agent.x-qb.x)*.4,y:qb.y-2},qb);
       else{carrier=qb;finish('Sack ('+Math.abs(qb.y).toFixed(1)+' yd loss)',t,qb);}
     }
     const ready=t>=Math.max(1.15,off.qbDropTime??1.15);
@@ -515,7 +515,7 @@ function simulate(off,def,seed=71){
       const candidates=[...o,...d].filter(p=>dist(p,ball)<1.28).sort((a,b)=>dist(a,ball)-dist(b,ball));
       for(const p of candidates){
         const skill=statsOf(p),chance=clamp(.18+skill.hands*.003+skill.awareness*.0018-(dist(p,ball)-.4)*.18,.22,.74);
-        if(rand()>=chance)continue;
+        if(looseRand()>=chance)continue;
         carrier=p;state=p.side==='d'?'return':'runafter';catchTime=t;returnStartY=p.side==='d'?p.y:null;
         if(p.side!==loose.sourceSide)possessionChanged=true;
         looseResult={kind:loose.kind,sourceSide:loose.sourceSide,sourceId:loose.sourceId,
@@ -544,8 +544,8 @@ function simulate(off,def,seed=71){
         tackler.agent.tackleCooldown=.65;
         if(rand()<success){
           const strip=clamp(.008+(a.tackling-b.hands)*.00045+carrier.fatigue*.035,.003,.055);
-          if(!looseCount&&rand()<strip)releaseLoose('fumble',t,carrier,{x:carrier.x+(rand()-.5)*3,y:carrier.y-2},carrier);
-          else finish((possessionChanged?'Recovery':'Interception')+' return tackled by '+tackler.agent.label,t,carrier);
+          if(allowLoose&&!looseCount&&looseRand()<strip)releaseLoose('fumble',t,carrier,{x:carrier.x+(looseRand()-.5)*3,y:carrier.y-2},carrier);
+          else finish((looseResult?'Recovery':'Interception')+' return tackled by '+tackler.agent.label,t,carrier);
         }
         else log(t,'Missed return tackle by '+tackler.agent.label);
       }
@@ -568,7 +568,7 @@ function simulate(off,def,seed=71){
         tackler.tackleCooldown=.65;
         if(rand()<success){
           const strip=clamp(.009+(a.tackling-b.hands)*.0005+momentum*.025+carrier.fatigue*.04,.003,.07);
-          if(!looseCount&&rand()<strip)releaseLoose('fumble',t,carrier,{x:carrier.x+(rand()-.5)*3,y:carrier.y-2},carrier);
+          if(allowLoose&&!looseCount&&looseRand()<strip)releaseLoose('fumble',t,carrier,{x:carrier.x+(looseRand()-.5)*3,y:carrier.y-2},carrier);
           else finish('Tackle by '+tackler.label,t,carrier);
         }
         else {tackler.vx*=.35;tackler.vy*=.35;log(t,'Missed tackle by '+tackler.label);}
@@ -586,7 +586,7 @@ function simulate(off,def,seed=71){
   }
   if(!playOver&&t>=11.95){
     if(state==='loose'&&loose)looseResult={kind:loose.kind,sourceSide:loose.sourceSide,sourceId:loose.sourceId,originY:loose.originY,outY:ball.y,outX:ball.x,dead:'unrecovered'};
-    finish(state==='return'?'Return — play duration limit':'Whistle — play duration limit',t,carrier||ball);
+    finish(state==='return'?(looseResult?'Recovery return — play duration limit':'Interception return — play duration limit'):'Whistle — play duration limit',t,carrier||ball);
   }
   copyFrame(t);
  }

@@ -86,11 +86,9 @@ function createOffensePresets(){
  for(const id of ['oLT','oLG','oC','oRG','oRT'])setBlock(o,id,'',4,'runblock');
  setRoute(o,'oX','slant');setRoute(o,'oSL','slant');setRoute(o,'oTE','flat');setRoute(o,'oZ','go');
  runRoute(o,'oRB',[[2,-4],[2,1],[4,10],[6,25]]);o.runGapX=3;a.push(o);
- o=COPY(a.find(play=>play.name==='Outside Zone Left'));
- o.id='off-pitch-back';o.name='Pitch Back';o.lateralToId='oQB';o.lateralAt=1.7;
- a.push(o);
  return a;
 }
+function createPitchBack(){const o=COPY(createOffensePresets().find(play=>play.name==='Outside Zone Left'));o.id='off-pitch-back';o.name='Pitch Back';o.lateralToId='oQB';o.lateralAt=1.7;return o;}
 function defense(name){
  const players=[
  p('dLE','DE',91,-5.8,1.4,false,'rush'),p('dDT1','DT',95,-1.8,1.4,false,'rush'),p('dDT2','DT',98,1.8,1.4,false,'rush'),p('dRE','DE',90,5.8,1.4,false,'rush'),
@@ -141,7 +139,7 @@ function createDefensePresets(){
  man(d.players[7],'oX');man(d.players[8],'oZ');zone(d.players[9],0,12,13,10);a.push(d);
  return a;
 }
-const api={offense,defense,routeFrom,setRoute,setBlock,createOffensePresets,createDefensePresets};
+const api={offense,defense,routeFrom,setRoute,setBlock,createOffensePresets,createPitchBack,createDefensePresets};
 root.GridironPlays=api;
 if(typeof module!=='undefined'&&module.exports)module.exports=api;
 })(typeof window!=='undefined'?window:globalThis);

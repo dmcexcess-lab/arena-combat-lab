@@ -64,7 +64,7 @@ function settleLoose(state,s,r,wasTry,expired,twoMinute){
   (afterTwo||wasTry||(state.down===4&&l.sourceSide==='o'));
  const y=restricted?(l.sourceSide==='o'?Math.min(l.originY,l.recoveryY):Math.max(l.originY,l.recoveryY)):point;
  const owner=y<=localGoal?off:y>=farGoal?def:l.dead==='out'&&l.originY<=localGoal?off:l.dead==='out'&&l.originY>=farGoal?def:null;
- let call='',endedTeam=null;
+ let call='',endedTeam=null,runoff=0;
  if(wasTry){
   const good=l.dead==='recovered'&&l.recoverySide==='o'&&y>=farGoal;
   if(good)score(s,off,2,'Two-point conversion after loose-ball recovery');
@@ -91,7 +91,7 @@ function settleLoose(state,s,r,wasTry,expired,twoMinute){
   }
   let global=clamp(at(spot),1,99);
   const latePass=l.kind==='backwardPass'&&l.dead!=='recovered'&&afterTwo&&l.sourceSide==='o';
-  if(latePass)global=clamp(global-dir(off)*5,1,99);
+  if(latePass){global=clamp(global-dir(off)*5,1,99);if(state.clockRunning){runoff=10;s.clock=Math.max(0,s.clock-runoff);}}
   if(winner!==off||l.sourceSide==='d'){
    newSeries(s,winner,global);endedTeam=other(winner);
    call=`${l.kind==='backwardPass'?'Backward pass':'Fumble'} — ${winner.toUpperCase()} ball at ${spotText(s)}`;
@@ -101,14 +101,14 @@ function settleLoose(state,s,r,wasTry,expired,twoMinute){
    s.toGain=(target-global)*dir(off);
    if(s.toGain<=0&&!latePass){s.down=1;s.toGain=Math.min(10,Math.max(1,off==='home'?100-s.ball:s.ball));call=`First down after ${l.kind==='backwardPass'?'backward pass':'fumble'} at ${spotText(s)}`;}
    else if(s.down===4){newSeries(s,def,global);endedTeam=off;call=`Turnover on downs after ${l.kind==='backwardPass'?'backward pass':'fumble'} — ${def.toUpperCase()} ball at ${spotText(s)}`;}
-   else{s.down++;s.toGain=Math.max(1,s.toGain);call=`${l.kind==='backwardPass'?'Backward pass':'Fumble'} ${restricted?'teammate recovery stopped at earlier spot':l.dead==='recovered'?'recovered':'out of bounds'}${latePass?' — loss of down and 5 yards':''}; ${s.down} & ${Math.ceil(s.toGain)} at ${spotText(s)}`;}
+   else{s.down++;s.toGain=Math.max(1,s.toGain);call=`${l.kind==='backwardPass'?'Backward pass':'Fumble'} ${restricted?'teammate recovery stopped at earlier spot':l.dead==='recovered'?'recovered':'out of bounds'}${latePass?' — loss of down and 5 yards'+(runoff?', 10-second runoff':''):''}; ${s.down} & ${Math.ceil(s.toGain)} at ${spotText(s)}`;}
    s.clockRunning=l.dead==='recovered'&&!restricted;
   }
   if(l.dead!=='recovered')s.clockRunning=false;
  }
  s.log.push('Referee: '+call+'.');
  if(twoMinute&&!expired){s.clockRunning=false;s.log.push('Referee: two-minute warning.');}
- if(expired){if(s.phase==='try')s.pendingPeriodEnd=true;else periodEnd(s);}
+ if(expired||s.clock===0){if(s.phase==='try')s.pendingPeriodEnd=true;else periodEnd(s);}
  otCheck(s,endedTeam);
  return {state:s,call,accepted:true,loose:l};
 }
