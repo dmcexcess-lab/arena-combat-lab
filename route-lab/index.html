@@ -606,7 +606,12 @@ function simulate(off,def,seed=71){
        originY:loose.originY,outY:ball.y,outX:ball.x,dead:'out'};
       finish(loose.kind==='backwardPass'?'Backward pass out of bounds':'Fumble out of bounds',t,ball);
     }else{
-      const candidates=[...o,...d].filter(p=>dist(p,ball)<1.28).sort((a,b)=>dist(a,ball)-dist(b,ball));
+      // The ball must leave the passer's hands before anyone can recover it.
+      // Give a pitch time to travel; its passer can still pursue a failed pitch.
+      const looseAge=t-loose.at;
+      const candidates=looseAge<.15?[]:[...o,...d]
+        .filter(p=>dist(p,ball)<1.28&&(p.id!==loose.sourceId||looseAge>=.35))
+        .sort((a,b)=>dist(a,ball)-dist(b,ball));
       for(const p of candidates){
         const skill=statsOf(p),chance=clamp(.18+skill.hands*.003+skill.awareness*.0018-(dist(p,ball)-.4)*.18,.22,.74);
         if(looseRand()>=chance)continue;
