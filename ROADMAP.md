@@ -81,4 +81,8 @@ Keep this a **small finishable game**. Core world: **Prison + Arena**. Do not re
 8. Formalize cross-game creature/equipment integration.
 9. Polish into the small complete game.
 
+## Route Lab rule-simulation slices
+
+The exhibition setup and game-rhythm slice is implemented. The next slices are loose-ball possession and exact spots; special-teams catches, muffs, blocks and returns; broader live-ball officiating and replay; then full clock and overtime edge cases. See `route-lab/RULES_AUDIT.md` for the detailed boundary and official-rule references.
+
 Current playtest problems outrank roadmap order.

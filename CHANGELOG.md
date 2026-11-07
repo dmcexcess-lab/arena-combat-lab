@@ -1,3 +1,10 @@
+## 2026-11-06 — Route Lab exhibition setup and game rhythm
+- Added a Free / Campaign / Load start menu, a saved first-time coin call and home uniform color, and an animated toss for every new Free exhibition.
+- Fresh games generate randomized ratings and two candidates for each team depth-chart slot. Home starters chosen before kickoff dress the live 11-on-11 plays; skipping setup uses the CPU lineup.
+- Added quarter/clock/score/possession/spot jump controls, local exhibition resume, and one-button Next with situational CPU offense, defense, kicks and tries. Player playbook and custom-play overrides remain available.
+- Running-clock snaps now consume a capped 27–35 second line reset, while snap-anticipation offside and a geometry-based defensive pass interference call can change the live result. Exhibition has no season W/L record.
+- Grouped future possession, special teams, officiating and timing work into follow-on slices in `route-lab/RULES_AUDIT.md`.
+
 ## 2026-11-06 — Route Lab player ratings and simulation depth
 - Expanded player ratings to 16 with stamina, pass rush, pursuit, route running and runner vision; older saved play records inherit role defaults for missing attributes.
 - Added momentum-sensitive cuts, within-play fatigue, vision-guided run paths, rated man reaction and defensive pursuit, pass-rush versus blocking contact, and missed-tackle recovery.

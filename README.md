@@ -8,6 +8,8 @@
 
 **Play Route Lab — Football X/O Play Designer:** https://dmcexcess-lab.github.io/arena-combat-lab/route-lab/
 
+Route Lab now opens with Free Play, Campaign, and Load. A fresh Free exhibition starts at an animated coin toss, creates randomized teams, and lets you choose HOME starters in a depth chart or use the CPU lineup. Next Play calls both sides and advances downs, kicks, tries, and the clock; you can override either play or jump to a chosen game situation. Exhibitions save locally and do not track season wins or losses.
+
 Route Lab also includes a searchable, always-available 57+ entry football encyclopedia, a QB Film Room showing candidate passing reads, variable simulation attempts with reproducible seeds, and two guided, six-lesson campaigns. **Offense Campaign** introduces QB, receivers, blocking, spacing and full 11-on-11 legality before a custom touchdown drive. **Defense Campaign** introduces tackling, man assignments, rush, zones and coordinated coverage before a four-down defensive stand. Reduced-player drills use explicit training rules; the final lessons use the full simulator. Progress saves locally in your browser.
 
 ## The game

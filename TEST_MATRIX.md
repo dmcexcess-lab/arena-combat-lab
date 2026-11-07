@@ -187,7 +187,7 @@ Operational checklist for humans + AIs. Keep compact; add only behaviors whose r
 - An interception yields a live return phase, defense possession, and zero offensive yards; a return can end by tackle, boundary, or score.
 - A four-yard loss adds four yards to the distance to gain, while a sack behind the offense's goal line produces a safety.
 - A full-squad ineligible-numbered backfield player must report eligible; a compliant report passes validation.
-- Keep `route-lab/index.html` embedded scripts identical to the five maintained modules and run the Route Lab CI suites.
+- Keep `route-lab/index.html` embedded scripts identical to the six maintained modules and run the Route Lab CI suites.
 
 ## Route Lab position and decision depth (2026-11-06)
 - Slot WR uses receiver ratings rather than safety ratings; X/Z and nickel receive their position-specific speed/coverage defaults.
