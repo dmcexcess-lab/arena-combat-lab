@@ -155,8 +155,8 @@ function pursuitTarget(defender,runner){
 function simulate(off,def,seed=71){
  const v=validate(off,def); if(!v.valid)return {valid:false,validation:v,frames:[],events:[]};
  const rand=rng(seed), looseRand=rng(((Number(seed)||71)^0x8b21d5f3)>>>0), dt=.05, maxT=12;
- const o=clone(off.players).map(p=>({...p,side:'o',vx:0,vy:0,fatigue:0,tackleCooldown:0,routeIndex:0,engaged:false,speed:(p.speed??1)*(.96+rand()*.08)}));
- const d=clone(def.players).map(p=>({...p,side:'d',homeY:p.y,vx:0,vy:0,fatigue:0,tackleCooldown:0,engaged:false,speed:(p.speed??1)*(.94+rand()*.12)}));
+ const o=clone(off.players).map(p=>({...p,side:'o',vx:0,vy:0,fatigue:clamp(Number(p.fatigue)||0,0,.8),tackleCooldown:0,routeIndex:0,engaged:false,speed:(p.speed??1)*(.96+rand()*.08)}));
+ const d=clone(def.players).map(p=>({...p,side:'d',homeY:p.y,vx:0,vy:0,fatigue:clamp(Number(p.fatigue)||0,0,.8),tackleCooldown:0,engaged:false,speed:(p.speed??1)*(.94+rand()*.12)}));
  const byId=(id)=>o.find(p=>p.id===id), defenders=(id)=>d.find(p=>p.id===id);
  const qb=byId(off.snapToId||'oQB')||o.find(p=>p.label==='QB'), runner=byId(off.runnerId)||qb;
  let carrier=qb, state='live', ball={x:qb.x,y:qb.y,kind:'held'}, targetPass=null,flight=null, thrown=false, handoff=false, playOver=false, verdict='', yards=0, time=0, sack=false,returnStartY=null,catchTime=-1;
@@ -614,7 +614,7 @@ function simulate(off,def,seed=71){
    if(at.engaged&&f.t>=0)engaged+=dt;
    previous=at;}
   return {id:p.id,label:p.label,side:p.side,assignment:p.job,
-   yardsMoved:+travelled.toFixed(1),contactSeconds:+engaged.toFixed(2)};
+   yardsMoved:+travelled.toFixed(1),contactSeconds:+engaged.toFixed(2),fatigue:+p.fatigue.toFixed(4)};
  });
  return {valid:true,validation:v,frames,events,decisions,specialMoves,contacts,participation,result:{verdict,yards,seconds:+time.toFixed(2),seed,offense:off.name,defense:def.name,sack,
   possession:carrier?.side==='d'||!carrier&&looseResult?.sourceSide==='d'?'defense':'offense',
