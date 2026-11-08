@@ -472,3 +472,10 @@ Current truth: `PROJECT_CONTEXT.md` · Future: `ROADMAP.md`
 ## 2026-11-08 — Route Lab defensive ball skills
 - Defenders now break toward a projected pass after an awareness-based read delay; awareness also improves pursuit pace and coverage continues to influence the catch contest.
 - Hands, awareness, and coverage now affect whether a very close breakup becomes a live interception. Added deterministic checks for read timing and a seed where hands changes a breakup into an interception.
+
+## 2026-11-08 — Route Lab ball exchanges and possession
+- Animate the center-to-QB snap and validate the center-to-QB distance; QB movement and passing begin after the snap is secured.
+- Require the QB and runner to meet at the designed handoff mesh. If the mesh is missed during live play, the QB keeps the ball and scrambles; invalid, unreachable custom meshes are rejected before the snap.
+- Resolve loose balls through live pursuit and recovery, out-of-bounds rulings, or ball-settling behavior. Replace the fixed play-duration whistle with a diagnostic watchdog that rejects unresolved simulations without changing game state.
+- Track defensive recovery as the live carrier into return pursuit and test that the offense tackles the defender rather than self-contact occurring.
+- Added focused snap, mesh, ownership, unreachable-exchange and watchdog scenarios; all 74 regression scenarios and the eight-game audit completed.

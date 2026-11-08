@@ -212,6 +212,43 @@ test('a designed QB run does not let an off-ball RB report a carrier read',()=>{
  assert.equal(sim.frames.at(-1).carrierId,'oQB');
 });
 
+test('a live snap travels from the center to the quarterback before possession',()=>{
+ const off=P.createOffensePresets()[0],def=P.createDefensePresets()[0],center=off.players.find(p=>p.label==='C'),qb=off.players.find(p=>p.label==='QB');
+ const sim=C.simulate(off,def,801);assert.ok(sim.valid);
+ assert.equal(sim.frames[0].phase,'snap');
+ assert.ok(Math.hypot(sim.frames[0].ball.x-center.x,sim.frames[0].ball.y-center.y)<.01);
+ const caught=sim.events.find(e=>e.text.startsWith('Center snaps'));
+ assert.ok(caught,'snap should have a completed center-to-QB exchange');
+ const received=sim.frames.find(f=>f.t===caught.t),receiver=received.offense.find(p=>p.id===qb.id);
+ assert.ok(Math.hypot(received.ball.x-receiver.x,received.ball.y-receiver.y)<.01);
+});
+
+test('the QB and runner exchange only when they meet at the designed mesh',()=>{
+ const {off,def}=isolatedRun(),sim=C.simulate(off,def,803);
+ const mesh=sim.decisions.find(d=>d.action==='handoff');
+ assert.ok(mesh,'reachable run mesh should complete');
+ assert.ok(mesh.exchangeDistance<=1.25);
+ assert.equal(sim.frames.find(f=>f.t===mesh.t).carrierId,'oRB');
+ assert.equal(sim.frames.find(f=>f.t===+(mesh.t-.05).toFixed(2)).carrierId,'oQB');
+ assert.ok(sim.events.some(e=>e.t===mesh.t&&e.text.includes('exchange secured')));
+});
+
+test('an unreachable snap or handoff mesh is rejected before the play starts',()=>{
+ const off=P.createOffensePresets().find(p=>p.name==='Inside Zone'),def=P.createDefensePresets()[0],qb=off.players.find(p=>p.id==='oQB'),rb=off.players.find(p=>p.id==='oRB');
+ qb.y=-12;assert.ok(C.validate(off,def).errors.some(e=>e.includes('reachable snap distance')));
+ qb.y=-5;rb.route[0]={x:16,y:18};assert.ok(C.validate(off,def).errors.some(e=>e.includes('designed handoff mesh')));
+});
+
+test('the engine watchdog returns a diagnostic instead of inventing a dead-ball result',()=>{
+ const off=P.createOffensePresets()[0],def=P.createDefensePresets()[0];off.training=true;off.trainingVirtualSnap=true;off.type='pass';
+ off.players=off.players.filter(p=>['oQB','oRB'].includes(p.id));const qb=off.players.find(p=>p.id==='oQB');
+ qb.y=-5;qb.throwAt=99;qb.qbDropTime=99;off.allowScramble=false;off.players.find(p=>p.id==='oRB').job='passblock';off.players.find(p=>p.id==='oRB').route=[];
+ def.players=def.players.filter(p=>p.id==='dS');def.players[0].job='deep';def.players[0].x=22;def.players[0].y=22;
+ const sim=C.simulate(off,def,809);assert.equal(sim.valid,false);assert.equal(sim.result.completed,false);
+ assert.match(sim.diagnostic.message,/before a football dead-ball event/);
+ assert.equal(sim.result.verdict,'');
+});
+
 test('the play result displays executed special moves',()=>{
  const html=fs.readFileSync(path.join(__dirname,'..','index.html'),'utf8');
  const app=fs.readFileSync(path.join(__dirname,'..','app.js'),'utf8');

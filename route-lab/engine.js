@@ -53,6 +53,15 @@ function validate(off,def){
   if(!(off.training&&off.trainingVirtualSnap)&&(centers.length!==1||!centers[0].onLine||Math.abs(centers[0].x)>1.0)) err('One center (C) must be on the line at the snap.');
   const qb=off.players.find(p=>p.id===(off.snapToId||'oQB'))||off.players.find(p=>p.label==='QB');
   if(!qb) err('Offense needs a designated snap receiver.'); else if(qb.onLine||qb.y>=-.65)err('Snap receiver must be in the backfield.');
+  const center=off.players.find(p=>p.label==='C');
+  if(center&&qb&&!(off.training&&off.trainingVirtualSnap)&&dist(center,qb)>9)
+    err('Snap receiver is outside the center’s reachable snap distance.');
+  if(['run','option'].includes(off.type)&&qb){
+    const back=off.players.find(p=>p.id===off.runnerId);
+    const mesh=off.handoffPoint||back?.route?.[0]||back;
+    if(back&&mesh&&(dist(qb,mesh)>12||dist(back,mesh)>12))
+      err('QB and runner cannot reach the designed handoff mesh.');
+  }
   const legalTargets=new Set(def.players.map(p=>p.id)), oTargets=new Set(off.players.map(p=>p.id));
   for(const p of off.players){
     if(p.reportedEligible&&p.reportedIneligible)err(p.label+' cannot report both eligible and ineligible.');
@@ -155,18 +164,23 @@ function pursuitTarget(defender,runner){
 }
 function simulate(off,def,seed=71){
  const v=validate(off,def); if(!v.valid)return {valid:false,validation:v,frames:[],events:[]};
- const rand=rng(seed), looseRand=rng(((Number(seed)||71)^0x8b21d5f3)>>>0), dt=.05, maxT=12;
+ const rand=rng(seed), looseRand=rng(((Number(seed)||71)^0x8b21d5f3)>>>0), dt=.05, maxT=20;
  const o=clone(off.players).map(p=>({...p,side:'o',homeX:p.x,vx:0,vy:0,fatigue:clamp(Number(p.fatigue)||0,0,.8),tackleCooldown:0,routeIndex:0,pressResolved:false,pressSlowUntil:0,engaged:false,speed:(p.speed??1)*(.96+rand()*.08)}));
  const d=clone(def.players).map(p=>({...p,side:'d',homeY:p.y,vx:0,vy:0,fatigue:clamp(Number(p.fatigue)||0,0,.8),tackleCooldown:0,engaged:false,speed:(p.speed??1)*(.94+rand()*.12)}));
  const byId=(id)=>o.find(p=>p.id===id), defenders=(id)=>d.find(p=>p.id===id);
  const qb=byId(off.snapToId||'oQB')||o.find(p=>p.label==='QB'), runner=byId(off.runnerId)||qb;
- let carrier=qb, state='live', ball={x:qb.x,y:qb.y,kind:'held'}, targetPass=null,flight=null, thrown=false, handoff=false, playOver=false, verdict='', yards=0, time=0, sack=false,returnStartY=null,catchTime=-1;
+ const center=off.players.find(p=>p.label==='C'),snapFrom=center?{x:center.x,y:center.y}:{x:qb.x,y:qb.y};
+ const snapDistance=dist(snapFrom,qb),usesSnap=!(off.training&&off.trainingVirtualSnap)&&snapDistance>.9;
+ const handoffPoint=off.handoffPoint||runner.route?.[0]||{x:(qb.x+runner.x)/2,y:(qb.y+runner.y)/2};
+ let carrier=qb, state=usesSnap?'snap':'live', ball=usesSnap?{...snapFrom,kind:'snap'}:{x:qb.x,y:qb.y,kind:'held'}, targetPass=null,flight=null, thrown=false, handoff=false, playOver=false, verdict='', yards=0, time=0, sack=false,returnStartY=null,catchTime=-1;
+ let snapProgress=0,handoffMissed=false,watchdog=null;
  let loose=null,looseResult=null,looseCount=0,lateralUsed=false,possessionChanged=false,interceptionY=null;
  const frames=[],events=[],decisions=[],specialMoves=[],contacts=[],blockContacts=new Set(); const log=(t,text)=>events.push({t:+t.toFixed(2),text});
  const isRun=['run','option'].includes(off.type),directRun=isRun&&runner===qb,allowLoose=off.enableLooseBall===true&&!off.training&&!off.trainingVirtualSnap;
  const eligible=new Set(off.training?o.filter(p=>p.job==='route').map(p=>p.id):v.eligible);
  const receivers=o.filter(p=>p.job==='route'&&eligible.has(p.id));
  let playDir=off.runGapX??2;
+ if(usesSnap)carrier=null;
  if(directRun)handoff=true;
  log(0,'Snap — '+off.name+' vs '+def.name);
  if(directRun)log(0,'Direct snap to '+runner.label);
@@ -217,13 +231,19 @@ function simulate(off,def,seed=71){
   const from={x:moving.x,y:moving.y},to={x:moving.motion.toX,y:moving.motion.toY};
   const shiftX=to.x-from.x,shiftY=to.y-from.y;
   for(let i=0;i<=16;i++){const alpha=i/16; moving.x=from.x+shiftX*alpha;moving.y=from.y+shiftY*alpha;
-   ball={x:qb.x,y:qb.y,kind:'held'};copyFrame(-.8+alpha*.8);}
+   ball=usesSnap?{...snapFrom,kind:'snap'}:{x:qb.x,y:qb.y,kind:'held'};copyFrame(-.8+alpha*.8);}
   if(moving.route) moving.route=moving.route.map(w=>({x:clamp(w.x+shiftX,-26.5,26.5),y:w.y+shiftY}));
   log(-.8,'Motion: '+moving.label+' shifts before the snap');
  } else copyFrame(0);
  const priorZoneMatchLeads=new Map();
  for(let step=1;step<=maxT/dt && !playOver;step++){
   time=step*dt; const t=time;
+  if(state==='snap'){
+    snapProgress=Math.min(snapDistance,snapProgress+30*dt);
+    const pct=snapDistance?snapProgress/snapDistance:1;
+    ball={x:snapFrom.x+(qb.x-snapFrom.x)*pct,y:snapFrom.y+(qb.y-snapFrom.y)*pct,kind:'snap'};
+    if(snapProgress>=snapDistance){carrier=qb;state='live';ball={x:qb.x,y:qb.y,kind:'held'};log(t,'Center snaps the ball to '+qb.label+' — exchange secured');}
+  }
   if(off.playActionFake&&step===1)log(t,'QB carries out the handoff fake; the ball stays with the quarterback');
   for(const p of [...o,...d]){p.wasEngaged=p.engaged;p.engaged=false;p.supportBlock=false;}
   // Route pursuit with waypoints. A hot route is a read priority, not a speed boost.
@@ -270,8 +290,8 @@ function simulate(off,def,seed=71){
       move(p,loc,dt,5.1);
     }else if(p.job==='carry'){
       if(p!==runner){move(p,p.route?.[0]||{x:p.x,y:p.y+2},dt,speedOf(p)*.5,12);continue;}
-      if(isRun && !handoff){const first=p.route?.[0]||{x:0,y:-4};move(p,{x:first.x,y:Math.min(-4,first.y)},dt,speedOf(p)*.78,18);}
-      if(isRun && handoff){let goal= p.route?.[Math.min(p.routeIndex,p.route.length-1)]||{x:playDir,y:35};
+      if(isRun && !handoff){move(p,handoffPoint,dt,speedOf(p)*.78,18);}
+      if(isRun && handoff&&carrier===p){let goal= p.route?.[Math.min(p.routeIndex,p.route.length-1)]||{x:playDir,y:35};
         if((dist(p,goal)<.8||p.y>=goal.y-.4)&&p.routeIndex<(p.route?.length||1)-1){
           p.routeIndex++;goal=p.route[p.routeIndex];
         }
@@ -288,7 +308,7 @@ function simulate(off,def,seed=71){
         if(ahead.agent){const avoid=clamp((5-ahead.d)/5,0,1)*(statsOf(p).vision/99)*1.8;
           goal={x:clamp(goal.x+(p.x<=ahead.agent.x?-avoid:avoid),-26.5,26.5),y:goal.y};}
         move(p,goal,dt,speedOf(p),18);
-      } else if(!handoff){move(p,{x:p.x*.96,y:-4.9},dt,2.5,8);}
+      } else if(isRun&&handoff&&carrier===qb){move(p,{x:qb.x,y:qb.y+1.4},dt,speedOf(p)*.48,12);}
     }else if(p.job==='passblock'||p.job==='runblock'||p.job==='block'){
       let target=defenders(p.blockTarget);
       if(!target){
@@ -303,7 +323,7 @@ function simulate(off,def,seed=71){
     }
   }
   // QB drops, holds, or scrambles once pressure arrives.
-  if(!isRun&&state!=='loose'){
+  if(!isRun&&state==='live'&&carrier===qb){
     const rush=nearest(qb,d,a=>['rush','blitz','contain'].includes(a.job));
     let pressure=rush.d<2.65+statsOf(qb).awareness/55;
     const reactAt=.85+clamp((95-statsOf(qb).awareness)/120,0,.7);
@@ -320,12 +340,13 @@ function simulate(off,def,seed=71){
         move(qb,{x:qb.escapeX,y:qb.y+2},dt,5.4);
       }else{move(qb,{x:qb.x,y:qb.y},dt,0);}
     }
-  }else if(directRun){const path=qb.route||[];let target=path[Math.min(qb.routeIndex,path.length-1)]||{x:playDir,y:20};
+  }else if(isRun&&directRun&&state==='live'&&carrier===qb){const path=qb.route||[];let target=path[Math.min(qb.routeIndex,path.length-1)]||{x:playDir,y:20};
     if((dist(qb,target)<.8||qb.y>=target.y-.4)&&qb.routeIndex<path.length-1){qb.routeIndex++;target=path[qb.routeIndex];}
     if(qb.routeIndex===path.length-1&&qb.y>=target.y-.7)target={x:target.x,y:qb.y+12};
     if(qb.y>-2)target={x:openFieldTarget(qb,d,t,1,o,target.x).x*.45+target.x*.55,y:target.y};
     move(qb,target,dt,speedOf(qb),18);
-  }else if(!handoff){move(qb,{x:runner.x*.3,y:-4.8},dt,2.4);}
+  }else if(isRun&&!handoff&&state==='live'&&carrier===qb){move(qb,handoffPoint,dt,speedOf(qb)*.82,16);}
+  else if(isRun&&handoffMissed&&carrier===qb){const lane=openFieldTarget(qb,d,t,1,o,handoffPoint.x);move(qb,lane,dt,speedOf(qb),18);}
   // Match-zone defenders share route ownership: one defender carries each
   // receiver in overlapping zones, selected by proximity and rated awareness.
   const zonePairs=[];
@@ -383,9 +404,9 @@ function simulate(off,def,seed=71){
         }
       }
     }
-    if(isRun&&handoff&&carrier.y>1){
+    if(isRun&&handoff&&(carrier||qb).y>1){
       const rating=statsOf(p);
-      move(p,pursuitTarget(p,carrier),dt,speedOf(p)*(.98+rating.pursuit/390),19);
+      move(p,pursuitTarget(p,carrier||qb),dt,speedOf(p)*(.98+rating.pursuit/390),19);
       continue;
     }
     if(p.job==='rush'||p.job==='blitz'){
@@ -418,7 +439,7 @@ function simulate(off,def,seed=71){
       const nearestThreat=nearest(z,threats);
       let lead=p.zoneTechnique==='match'?zoneMatchLeads.get(p.id)||null:
         nearestThreat.agent&&nearestThreat.d<(z.r||7)*1.2?nearestThreat.agent:null;
-      if(handoff&&t>.75&&dist(p,carrier)<12)lead=carrier;
+      if(handoff&&t>.75&&dist(p,carrier||qb)<12)lead=carrier||qb;
       const pursuit=lead===carrier?statsOf(p).pursuit/260:0;
       const inAssignedArea=lead&&Math.abs(lead.x-z.x)<=(z.r||6)&&Math.abs(lead.y-z.y)<=(z.rY||z.r||6);
       if(p.zoneTechnique==='match'&&inAssignedArea){
@@ -443,7 +464,7 @@ function simulate(off,def,seed=71){
         const fake=off.playActionFake,readDelay=clamp(.85-rating.awareness*.004,.42,.82);
         if(t>=readDelay)move(p,{x:fake.x??qb.x+2,y:Math.min(4,(fake.y??-1.2)+2)},dt,speedOf(p)*.9);
         else move(p,{x:p.fitX??playDir,y:Math.min(3,2.8)},dt,speedOf(p)*.82);
-      }else move(p,handoff?{x:carrier.x+carrier.vx*lead,y:carrier.y+carrier.vy*lead}:{x:p.fitX??playDir,y:1.4},dt,speedOf(p)*.9);
+      }else move(p,handoff?{x:(carrier||qb).x+(carrier||qb).vx*lead,y:(carrier||qb).y+(carrier||qb).vy*lead}:{x:p.fitX??playDir,y:1.4},dt,speedOf(p)*.9);
     }
     else if(p.job==='deep')move(p,{x:p.zone?.x??p.x,y:p.zone?.y??18},dt,speedOf(p)*.7);
   }
@@ -469,13 +490,20 @@ function simulate(off,def,seed=71){
     }
   }
   // Handoff after QB meets RB; option currently uses preselected runner (not adaptive read).
-  if(isRun && !handoff && t>=.65 && state!=='loose'){
+  if(isRun && !handoff && state==='live'&&carrier===qb&&dist(qb,runner)<=1.25){
    handoff=true;
+   const exchangePoint={x:(qb.x+runner.x)/2,y:(qb.y+runner.y)/2};
    const muff=clamp(.003+(82-statsOf(qb).hands)*.00025+(82-statsOf(runner).hands)*.0003,.002,.035);
-   if(allowLoose&&looseRand()<muff)releaseLoose('fumble',t,{x:(qb.x+runner.x)/2,y:(qb.y+runner.y)/2},runner,qb);
-   else{carrier=runner;ball={x:runner.x,y:runner.y,kind:'held'};log(t,'Handoff to '+runner.label);}
+   decisions.push({t:+t.toFixed(2),action:'handoff',fromId:qb.id,toId:runner.id,exchangeDistance:+dist(qb,runner).toFixed(2)});
+   if(allowLoose&&looseRand()<muff)releaseLoose('fumble',t,exchangePoint,runner,runner);
+   else{carrier=runner;ball={x:runner.x,y:runner.y,kind:'held'};catchTime=t;log(t,'Handoff exchange secured — '+runner.label+' controls the ball');}
   }
-  if(!isRun&&!thrown&&state!=='loose'){
+  if(isRun&&!handoff&&!handoffMissed&&state==='live'&&carrier===qb&&t>=1.8){
+   handoffMissed=true;handoff=true;state='runafter';catchTime=t;
+   decisions.push({t:+t.toFixed(2),action:'handoff-missed',carrierId:qb.id,reason:'QB and runner did not reach the mesh'});
+   log(t,'Handoff mesh missed — QB keeps the ball and scrambles');
+  }
+  if(!isRun&&!thrown&&state==='live'&&carrier===qb){
     // A defensive rusher close to QB before release gets a sack.
     const rush=nearest(qb,d,a=>['rush','blitz','contain','spy'].includes(a.job));
     if(t>.35 && rush.d<.94 && !(rush.agent?.engaged&&rand()<.78)){
@@ -619,10 +647,13 @@ function simulate(off,def,seed=71){
         if(p.y<=ownGoal||p.y>=farGoal)finish('Recovery in end zone',t,p);
         break;
       }
-      if(!carrier&&t-loose.at>3.5){
+      const looseSpeed=Math.hypot(loose.vx,loose.vy);
+      loose.settledFor=looseSpeed<.45?(loose.settledFor||0)+dt:0;
+      const nearestPlayer=nearest(ball,[...o,...d]);
+      if(!carrier&&loose.settledFor>=.8&&nearestPlayer.d>1.3){
         looseResult={kind:loose.kind,sourceSide:loose.sourceSide,sourceId:loose.sourceId,
          originY:loose.originY,outY:ball.y,outX:ball.x,dead:'unrecovered'};
-        finish('Loose ball dead at spot',t,ball);
+        finish('Loose ball settled — no player in recovery distance',t,ball);
       }
     }
   }
@@ -680,13 +711,10 @@ function simulate(off,def,seed=71){
     p.fatigue=clamp(p.fatigue+dt*(.006+effort*.018+(p.engaged?.026:0))*(1.45-rating/180),0,.8);
     p.tackleCooldown=Math.max(0,(p.tackleCooldown||0)-dt);
   }
-  if(!playOver&&t>=11.95){
-    if(state==='loose'&&loose)looseResult={kind:loose.kind,sourceSide:loose.sourceSide,sourceId:loose.sourceId,originY:loose.originY,outY:ball.y,outX:ball.x,dead:'unrecovered'};
-    finish(state==='return'?(looseResult?'Recovery return — play duration limit':'Interception return — play duration limit'):'Whistle — play duration limit',t,carrier||ball);
-  }
+  if(!playOver&&t>=maxT){watchdog={time:t,state,carrierId:carrier?.id||null,ball:{x:+ball.x.toFixed(2),y:+ball.y.toFixed(2)},message:'Simulation watchdog reached before a football dead-ball event.'};log(t,'ENGINE WATCHDOG — no dead-ball ruling; result rejected for review');break;}
   copyFrame(t);
  }
- if(!playOver&&frames.length)finish(state==='return'?'Interception return ended':'Play ended',time,carrier||point(0,0));
+ if(!watchdog&&!playOver&&frames.length)finish(state==='return'?'Interception return ended':'Play ended',time,carrier||point(0,0));
  const participation=[...o,...d].map(p=>{
   let travelled=0,engaged=0,previous=null;
   for(const f of frames){const at=(p.side==='o'?f.offense:f.defense).find(x=>x.id===p.id);
@@ -696,7 +724,7 @@ function simulate(off,def,seed=71){
   return {id:p.id,label:p.label,side:p.side,assignment:p.job,
    yardsMoved:+travelled.toFixed(1),contactSeconds:+engaged.toFixed(2),fatigue:+p.fatigue.toFixed(4)};
  });
- return {valid:true,validation:v,frames,events,decisions,specialMoves,contacts,participation,result:{verdict,yards,seconds:+time.toFixed(2),seed,offense:off.name,defense:def.name,sack,
+ return {valid:!watchdog,validation:v,diagnostic:watchdog,frames,events,decisions,specialMoves,contacts,participation,result:{verdict,yards,seconds:+time.toFixed(2),seed,offense:off.name,defense:def.name,sack,completed:!watchdog,
   possession:carrier?.side==='d'||!carrier&&looseResult?.sourceSide==='d'?'defense':'offense',
   possessionChanged,interceptionY,deadBallY:+(ball?.y??carrier?.y??0).toFixed(2),loose:looseResult,
   returnYards:returnStartY===null?0:+(returnStartY-(carrier?.y??returnStartY)).toFixed(1)}};
