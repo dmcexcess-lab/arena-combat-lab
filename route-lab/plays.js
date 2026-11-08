@@ -78,6 +78,8 @@ function createOffensePresets(){
  for(const id of ['oLT','oLG','oC','oRG','oRT','oTE'])setBlock(o,id,'',1,'runblock');
  setRoute(o,'oX','slant');setRoute(o,'oSL','out');setRoute(o,'oZ','go');
  runRoute(o,'oRB',[[2,-3],[1,1],[-1,9],[0,25]]);o.runGapX=0;a.push(o);
+ o=COPY(a.find(v=>v.name==='Inside Zone'));o.id='off-goal-line-power';o.name='Goal Line Power';o.runGapX=0;
+ runRoute(o,'oRB',[[1,-3],[0,0],[0,2],[0,5],[0,9]]);a.push(o);
  o=offense('Empty Spacing');
  const rb=o.players.find(p=>p.id==='oRB');rb.x=-16;rb.y=-2;
  setRoute(o,'oX','hitch',2);setRoute(o,'oSL','out',3);setRoute(o,'oTE','curl',4);

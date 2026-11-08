@@ -175,7 +175,7 @@ function simulate(off,def,seed=71){
  let carrier=qb, state=usesSnap?'snap':'live', ball=usesSnap?{...snapFrom,kind:'snap'}:{x:qb.x,y:qb.y,kind:'held'}, targetPass=null,flight=null, thrown=false, handoff=false, playOver=false, verdict='', yards=0, time=0, sack=false,returnStartY=null,catchTime=-1;
  let snapProgress=0,handoffMissed=false,watchdog=null;
  let loose=null,looseResult=null,looseCount=0,lateralUsed=false,possessionChanged=false,interceptionY=null;
- const frames=[],events=[],decisions=[],specialMoves=[],contacts=[],blockContacts=new Set(); const log=(t,text)=>events.push({t:+t.toFixed(2),text});
+ const frames=[],events=[],decisions=[],specialMoves=[],contacts=[],blockContacts=new Set(),blockDuels=new Map(); const log=(t,text)=>events.push({t:+t.toFixed(2),text});
  const isRun=['run','option'].includes(off.type),directRun=isRun&&runner===qb,allowLoose=off.enableLooseBall===true&&!off.training&&!off.trainingVirtualSnap;
  const eligible=new Set(off.training?o.filter(p=>p.job==='route').map(p=>p.id):v.eligible);
  const receivers=o.filter(p=>p.job==='route'&&eligible.has(p.id));
@@ -471,17 +471,22 @@ function simulate(off,def,seed=71){
   // Blocking contacts: delay / deflect rushers; the pressure model uses assignments and matchups.
   for(const blocker of state==='loose'?[]:o.filter(p=>p.supportBlock||['passblock','runblock','block','pull'].includes(p.job))){
     let enemy=defenders(blocker.supportBlock?blocker.supportTarget:blocker.blockTarget);
-    if(!enemy)enemy=nearest(blocker,d,a=>blocker.supportBlock?dist(a,carrier)<7:
-      ['rush','blitz','contain','runfit'].includes(a.job)&&(!a.engaged||isRun)).agent;
+    if(enemy&&enemy.blockShedUntil>t)enemy=null;
+    if(!enemy)enemy=nearest(blocker,d,a=>(a.blockShedUntil||0)<=t&&(blocker.supportBlock?dist(a,carrier)<7:
+      ['rush','blitz','contain','runfit'].includes(a.job)&&!a.engaged)).agent;
     if(enemy&&dist(blocker,enemy)<2.15){
       blocker.engaged=enemy.engaged=true;
       const pair=blocker.id+':'+enemy.id;
       if(!blockContacts.has(pair)){blockContacts.add(pair);contacts.push({t:+t.toFixed(2),kind:'block',offenseId:blocker.id,defenseId:enemy.id,relativeSpeed:+Math.hypot(blocker.vx-enemy.vx,blocker.vy-enemy.vy).toFixed(2),support:!!blocker.supportBlock,offenseY:+blocker.y.toFixed(2),defenseY:+enemy.y.toFixed(2),defenseVy:+enemy.vy.toFixed(2)});}
       const block=statsOf(blocker),rush=statsOf(enemy);
-      const power=(blocker.power??.72)*(.55+block.blocking/155)*(.7+block.strength/300)*(1-blocker.fatigue*.24);
-      const defense=(enemy.power??.66)*(.48+rush.strength/260+rush.passRush/310)*(1-enemy.fatigue*.22);
+      const duel=blockDuels.get(pair)||{time:0,shedChecked:false};duel.time+=dt;blockDuels.set(pair,duel);
+      const aimedGap=off.runGapX??0,gapSide=Math.sign(aimedGap-blocker.x),rushSide=Math.sign(enemy.x-blocker.x);
+      const leverage=clamp(.82+(gapSide&&gapSide===rushSide ? .22 : 0)+(block.awareness-70)*.001-(rush.awareness-70)*.0007,.62,1.16);
+      const power=(blocker.power??.72)*(.5+block.blocking/150)*(.68+block.strength/280)*leverage*(1-blocker.fatigue*.24);
+      const defense=(enemy.power??.66)*(.46+rush.strength/265+rush.passRush/300)*(1-enemy.fatigue*.22);
+      if(duel.time>=.3&&!duel.shedChecked){duel.shedChecked=true;const shedChance=clamp(.09+(defense-power)*.38+(rush.awareness-block.awareness)*.0015,.025,.38);if(rand()<shedChance){blockDuels.delete(pair);enemy.blockShedUntil=t+.65;enemy.engaged=false;blocker.engaged=false;enemy.vx*=.55;enemy.vy=Math.max(enemy.vy,1.3);contacts.push({t:+t.toFixed(2),kind:'shed',offenseId:blocker.id,defenseId:enemy.id,leverage:+leverage.toFixed(2),engagement:+duel.time.toFixed(2)});log(t,enemy.label+' sheds '+blocker.label+' and gets back into pursuit');continue;}}
       const advantage=clamp(power/(power+defense),.22,.78);
-      // Friction: linemen redirect toward pocket; running assignments can create a lane.
+      // Sustained leverage steers the defender past the intended lane or around the pocket arc.
       enemy.x+=(enemy.x-blocker.x)*dt*advantage*(isRun?1.7:1.2);
       enemy.y+=dt*advantage*(isRun?4.8:3.0);
       enemy.vx*=1-advantage*.30;enemy.vy*=1-advantage*.52;
@@ -683,9 +688,10 @@ function simulate(off,def,seed=71){
     }
     if(carrier)ball={x:carrier.x,y:carrier.y,kind:carrier.side==='d'?'held-d':'held'};
     if(carrier&&carrier.side==='o'&&((isRun&&handoff)||(state==='runafter'))){
-      evade(carrier,d,t);
+      if(carrier.wrapUp){const tackler=d.find(p=>p.id===carrier.wrapUp.id);carrier.engaged=true;if(tackler)tackler.engaged=true;carrier.vx*=.58;carrier.vy=Math.min(carrier.vy,.72);carrier.y=Math.max(carrier.y,carrier.wrapUp.forwardY);carrier.wrapUp.forwardY=carrier.y;ball={x:carrier.x,y:carrier.y,kind:'held'};if(t>=carrier.wrapUp.until){const name=tackler?.label||carrier.wrapUp.name;delete carrier.wrapUp;finish('Tackle by '+name,t,carrier);}}
+      else evade(carrier,d,t);
       const near=nearest(carrier,d,a=>!a.engaged&&a.tackleCooldown<=0);
-      if(near.d<1.3 && t>.8){
+      if(!carrier.wrapUp&&near.d<1.3 && t>.8){
         const tackler=near.agent, a=statsOf(tackler),b=statsOf(carrier);
         contacts.push({t:+t.toFixed(2),kind:'tackle',offenseId:carrier.id,defenseId:tackler.id,relativeSpeed:+Math.hypot(tackler.vx-carrier.vx,tackler.vy-carrier.vy).toFixed(2),contactY:+carrier.y.toFixed(2)});
         const momentum=clamp((Math.hypot(tackler.vx-carrier.vx,tackler.vy-carrier.vy)-3)/12,0,1);
@@ -696,7 +702,7 @@ function simulate(off,def,seed=71){
         if(rand()<success){
           const strip=clamp(.009+(a.tackling-b.hands)*.0005+momentum*.025+carrier.fatigue*.04,.003,.07);
           if(allowLoose&&!looseCount&&looseRand()<strip)releaseLoose('fumble',t,carrier,{x:carrier.x+(looseRand()-.5)*3,y:carrier.y-2},carrier);
-          else finish('Tackle by '+tackler.label,t,carrier);
+          else{const duration=clamp(.16+(b.strength-a.strength)*.0018+(b.agility-70)*.0008-(a.tackling-70)*.0007,.08,.32);carrier.wrapUp={id:tackler.id,name:tackler.label,until:t+duration,forwardY:carrier.y};carrier.engaged=tackler.engaged=true;carrier.vx*=.72;carrier.vy*=.4;log(t,tackler.label+' wraps '+carrier.label+'; forward progress remains live through contact');}
         }
         else {tackler.vx*=.35;tackler.vy*=.35;log(t,'Missed tackle by '+tackler.label);}
       }

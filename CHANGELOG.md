@@ -479,3 +479,9 @@ Current truth: `PROJECT_CONTEXT.md` · Future: `ROADMAP.md`
 - Resolve loose balls through live pursuit and recovery, out-of-bounds rulings, or ball-settling behavior. Replace the fixed play-duration whistle with a diagnostic watchdog that rejects unresolved simulations without changing game state.
 - Track defensive recovery as the live carrier into return pursuit and test that the offense tackles the defender rather than self-contact occurring.
 - Added focused snap, mesh, ownership, unreachable-exchange and watchdog scenarios; all 74 regression scenarios and the eight-game audit completed.
+## 2026-11-08 — Route Lab slice three: contact resolution and situational calls
+- Blocking now builds a sustained engagement using blocker technique, awareness, strength, fatigue and defender rush skill. Leverage shapes the pocket/run lane; some defenders shed after the engagement and return to pursuit.
+- A successful runner tackle now shows a brief wrap with the ball carrier’s forward progress continuing through contact before the dead-ball spot is set.
+- Pre-snap flags stage fresh CPU O/X calls at the penalty spot after the reset, without running a live play. Invalid editor alignment now leaves the game spot and clock untouched.
+- The play selector identifies backed-up, open-field, red-zone, goal-to-go and goal-line situations. CPU calls now include a dedicated Goal Line Power run and goal-line defense as the offense closes on the end zone.
+
