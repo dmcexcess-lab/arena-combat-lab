@@ -1537,15 +1537,14 @@ function kick(state,kind,seed=71,choice='auto'){
   // A free-kick direction is generated from kicker accuracy and seeded angular
   // error. The trajectory, not a separately rolled foul, decides whether it
   // crosses a sideline before landing.
-  const angularError=Math.sqrt(-2*Math.log(Math.max(rand(),1e-8)))*Math.cos(2*Math.PI*rand());
-  const lateralDrift=free?angularError*(11+Math.max(0,85-squad.kicker.accuracy)*.12):0;
+  const lateralDrift=free?Math.sqrt(-2*Math.log(Math.max(rand(),1e-8)))*Math.cos(2*Math.PI*rand())*(11+Math.max(0,85-squad.kicker.accuracy)*.12):0;
   const fair=choice==='fairCatch'||choice==='auto'&&punt&&recv.returner.vision>=78&&rand()<.16;
   kick.fairSignaled=fair&&!inEnd;
   let signalTime=null,fairInterference=null;
   for(let i=1;i<=Math.ceil(flight/.2);i++){
    elapsed=flightStart+Math.min(flight,i*.2);const progress=(elapsed-flightStart)/flight;ball={yard:kickStart+(landing-kickStart)*progress,lane:lateralDrift*progress,phase:'flight'};
    if(free&&Math.abs(ball.lane)>=26.4){
-    const crossProgress=26.4/Math.abs(lateralDrift);ball.yard=kickStart+(landing-kickStart)*crossProgress;ball.lane=Math.sign(lateralDrift)*26.4;ball.phase='outOfBounds';
+    const crossProgress=26.4/Math.abs(lateralDrift);elapsed=flightStart+flight*crossProgress;ball.yard=kickStart+(landing-kickStart)*crossProgress;ball.lane=Math.sign(lateralDrift)*26.4;ball.phase='outOfBounds';
     kick.outOfBounds={yard:+ball.yard.toFixed(1),lane:ball.lane,side:ball.lane<0?'left':'right',time:+elapsed.toFixed(2)};
     snap();event(`Kick crosses the ${kick.outOfBounds.side} sideline at ${Math.round(ball.yard)}`);break;
    }
