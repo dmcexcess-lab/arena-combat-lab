@@ -249,7 +249,7 @@ function pursuitTarget(defender,runner){
 function simulate(off,def,seed=71){
  const v=validate(off,def); if(!v.valid)return {valid:false,validation:v,frames:[],events:[]};
  const rand=rng(seed), looseRand=rng(((Number(seed)||71)^0x8b21d5f3)>>>0), dt=.05, maxT=12;
- const o=clone(off.players).map(p=>({...p,side:'o',homeX:p.x,vx:0,vy:0,fatigue:clamp(Number(p.fatigue)||0,0,.8),tackleCooldown:0,routeIndex:0,engaged:false,speed:(p.speed??1)*(.96+rand()*.08)}));
+ const o=clone(off.players).map(p=>({...p,side:'o',homeX:p.x,vx:0,vy:0,fatigue:clamp(Number(p.fatigue)||0,0,.8),tackleCooldown:0,routeIndex:0,pressResolved:false,pressSlowUntil:0,engaged:false,speed:(p.speed??1)*(.96+rand()*.08)}));
  const d=clone(def.players).map(p=>({...p,side:'d',homeY:p.y,vx:0,vy:0,fatigue:clamp(Number(p.fatigue)||0,0,.8),tackleCooldown:0,engaged:false,speed:(p.speed??1)*(.94+rand()*.12)}));
  const byId=(id)=>o.find(p=>p.id===id), defenders=(id)=>d.find(p=>p.id===id);
  const qb=byId(off.snapToId||'oQB')||o.find(p=>p.label==='QB'), runner=byId(off.runnerId)||qb;
@@ -343,7 +343,20 @@ function simulate(off,def,seed=71){
       const dest=pts[Math.min(p.routeIndex,pts.length-1)];
       if(dist(p,dest)<.65 && p.routeIndex<pts.length-1)p.routeIndex++;
       const target=pts[Math.min(p.routeIndex,pts.length-1)];
-      move(p,target,dt,speedOf(p),17);
+      let routePace=1;
+      if(p.onLine&&t<=.7&&p.y<=5&&!p.pressResolved){
+        const press=nearest(p,d,a=>a.job==='man'&&a.leverage==='press'&&a.coverTarget===p.id);
+        if(press.agent&&press.d<2.8){
+          const receiverSkill=statsOf(p),defenderSkill=statsOf(press.agent);
+          const release=receiverSkill.routeRunning*.55+receiverSkill.agility*.45;
+          const pressSkill=defenderSkill.coverage*.45+defenderSkill.strength*.3+defenderSkill.agility*.25;
+          const clean=rand()<clamp(.5+(release-pressSkill)*.007,.12,.88);
+          p.pressResolved=true;p.pressClean=clean;p.pressSlowUntil=t+(clean?.1:.34);
+          log(t,press.agent.label+' presses '+p.label+' #'+p.number+' at the line; '+(clean?'clean release':'release delayed'));
+        }
+      }
+      if(p.pressSlowUntil>=t)routePace=p.pressClean?.92:.58;
+      move(p,target,dt,speedOf(p)*routePace,17);
     }else if(p.job==='pull'){
       const loc=p.route?.[Math.min(p.routeIndex,p.route.length-1)]||{x:playDir,y:2};
       if(dist(p,loc)<.6&&p.routeIndex<(p.route?.length||1)-1)p.routeIndex++;
@@ -1748,6 +1761,7 @@ const raw=[
 ['Concepts','Inside zone','Linemen work playside combinations while a back reads how blocks develop and chooses a crease.','Run the same front several times; a run gap should adapt to defenders, not teleport.','run,zone blocking'],
 ['Concepts','Power run','A gap-scheme concept using down blocks and often a pulling guard or lead blocker to create a numbers advantage.','Read the point of attack and backside pursuit.','pull,gap'],
 ['Coverage','Man coverage','Each assigned defender tracks a specific eligible receiver. Leverage and help determine where the defender can be attacked.','Use bunch or crossing routes to challenge man assignments.','Cover 0,Cover 1'],
+['Coverage','Press release','A man defender using press meets a receiver at the line. A seeded contest compares receiver route running and agility with defender coverage, strength and agility, then briefly delays a losing release. The contact is limited to the first five yards in this model.','Select Press at the line on a man assignment, then compare the receiver’s first steps with a balanced matchup.','jam,release,cornerback'],
 ['Coverage','Man leverage','Inside shade places the defender on the receiver’s inside shoulder; outside shade protects the sideline side; trail technique concedes space underneath to stay behind the route.','Change a man defender’s coverage technique in the inspector, then compare the defender’s landmark and the receiver’s available shoulder.','inside leverage,outside leverage,trail technique'],
 ['Coverage','Zone coverage','Defenders protect named areas while passing routes between zones according to their responsibilities.','Move a hook zone underneath the dig, then inspect the deep window.','spot drop,match'],
 ['Coverage','Spot drop and route match','A spot-drop defender protects a landmark and closes on threats nearby. A route-matching defender carries a receiver while that route remains inside the assigned area, then returns to the zone landmark. When match zones overlap, the nearest defender with the better awareness read claims each route so two defenders do not chase the same receiver.','Overlap two match zones, run crossing routes through them, and compare which defender carries each route as it travels from one area to the next.','hook zone,pattern match,landmark,route distribution'],
@@ -2034,7 +2048,7 @@ function renderInspector(){const el=$('inspector'),p=selectedPlayer(),isO=side==
      <div class="checks">${check('allowScramble',offensive.allowScramble!==false,'QB scramble under pressure')}</div></section>`;
    if(p.id!==(offensive.snapToId||'oQB'))html+=`<section class="sec border-top"><div class="section-title"><h3>Motion &amp; action</h3></div>${p.motion?`<div class="two-fields">${field('At-snap X',input('motion.toX',p.motion.toX,'number','step="0.5"'))}${field('At-snap Y',input('motion.toY',p.motion.toY,'number','step="0.5"'))}</div>`:'<p class="help">No pre-snap motion assigned.</p>'}<div class="row"><button data-action="motionTool">Set motion</button><button data-action="clearMotion">Clear motion</button><button data-action="makeRunner">Ball carrier</button></div></section>`;
  }else{
-   if(p.job==='man')html+=`<section class="sec border-top"><div class="section-title"><h3>Man coverage</h3></div>${field('Shadow receiver',select('coverTarget',p.coverTarget||'', [['','Auto matchup'],...offensive.players.map(q=>[q.id,q.label+' #'+q.number])]))}${field('Coverage technique',select('leverage',p.leverage||'inside',[['inside','Shade inside'],['outside','Shade outside'],['trail','Trail the route'],['balanced','Balanced / match path']]))}<p class="help">Leverage changes the defender’s target landmark as the receiver releases. It can protect one shoulder and expose the other.</p><button data-action="assignTool">⇥ Pick opponent on field</button></section>`;
+   if(p.job==='man')html+=`<section class="sec border-top"><div class="section-title"><h3>Man coverage</h3></div>${field('Shadow receiver',select('coverTarget',p.coverTarget||'', [['','Auto matchup'],...offensive.players.map(q=>[q.id,q.label+' #'+q.number])]))}${field('Coverage technique',select('leverage',p.leverage||'inside',[['inside','Shade inside'],['outside','Shade outside'],['trail','Trail the route'],['balanced','Balanced / match path'],['press','Press at the line']]))}<p class="help">Leverage changes the defender’s target landmark as the receiver releases. Press creates a rating-based release contest in the first five yards; it does not model extended downfield contact.</p><button data-action="assignTool">⇥ Pick opponent on field</button></section>`;
    if(p.job==='zone')html+=`<section class="sec border-top"><div class="section-title"><h3>Coverage zone</h3></div><div class="two-fields">${field('Zone center X',input('zone.x',p.zone?.x??p.x,'number','step="0.5"'))}${field('Zone center Y',input('zone.y',p.zone?.y??p.y,'number','step="0.5"'))}</div><div class="two-fields">${field('Width (yards)',input('zone.r',p.zone?.r??7,'number','min="1" max="28" step="0.5"'))}${field('Depth (yards)',input('zone.rY',p.zone?.rY??7,'number','min="1" max="30" step="0.5"'))}</div>${field('Route response',select('zoneTechnique',p.zoneTechnique||'spot',[['spot','Spot-drop · protect landmark'],['match','Match route inside zone']]))}<p class="help">Match carries a receiver within this zone and returns to the landmark after the route leaves. In overlapping match zones, one defender carries each route; the nearest defender with better awareness gets priority.</p><button data-action="zoneTool">◌ Place on field</button></section>`;
    if(p.job==='runfit')html+=`<section class="sec border-top">${field('Fit gap X',input('fitX',p.fitX??p.x,'number','step="0.5"'))}</section>`;
  }

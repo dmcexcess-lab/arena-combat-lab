@@ -61,6 +61,18 @@ test('man coverage leverage moves the defender to different route landmarks',()=
  assert.deepEqual(C.simulate(base,inside,31),i,'coverage technique remains seed-reproducible');
 });
 
+test('press coverage creates a seeded line-of-scrimmage release contest',()=>{
+ const off=P.createOffensePresets()[0];off.training=true;off.trainingVirtualSnap=true;off.players=off.players.filter(p=>['oQB','oX'].includes(p.id));
+ const qb=off.players.find(p=>p.id==='oQB'),receiver=off.players.find(p=>p.id==='oX');qb.x=0;qb.y=-5;qb.throwAt=10;
+ receiver.x=-15;receiver.y=0;receiver.onLine=true;receiver.route=[{x:-15,y:8},{x:-12,y:16},{x:-8,y:24}];
+ const shell=P.createDefensePresets()[2],corner=shell.players.find(p=>p.id==='dCB1');shell.players=[corner];corner.x=-15;corner.y=1;corner.job='man';corner.coverTarget='oX';
+ const press=C.clone(shell),offCoverage=C.clone(shell);press.players[0].leverage='press';press.players[0].stats={coverage:99,strength:99,agility:99};receiver.stats={routeRunning:1,agility:1};offCoverage.players[0].leverage='balanced';
+ const a=C.simulate(off,press,1),b=C.simulate(off,offCoverage,1);assert.ok(a.valid&&b.valid);
+ assert.ok(a.events.some(e=>e.text.includes('presses X #11 at the line')),'press must resolve as a play event');
+ assert.ok(at(a,.6,'offense','oX').y<at(b,.6,'offense','oX').y-.2,'a lost press release must delay the receiver’s route');
+ assert.deepEqual(C.simulate(off,press,1),a,'press resolution remains deterministic');
+});
+
 test('zone route match carries an in-zone route while spot-drop protects its landmark',()=>{
  const base=P.createOffensePresets()[0];base.training=true;base.trainingVirtualSnap=true;base.players=base.players.filter(p=>['oQB','oX'].includes(p.id));
  const qb=base.players.find(p=>p.id==='oQB'),receiver=base.players.find(p=>p.id==='oX');base.type='pass';qb.x=0;qb.y=-5;qb.throwAt=99;receiver.x=-10;receiver.y=0;receiver.route=[{x:-8,y:3},{x:-5,y:8},{x:-3,y:17},{x:-3,y:26}];
@@ -209,8 +221,8 @@ test('the play result displays executed special moves',()=>{
 });
 test('the hosted inspector and encyclopedia expose coverage technique choices',()=>{
  const html=fs.readFileSync(path.join(__dirname,'..','index.html'),'utf8'),app=fs.readFileSync(path.join(__dirname,'..','app.js'),'utf8'),ency=fs.readFileSync(path.join(__dirname,'..','encyclopedia.js'),'utf8');
- for(const technique of ['Shade inside','Shade outside','Trail the route','Balanced / match path'])assert.ok(app.includes(technique),technique);
+ for(const technique of ['Shade inside','Shade outside','Trail the route','Balanced / match path','Press at the line'])assert.ok(app.includes(technique),technique);
  assert.ok(ency.includes("'Man leverage'"));assert.ok(html.includes('Coverage technique'));
- assert.ok(app.includes('Match route inside zone'));assert.ok(app.includes('one defender carries each route'));assert.ok(ency.includes("'Spot drop and route match'"));assert.ok(html.includes('Route response'));
+ assert.ok(app.includes('Match route inside zone'));assert.ok(app.includes('one defender carries each route'));assert.ok(ency.includes("'Spot drop and route match'"));assert.ok(ency.includes("'Press release'"));assert.ok(html.includes('Route response'));
  assert.ok(app.includes('awareness shortens the read delay'));assert.ok(ency.includes("'Break on the ball'"));
 });

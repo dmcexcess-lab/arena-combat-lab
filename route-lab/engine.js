@@ -155,7 +155,7 @@ function pursuitTarget(defender,runner){
 function simulate(off,def,seed=71){
  const v=validate(off,def); if(!v.valid)return {valid:false,validation:v,frames:[],events:[]};
  const rand=rng(seed), looseRand=rng(((Number(seed)||71)^0x8b21d5f3)>>>0), dt=.05, maxT=12;
- const o=clone(off.players).map(p=>({...p,side:'o',homeX:p.x,vx:0,vy:0,fatigue:clamp(Number(p.fatigue)||0,0,.8),tackleCooldown:0,routeIndex:0,engaged:false,speed:(p.speed??1)*(.96+rand()*.08)}));
+ const o=clone(off.players).map(p=>({...p,side:'o',homeX:p.x,vx:0,vy:0,fatigue:clamp(Number(p.fatigue)||0,0,.8),tackleCooldown:0,routeIndex:0,pressResolved:false,pressSlowUntil:0,engaged:false,speed:(p.speed??1)*(.96+rand()*.08)}));
  const d=clone(def.players).map(p=>({...p,side:'d',homeY:p.y,vx:0,vy:0,fatigue:clamp(Number(p.fatigue)||0,0,.8),tackleCooldown:0,engaged:false,speed:(p.speed??1)*(.94+rand()*.12)}));
  const byId=(id)=>o.find(p=>p.id===id), defenders=(id)=>d.find(p=>p.id===id);
  const qb=byId(off.snapToId||'oQB')||o.find(p=>p.label==='QB'), runner=byId(off.runnerId)||qb;
@@ -249,7 +249,20 @@ function simulate(off,def,seed=71){
       const dest=pts[Math.min(p.routeIndex,pts.length-1)];
       if(dist(p,dest)<.65 && p.routeIndex<pts.length-1)p.routeIndex++;
       const target=pts[Math.min(p.routeIndex,pts.length-1)];
-      move(p,target,dt,speedOf(p),17);
+      let routePace=1;
+      if(p.onLine&&t<=.7&&p.y<=5&&!p.pressResolved){
+        const press=nearest(p,d,a=>a.job==='man'&&a.leverage==='press'&&a.coverTarget===p.id);
+        if(press.agent&&press.d<2.8){
+          const receiverSkill=statsOf(p),defenderSkill=statsOf(press.agent);
+          const release=receiverSkill.routeRunning*.55+receiverSkill.agility*.45;
+          const pressSkill=defenderSkill.coverage*.45+defenderSkill.strength*.3+defenderSkill.agility*.25;
+          const clean=rand()<clamp(.5+(release-pressSkill)*.007,.12,.88);
+          p.pressResolved=true;p.pressClean=clean;p.pressSlowUntil=t+(clean?.1:.34);
+          log(t,press.agent.label+' presses '+p.label+' #'+p.number+' at the line; '+(clean?'clean release':'release delayed'));
+        }
+      }
+      if(p.pressSlowUntil>=t)routePace=p.pressClean?.92:.58;
+      move(p,target,dt,speedOf(p)*routePace,17);
     }else if(p.job==='pull'){
       const loc=p.route?.[Math.min(p.routeIndex,p.route.length-1)]||{x:playDir,y:2};
       if(dist(p,loc)<.6&&p.routeIndex<(p.route?.length||1)-1)p.routeIndex++;

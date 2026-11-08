@@ -1,3 +1,7 @@
+## 2026-11-08 — Route Lab press release slice
+- Man coverage can now use Press at the line. The targeted receiver and corner resolve a seeded release contest from route-running/agility against coverage/strength/agility, with a short route delay on a lost release and a play-report event.
+- Added the technique to the inspector and encyclopedia and covered the spatial effect and repeatability with a fixed-seed regression.
+
 ## 2026-11-08 — Route Lab match-zone handoffs
 - Match defenders now keep route ownership through overlapping zones to prevent frame-by-frame nearest-player churn, then pass the route to the next zone defender as it crosses the boundary.
 - The event log reports the transferring and receiving defenders. A seeded crossing-route regression verifies timing, actual player movement, and repeatability.

@@ -1,3 +1,6 @@
+Warning: truncated output (original token count: 21771)
+Total output lines: 629
+
 (function(){
 'use strict';
 const C=window.GridironCore,P=window.GridironPlays,K=window.RouteCampaign,E=window.RouteEncyclopedia,G=window.RouteGame;
@@ -236,35 +239,7 @@ function renderInspector(){const el=$('inspector'),p=selectedPlayer(),isO=side==
  const input=(id,value,type='text',attrs='')=>`<input type="${type}" data-field="${id}" value="${esc(value??'')}" ${attrs}>`;
  const check=(id,checked,text)=>`<label><input type="checkbox" data-field="${id}" ${checked?'checked':''}>${text}</label>`;
  let html=`<section class="sec"><div class="section-title"><h3>Player inspector</h3><span class="micro">${isO?'OFFENSE · O':'DEFENSE · X'}</span></div><div class="inspector-title"><div class="player-badge ${isO?'':'def'}">${isO?'O':'X'}</div><div><b>${esc(p.label)} <span class="muted">#${esc(p.number)}</span></b><small>${esc(p.id)} • ${esc(p.job)}</small></div></div>
- <div class="two-fields">${field('Position label',input('label',p.label))}${field('Jersey #',input('number',p.number,'number','min="0" max="99"'))}</div>
- ${field('Assignment',select('job',p.job,(isO?OFF_JOBS:DEF_JOBS).map(x=>[x,x.replace(/([a-z])([A-Z])/g,'$1 $2').replace(/^./,s=>s.toUpperCase())])))}
- <div class="two-fields">${field('X • lateral',input('x',p.x.toFixed(1),'number','step="0.5" min="-26" max="26"'))}${field('Y • downfield',input('y',p.y.toFixed(1),'number','step="0.5"'))}</div>
- <div class="checks">${isO?check('onLine',p.onLine,'On line of scrimmage'):''}${isO?check('hot',p.hot,'Hot read'):''}</div>
- ${isO?'<div class="checks">'+check('reportedEligible',p.reportedEligible,'Reported eligible')+check('reportedIneligible',p.reportedIneligible,'Reported ineligible')+'</div>':''}
- <div class="two-fields">${field('Speed multiplier',input('speed',p.speed??1,'number','min="0.5" max="1.5" step="0.05"'))}${field('Power (0–1)',input('power',p.power??.68,'number','min="0" max="1" step="0.05"'))}</div>
- <details class="rating-editor" open><summary>PLAYER ATTRIBUTES • 1–99</summary><div class="rating-grid">${C.RATING_KEYS.map(k=>field(STAT_LABELS[k],input('stats.'+k,C.statsOf(p)[k],'number','min="1" max="99" step="1"'))).join('')}</div><p class="help">These ratings change gameplay. On defense, awareness shortens the read delay on a pass in flight; coverage contests the catch, while hands helps turn a close breakup into an interception. Grades are not NFL-calibrated.</p></details>
- </section>`;
- if(isO){
-   if(['route','carry','release','pull'].includes(p.job))html+=`<section class="sec border-top"><div class="section-title"><h3>Route builder</h3><span class="micro">${p.route?.length||0} waypoints</span></div>
-    ${field('Route template',select('pattern',p.pattern||'', [['','Custom / drawn'],...routeKinds.map(x=>[x,x[0].toUpperCase()+x.slice(1)])]))}
-    <div class="two-fields">${field('Read order',input('read',p.read??3,'number','min="1" max="6"'))}${field('Target priority',select('primaryTarget',offensive.primaryTarget,offensive.players.filter(q=>!['LT','LG','C','RG','RT'].includes(q.label)).map(q=>[q.id,q.label])))} </div>
-    <div class="row"><button data-action="routeTool">↗ Draw on field</button><button data-action="removeWaypoint">− Last point</button><button data-action="clearRoute">Clear</button></div><p class="help">Route points can be drawn, dragged and removed. Hot reads are preferred by the QB.</p></section>`;
-   if(['passblock','runblock','block','pull'].includes(p.job))html+=`<section class="sec border-top"><div class="section-title"><h3>Blocking assignment</h3></div>${field('Assigned defender',select('blockTarget',p.blockTarget||'', [['','Auto / nearby threat'],...defensive.players.map(q=>[q.id,q.label+' #'+q.number])]))}
-     ${field('Gap X coordinate',input('blockGapX',p.blockGapX??p.x,'number','min="-26" max="26" step="0.5"'))}<button data-action="assignTool">⇥ Pick defender on field</button></section>`;
-   if(p.id===(offensive.snapToId||'oQB'))html+=`<section class="sec border-top"><div class="section-title"><h3>Quarterback / play logic</h3></div>${field('Play type',select('type',offensive.type,['pass','run','screen','playaction','option']))}
-     <div class="two-fields">${field('Drop depth (yd)',input('qbDepth',offensive.qbDepth,'number','min="2" max="12" step="0.5"'))}${field('Earliest throw (s)',input('throwAt',offensive.throwAt,'number','min="1" max="7" step="0.1"'))}</div>${field('Snap receiver',select('snapToId',offensive.snapToId||'oQB',offensive.players.filter(q=>!q.onLine).map(q=>[q.id,q.label])))}${field('Ball carrier (run)',select('runnerId',offensive.runnerId,offensive.players.filter(q=>!q.onLine).map(q=>[q.id,q.label])))}
-     <div class="checks">${check('allowScramble',offensive.allowScramble!==false,'QB scramble under pressure')}</div></section>`;
-   if(p.id!==(offensive.snapToId||'oQB'))html+=`<section class="sec border-top"><div class="section-title"><h3>Motion &amp; action</h3></div>${p.motion?`<div class="two-fields">${field('At-snap X',input('motion.toX',p.motion.toX,'number','step="0.5"'))}${field('At-snap Y',input('motion.toY',p.motion.toY,'number','step="0.5"'))}</div>`:'<p class="help">No pre-snap motion assigned.</p>'}<div class="row"><button data-action="motionTool">Set motion</button><button data-action="clearMotion">Clear motion</button><button data-action="makeRunner">Ball carrier</button></div></section>`;
- }else{
-   if(p.job==='man')html+=`<section class="sec border-top"><div class="section-title"><h3>Man coverage</h3></div>${field('Shadow receiver',select('coverTarget',p.coverTarget||'', [['','Auto matchup'],...offensive.players.map(q=>[q.id,q.label+' #'+q.number])]))}${field('Coverage technique',select('leverage',p.leverage||'inside',[['inside','Shade inside'],['outside','Shade outside'],['trail','Trail the route'],['balanced','Balanced / match path']]))}<p class="help">Leverage changes the defender’s target landmark as the receiver releases. It can protect one shoulder and expose the other.</p><button data-action="assignTool">⇥ Pick opponent on field</button></section>`;
-   if(p.job==='zone')html+=`<section class="sec border-top"><div class="section-title"><h3>Coverage zone</h3></div><div class="two-fields">${field('Zone center X',input('zone.x',p.zone?.x??p.x,'number','step="0.5"'))}${field('Zone center Y',input('zone.y',p.zone?.y??p.y,'number','step="0.5"'))}</div><div class="two-fields">${field('Width (yards)',input('zone.r',p.zone?.r??7,'number','min="1" max="28" step="0.5"'))}${field('Depth (yards)',input('zone.rY',p.zone?.rY??7,'number','min="1" max="30" step="0.5"'))}</div>${field('Route response',select('zoneTechnique',p.zoneTechnique||'spot',[['spot','Spot-drop · protect landmark'],['match','Match route inside zone']]))}<p class="help">Match carries a receiver within this zone and returns to the landmark after the route leaves. In overlapping match zones, one defender carries each route; the nearest defender with better awareness gets priority.</p><button data-action="zoneTool">◌ Place on field</button></section>`;
-   if(p.job==='runfit')html+=`<section class="sec border-top">${field('Fit gap X',input('fitX',p.fitX??p.x,'number','step="0.5"'))}</section>`;
- }
- html+=`<section class="sec border-top"><div class="section-title"><h3>${isO?'Offensive':'Defensive'} roster</h3><span class="micro">${sidePlay().players.length} players</span></div><div class="assignment-list">${sidePlay().players.map(q=>`<button data-select="${esc(q.id)}" class="assignment ${isO?'':'def'} ${selected===q.id?'sel':''}"><span>${isO?'O':'X'}</span><strong>${esc(q.label)} <small>#${esc(q.number)}</small></strong><small>${esc(q.job)}</small></button>`).join('')}</div></section>`;
- el.innerHTML=html;
-}
-function refresh(presets=false){if(presets)fillPresets();validationUI();renderField();renderInspector();$('undoBtn').disabled=!undo.length;$('redoBtn').disabled=!redo.length;saveExhibition();}
-function fieldAction(p,wp){const sideMatch=side==='offense'?'o':'d';
+ <div class="two-fields">${field('Posi…1771 tokens truncated…=='offense'?'o':'d';
  if(tool==='route'&&side==='offense'){
   if(!p || p.side==='d')return;
   checkpoint();p.job=p.job==='carry'?'carry':'route';p.route=p.route||[];p.route.push({x:C.clamp(wp.x,-26,26),y:Math.max(-8,wp.y)});p.pattern='';invalidate();refresh();return;

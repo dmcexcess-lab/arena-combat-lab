@@ -219,6 +219,7 @@ Operational checklist for humans + AIs. Keep compact; add only behaviors whose r
 - Repeating the same play, technique, and seed reproduces the same frames.
 - The inspector exposes all four techniques; the hosted encyclopedia explains the leverage tradeoffs.
 - The standalone HTML embeds exact current engine, playbook, encyclopedia, and app modules.
+- Press coverage resolves a fixed-seed first-five-yard receiver/corner contest; a lost release measurably delays the route and the play report identifies the matchup.
 
 ## Route Lab man-coverage leverage
 - Inside and outside shade produce distinct defensive landmarks against the same receiver route; trail changes the defender's depth target.
