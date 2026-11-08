@@ -1,3 +1,7 @@
+## 2026-11-08 — Route Lab between-play and field markings
+- Continue to next play now resets the down, lets the CPU choose the next offense and defense calls, and waits for the player to press Run play. Scrimmage Next is hidden so it cannot accidentally snap the ball.
+- Both full-field and tactics views show the line of scrimmage and the 10-yard line to gain, aligned to the current snap and field spot.
+
 ## 2026-11-08 — Route Lab press release slice
 - Man coverage can now use Press at the line. The targeted receiver and corner resolve a seeded release contest from route-running/agility against coverage/strength/agility, with a short route delay on a lost release and a play-report event.
 - Added the technique to the inspector and encyclopedia and covered the spatial effect and repeatability with a fixed-seed regression.
