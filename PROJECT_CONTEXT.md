@@ -91,3 +91,6 @@ The opening coin-toss CPU-lineup action now resolves the toss and immediately ru
 
 ## Route Lab play progression display correction
 A settled scrimmage result is now the displayed game state while remaining pending for the next lineup and penalty/review choices. The full-field marker tracks the replay ball from the saved snap spot; the tactics grid stays rooted at that snap and labels the matching live ball spot. Next and Set next play are disabled during active replay so a click cannot cancel a snap; after the replay, Next resets to the resulting state, picks CPU plays, and runs the next snap.
+
+## Route Lab continue action
+After a free-play snap replay finishes, a dedicated Continue to next play button appears beside the referee result. It advances through the same CPU-selection and next-snap path as Next play; Set next play remains the separate play-override setup action.
