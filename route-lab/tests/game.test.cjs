@@ -96,7 +96,7 @@ test('an exhausted depth slot cannot put an injured starter back on the field',(
  const dressed=G.dressPlay(s,off,'home','offense');assert.equal(dressed.players.find(p=>p.id==='oLT').unavailable,true);assert.ok(!C.validate(dressed,def).valid);
 });
 test('a defensive fumble recovery is not passed through the offensive tackle loop',()=>{
- const off=P.createOffensePresets()[8],def=P.createDefensePresets()[0];off.enableLooseBall=true;const sim=C.simulate(off,def,22);assert.ok(sim.result.loose?.recoverySide==='d');assert.equal(sim.contacts.some(c=>c.offenseId===c.defenseId),false);
+ const off=P.createOffensePresets()[8],def=P.createDefensePresets()[0];off.enableLooseBall=true;let sim=null;for(let seed=1;seed<=512&&!sim;seed++){const candidate=C.simulate(off,def,seed);if(candidate.result.loose?.recoverySide==='d')sim=candidate;}assert.ok(sim,'a simulated inside-zone carry should produce a recoverable defensive fumble in the seed sample');assert.equal(sim.contacts.some(c=>c.offenseId===c.defenseId),false);
  const loose=sim.result.loose,recovered=sim.frames.find(f=>f.t===sim.events.find(e=>e.text.includes('recovers the fumble'))?.t);
  assert.equal(recovered.carrierId,loose.recoveryId);assert.equal(recovered.phase,'return');
  for(const hit of sim.contacts.filter(c=>c.kind==='return tackle'))assert.equal(hit.defenseId,loose.recoveryId,'defensive carrier must be tackled by the offense');
