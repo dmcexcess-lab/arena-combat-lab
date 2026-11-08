@@ -417,5 +417,5 @@ Current truth: `PROJECT_CONTEXT.md` · Future: `ROADMAP.md`
 
 ## 2026-11-07 — Route Lab progression and synchronized field views
 - Keep the settled play result visible during the snap replay while preserving it for the next-play/reset and official ruling flow.
-- Track the same live ball spot in the full-field overview and tactical field, then show the settled next spot at the final replay frame.
+- Track the same live ball spot in the overview situation line, full-field overview and tactical field, then show the settled next spot at the final replay frame.
 - Keep the tactical view anchored at the snap alignment during playback, disable advance controls while the snap is active, and resume CPU play selection on Next.

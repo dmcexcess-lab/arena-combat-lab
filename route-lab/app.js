@@ -85,7 +85,7 @@ function renderOverview(){
  const chainState=playStartState||gameState;if(pendingState&&chainState.phase==='scrimmage'){const line=100+(chainState.ball+(chainState.possession==='home'?1:-1)*chainState.toGain)*10,next=100+pendingState.ball*10;out+=`<path d="M${line} 15V255" stroke="#ffbd42" stroke-width="3" stroke-dasharray="8 5"/><path d="M${next} 15V255" stroke="#a4f4e0" stroke-width="4"/><text x="${next}" y="65" text-anchor="middle" fill="#c8fff0" font-size="12" font-weight="800">RULING</text>`;}
  el.innerHTML=out;
  $('gameScore').textContent=`HOME ${s.score.home} · AWAY ${s.score.away}`;$('gameClock').textContent=s.phase==='final'?'FINAL':`Q${s.quarter} ${String(Math.floor(s.clock/60)).padStart(2,'0')}:${String(s.clock%60).padStart(2,'0')}`;
- $('gameSituation').textContent=s.phase==='scrimmage'?`${s.down} & ${Math.ceil(s.toGain)} · ${G.spotText(s)} · ${s.possession.toUpperCase()} ball`:s.phase.toUpperCase();
+ const liveSituationSpot=replayInProgress()?G.spotText({...s,ball}):G.spotText(s);$('gameSituation').textContent=s.phase==='scrimmage'?`${s.down} & ${Math.ceil(s.toGain)} · ${liveSituationSpot} · ${s.possession.toUpperCase()} ball`:s.phase.toUpperCase();
  $('gameTimeouts').textContent=`TO HOME ${s.timeouts.home} / AWAY ${s.timeouts.away}`;
  $('gameBook').innerHTML=(pendingState?pendingState.log:s.log).slice().reverse().map(x=>'<div>'+esc(x)+'</div>').join('');
  const choice=pendingRuling?.choices,review=pendingRuling?.review;
