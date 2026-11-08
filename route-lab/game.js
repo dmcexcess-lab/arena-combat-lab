@@ -291,7 +291,7 @@ function kick(state,kind,seed=71,choice='auto'){
  const punt=kind==='punt',goalKick=kind==='fieldGoal'||kind==='extraPoint',onside=kind==='onside',safety=kind==='safetyKick';
  const baseKickLine=team==='home'?(safety?20:35):(safety?80:65);
  const kickStart=free?baseKickLine-dir(team)*(s.freeKickBack||0):from;
- const kick={kind,team,receive,from,kickStart,kickYards:0,landing:null,returnYards:0,touchback:false,made:false,move:'',contacts:0,coveragePlayers:11,returnBlockers:10,frames:[],events:[],alignment:null,decision:'',recovery:null,blocked:false,fairSignaled:false,penalty:null};
+ const kick={kind,team,receive,from,kickStart,kickYards:0,landing:null,returnYards:0,touchback:false,made:false,move:'',contacts:0,coveragePlayers:11,returnBlockers:10,frames:[],events:[],alignment:null,decision:'',recovery:null,blocked:false,fairSignaled:false,penalty:null,outOfBounds:null};
  let elapsed=0,ball={yard:kickStart,lane:0,phase:'ready'},players=[];
  const own=t=>t==='home'?0:100,goal=t=>t==='home'?100:0,along=(t,n)=>own(t)+dir(t)*n;
  const snap=()=>kick.frames.push({t:+elapsed.toFixed(2),ball:{yard:+ball.yard.toFixed(2),lane:+ball.lane.toFixed(2),phase:ball.phase},players:players.map(p=>({id:p.id,team:p.team,role:p.role,yard:+p.yard.toFixed(2),lane:+p.lane.toFixed(2)}))});
@@ -442,11 +442,21 @@ function kick(state,kind,seed=71,choice='auto'){
   kick.kickYards=onside?10+Math.floor(rand()*5):Math.round((punt?29+squad.punter.power*.19:safety?52+squad.kicker.power*.14:47+squad.kicker.power*.15)+(rand()-.5)*(punt?14:16));
   kick.landing=kickStart+dir(team)*kick.kickYards;const landing=kick.landing,receivingDepth=(landing-own(receive))*dir(receive),inEnd=receivingDepth<=0;
   const flight=punt?3.1:onside?1.1:2.2,flightStart=elapsed;
+  // A free-kick direction is generated from kicker accuracy and seeded angular
+  // error. The trajectory, not a separately rolled foul, decides whether it
+  // crosses a sideline before landing.
+  const angularError=Math.sqrt(-2*Math.log(Math.max(rand(),1e-8)))*Math.cos(2*Math.PI*rand());
+  const lateralDrift=free?angularError*(11+Math.max(0,85-squad.kicker.accuracy)*.12):0;
   const fair=choice==='fairCatch'||choice==='auto'&&punt&&recv.returner.vision>=78&&rand()<.16;
   kick.fairSignaled=fair&&!inEnd;
   let signalTime=null,fairInterference=null;
   for(let i=1;i<=Math.ceil(flight/.2);i++){
-   elapsed=flightStart+Math.min(flight,i*.2);const progress=(elapsed-flightStart)/flight;ball={yard:kickStart+(landing-kickStart)*progress,lane:0,phase:'flight'};
+   elapsed=flightStart+Math.min(flight,i*.2);const progress=(elapsed-flightStart)/flight;ball={yard:kickStart+(landing-kickStart)*progress,lane:lateralDrift*progress,phase:'flight'};
+   if(free&&Math.abs(ball.lane)>=26.4){
+    const crossProgress=26.4/Math.abs(lateralDrift);ball.yard=kickStart+(landing-kickStart)*crossProgress;ball.lane=Math.sign(lateralDrift)*26.4;ball.phase='outOfBounds';
+    kick.outOfBounds={yard:+ball.yard.toFixed(1),lane:ball.lane,side:ball.lane<0?'left':'right',time:+elapsed.toFixed(2)};
+    snap();event(`Kick crosses the ${kick.outOfBounds.side} sideline at ${Math.round(ball.yard)}`);break;
+   }
    if(kickoff){for(const p of players){if(p.role==='returner'||p.id==='B9')shift(p,landing,p.lane,.2,p.speed*.65);}}
    else{for(const p of players){if(p.role==='coverage')shift(p,landing,p.lane,.2,p.speed*.85);if(p.role==='returner')shift(p,landing,p.lane,.2,p.speed*.65);}}
    snap();
@@ -460,7 +470,15 @@ function kick(state,kind,seed=71,choice='auto'){
     }
    }
   }
-  ball={yard:landing,lane:0,phase:'landing'};event(`${onside?'Onside kick':punt?'Punt':'Kickoff'} lands at ${Math.round(landing)}`);snap();
+  if(kick.outOfBounds){
+   const outSpot=clamp(kick.outOfBounds.yard,1,99),twentyFiveSpot=clamp(kickStart+dir(team)*25,1,99);
+   const options=[{name:'inbounds spot',yard:outSpot},{name:'25 yards from the kick spot',yard:twentyFiveSpot}];
+   const chosen=options.sort((a,b)=>((b.yard-own(receive))*dir(receive))-((a.yard-own(receive))*dir(receive)))[0];
+   kick.spotOptions=options;kick.decision='kickoff out of bounds';kick.penalty={code:'KOB',name:'Kickoff out of bounds',player:'Kicking team',time:kick.outOfBounds.time,spot:outSpot,chosen:chosen.name,award:chosen.yard,evidence:`untouched free kick crossed the ${kick.outOfBounds.side} sideline at field yard ${outSpot.toFixed(1)}; receiver selects the more favorable legal spot`};
+   event(`OFFICIAL KOB: receiver elects ${chosen.name} at field yard ${chosen.yard.toFixed(1)}`);
+   receiveAt(chosen.yard,`Kickoff out of bounds — receiver elects ${chosen.name}`);s.clockRunning=false;runSeconds=0;
+  }else{
+  ball={yard:landing,lane:lateralDrift,phase:'landing'};event(`${onside?'Onside kick':punt?'Punt':'Kickoff'} lands at ${Math.round(landing)}`);snap();
   if(onside){
    scramble(landing,'Onside kick',false);
    if(kick.recovery?.team===team){call=`Declared onside kick ${kick.kickYards} yd — ${team.toUpperCase()} recovers at ${spotText(s)}`;s.clockRunning=false;}
@@ -487,6 +505,7 @@ function kick(state,kind,seed=71,choice='auto'){
     else if(kick.fairSignaled){kick.decision='fair catch';ball={yard:landing,lane:0,phase:'fairCatch'};snap();receiveAt(inEnd?along(receive,20):landing,'Fair catch');s.clockRunning=false;runSeconds=punt?Math.ceil(elapsed):0;}
     else{event('KR fields the kick');returnBall(returner,receive,landing);}
    }
+  }
   }
  }
  kick.decision=kick.decision||choice;kick.move=kick.move||kick.decision;

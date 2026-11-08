@@ -397,3 +397,8 @@ Current truth: `PROJECT_CONTEXT.md` · Future: `ROADMAP.md`
 - Added spatial juke, spin, and stiff arm attempts with success/failure effects, structured move records, a visible special-move play report, and per-player movement/contact records.
 - Audited QB, RB, receivers, TE, line, front, linebackers, corners, nickel, and safeties in `route-lab/POSITION_AUDIT.md`; noted RPO, play action, screen timing and NFL-calibration gaps.
 - Added deterministic counterfactual checks for open lanes, awareness, pursuit, move effects, and all 22 player records.
+## 2026-11-07 — Route Lab free-kick out-of-bounds ruling
+- Free-kick flight now follows a seeded lateral trajectory influenced by the kicker's accuracy. An untouched kickoff, safety kick or declared onside kick that crosses a sideline before landing stops at the crossing.
+- Officials automatically award the receiving team the more favorable legal choice between the inbounds sideline spot and 25 yards from the kick spot. The replay, event log and play report expose the crossing, choices and selected spot.
+- Documented the bounded rule scope and remaining touching/end-zone cases in the audit and project context.
+

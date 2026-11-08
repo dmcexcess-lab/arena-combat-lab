@@ -79,3 +79,6 @@ Committing a completed play now calls `RouteGame.resetToLine()` before the next 
 
 ## Route Lab fair-catch officiating
 On free kicks and punts, a fair-catch call enables an in-flight catch-window check. If a coverage player actually reaches within contact distance of the returner while the kick is catchable after the signal, the seeded spatial replay returns a Fair Catch Interference foul. It awards a dead-ball fair catch 15 yards from the observed contact spot, logs the player/time/evidence, and reports it alongside the kick. Other kick fouls, accept/decline, and fair-catch kicks remain incomplete.
+
+## Route Lab free-kick sideline ruling
+Kickoff, safety-kick and declared onside-kick trajectories now use seeded lateral error influenced by kicker accuracy. When an untouched kick crosses a sideline before landing, `RouteGame.kick()` records the crossing and the officials give the receiving team the more favorable legal choice between the inbounds sideline spot and 25 yards from the kick spot. The special-teams report names both the ruling and awarded spot. This bounded case does not model a player touching the kick before it goes out or every end-zone/out-of-bounds interaction; see `route-lab/RULES_AUDIT.md`.
