@@ -1,3 +1,7 @@
+## 2026-11-08 — Route Lab match-zone handoffs
+- Match defenders now keep route ownership through overlapping zones to prevent frame-by-frame nearest-player churn, then pass the route to the next zone defender as it crosses the boundary.
+- The event log reports the transferring and receiving defenders. A seeded crossing-route regression verifies timing, actual player movement, and repeatability.
+
 ## 2026-11-07 — Route Lab play-action read slice
 - Play Action Cross now shows a back crossing the mesh while the ball stays with the QB; the pass release window is delayed and run-fit linebackers can bite on the fake or stay disciplined according to awareness.
 - The event report records the fake and the seeded position regression verifies the moving back, held ball, delayed QB decision and awareness-based fit response.

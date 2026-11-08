@@ -220,6 +220,7 @@ function simulate(off,def,seed=71){
   if(moving.route) moving.route=moving.route.map(w=>({x:clamp(w.x+shiftX,-26.5,26.5),y:w.y+shiftY}));
   log(-.8,'Motion: '+moving.label+' shifts before the snap');
  } else copyFrame(0);
+ const priorZoneMatchLeads=new Map();
  for(let step=1;step<=maxT/dt && !playOver;step++){
   time=step*dt; const t=time;
   if(off.playActionFake&&step===1)log(t,'QB carries out the handoff fake; the ball stays with the quarterback');
@@ -319,16 +320,27 @@ function simulate(off,def,seed=71){
     for(const receiver of receivers){
       const inArea=Math.abs(receiver.x-z.x)<=(z.r||6)&&Math.abs(receiver.y-z.y)<=(z.rY||z.r||6);
       const range=(z.r||7)*1.2,separation=dist(zdef,receiver);
-      if(inArea&&separation<range)zonePairs.push({defender:zdef,receiver,score:separation-statsOf(zdef).awareness*.006});
+      if(inArea&&separation<range)zonePairs.push({defender:zdef,receiver,retained:priorZoneMatchLeads.get(receiver.id)===zdef.id,score:separation-statsOf(zdef).awareness*.006});
     }
   }
-  zonePairs.sort((a,b)=>a.score-b.score||String(a.defender.id).localeCompare(String(b.defender.id))||String(a.receiver.id).localeCompare(String(b.receiver.id)));
+  zonePairs.sort((a,b)=>Number(b.retained)-Number(a.retained)||a.score-b.score||String(a.defender.id).localeCompare(String(b.defender.id))||String(a.receiver.id).localeCompare(String(b.receiver.id)));
   const zoneMatchLeads=new Map(),claimedZoneDefenders=new Set(),claimedRoutes=new Set();
   for(const pair of zonePairs){
     if(claimedZoneDefenders.has(pair.defender.id)||claimedRoutes.has(pair.receiver.id))continue;
     zoneMatchLeads.set(pair.defender.id,pair.receiver);
     claimedZoneDefenders.add(pair.defender.id);claimedRoutes.add(pair.receiver.id);
   }
+  const currentZoneMatchLeads=new Map();
+  for(const [defenderId,receiver] of zoneMatchLeads){
+    const previousId=priorZoneMatchLeads.get(receiver.id),next=d.find(a=>a.id===defenderId);
+    if(previousId&&previousId!==defenderId){
+      const previous=d.find(a=>a.id===previousId);
+      if(previous&&next)log(t,previous.label+' passes '+receiver.label+' to '+next.label+' at the zone boundary');
+    }
+    currentZoneMatchLeads.set(receiver.id,defenderId);
+  }
+  priorZoneMatchLeads.clear();
+  for(const [receiverId,defenderId] of currentZoneMatchLeads)priorZoneMatchLeads.set(receiverId,defenderId);
   // Defensive assignments: rush, man, match-zone, spy, and contain.
   for(const p of d){
     if(state==='loose'){move(p,ball,dt,speedOf(p)*(.79+statsOf(p).pursuit/380),18);continue;}

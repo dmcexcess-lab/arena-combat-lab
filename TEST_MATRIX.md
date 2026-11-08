@@ -231,6 +231,7 @@ Operational checklist for humans + AIs. Keep compact; add only behaviors whose r
 - Identical match assignments and seeds reproduce the same frames; the inspector and encyclopedia expose both response choices.
 - Standalone HTML embeds the maintained engine, app, and encyclopedia.
 - In overlapping match zones, only one defender claims each route; the nearest awareness-adjusted defender carries it while the other protects its landmark.
+- In overlapping match zones, the current defender retains the route until it crosses into the next zone; the event log names the outgoing and incoming defenders and identical seeds reproduce the exchange.
 
 ## Route Lab defensive ball skills
 - Higher defensive awareness breaks toward the same projected pass earlier; same seed reproduces the same flight, defender paths, and result.

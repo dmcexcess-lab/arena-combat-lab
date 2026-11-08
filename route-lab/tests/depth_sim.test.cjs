@@ -84,6 +84,24 @@ test('overlapping match zones assign an in-zone route to only one defender',()=>
  assert.deepEqual(C.simulate(base,shell,55),sim,'route distribution remains deterministic');
 });
 
+test('match coverage hands a route to the next zone defender and reports the exchange',()=>{
+ const base=P.createOffensePresets()[0];base.training=true;base.trainingVirtualSnap=true;base.type='pass';
+ base.players=base.players.filter(p=>['oQB','oX'].includes(p.id));
+ const qb=base.players.find(p=>p.id==='oQB'),receiver=base.players.find(p=>p.id==='oX');qb.x=0;qb.y=-6;qb.throwAt=99;
+ receiver.x=-16;receiver.y=0;receiver.route=[{x:-12,y:2},{x:-8,y:4},{x:-3,y:4},{x:3,y:4},{x:10,y:4}];
+ const shell=P.createDefensePresets()[0],first=shell.players.find(p=>p.id==='dM'),second=shell.players.find(p=>p.id==='dSS');shell.players=[first,second];
+ for(const p of shell.players){p.job='zone';p.zoneTechnique='match';p.y=3;p.zone={x:p.id==='dM'?-8:2,y:4,r:6,rY:6};}
+ first.x=-8;second.x=2;
+ const sim=C.simulate(base,shell,56);assert.ok(sim.valid);
+ const handoff=sim.events.find(e=>e.text.includes('passes X to'));
+ assert.ok(handoff,'the play report should identify the defender who passes off the route and the next defender');
+ assert.ok(handoff.t>0.8&&handoff.t<5,'the exchange should occur as the route crosses between zones');
+ const before=at(sim,+Math.max(0,handoff.t-.3).toFixed(2),'defense','dM'),after=at(sim,+Math.min(11.9,handoff.t+.3).toFixed(2),'defense','dSS');
+ assert.ok(after.x<3.5,'the receiving zone defender should move toward the route after the handoff');
+ assert.ok(before.x<-.5,'the first defender should carry the route before the boundary');
+ assert.deepEqual(C.simulate(base,shell,56),sim,'zone exchanges remain deterministic');
+});
+
 test('aware QB recognizes pressure early enough to escape an isolated rusher',()=>{
  const off=P.createOffensePresets()[0],def=P.createDefensePresets()[0];
  off.training=true;off.trainingVirtualSnap=true;
