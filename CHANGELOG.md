@@ -445,3 +445,7 @@ Current truth: `PROJECT_CONTEXT.md` · Future: `ROADMAP.md`
 ## 2026-11-08 — Route Lab zone route distribution
 - Match-zone defenders now share receiver ownership in overlapping zones: the nearest eligible defender, adjusted by awareness, carries each route while other defenders protect their areas. Live carriers remain a team pursuit responsibility.
 - Documented the coverage tradeoff in the inspector and encyclopedia and added a seeded overlap check.
+
+## 2026-11-08 — Route Lab defensive ball skills
+- Defenders now break toward a projected pass after an awareness-based read delay; awareness also improves pursuit pace and coverage continues to influence the catch contest.
+- Hands, awareness, and coverage now affect whether a very close breakup becomes a live interception. Added deterministic checks for read timing and a seed where hands changes a breakup into an interception.

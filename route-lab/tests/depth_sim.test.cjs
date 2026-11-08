@@ -100,6 +100,36 @@ test('aware QB recognizes pressure early enough to escape an isolated rusher',()
  assert.ok(b.events.some(e=>e.text.startsWith('QB senses pressure')));
 });
 
+test('defensive awareness changes break timing toward the pass target',()=>{
+ const off=P.createOffensePresets()[0],shell=P.createDefensePresets()[0];off.training=true;off.trainingVirtualSnap=true;off.type='pass';
+ off.players=off.players.filter(p=>['oQB','oX'].includes(p.id));const qb=off.players.find(p=>p.id==='oQB'),receiver=off.players.find(p=>p.id==='oX');
+ qb.x=0;qb.y=-5;qb.throwAt=1.2;receiver.x=-10;receiver.y=0;receiver.route=[{x:-8,y:4},{x:-5,y:8},{x:-3,y:12}];
+ shell.players=shell.players.filter(p=>p.id==='dM');const low=C.clone(shell),high=C.clone(shell);
+ for(const def of [low,high]){def.players[0].job='deep';def.players[0].zone={x:-10,y:2};def.players[0].x=-10;def.players[0].y=2;}
+ low.players[0].stats={awareness:1};high.players[0].stats={awareness:99};
+ const a=C.simulate(off,low,122),b=C.simulate(off,high,122);assert.ok(a.valid&&b.valid);
+ const throwAt=sim=>sim.decisions.find(e=>e.action==='pass')?.t;assert.equal(throwAt(a),throwAt(b),'QB choice should not change when only defensive awareness changes');
+ const ta=throwAt(a),fa=a.frames.find(f=>f.t>=ta+.4&&f.phase==='air'),fb=b.frames.find(f=>f.t>=ta+.4&&f.phase==='air');
+ assert.ok(fa&&fb,'fixture should include a live pass flight');
+ const target=sim=>sim.decisions.find(e=>e.action==='pass').targetId;
+ const lowY=fa.defense.find(p=>p.id==='dM').y,highY=fb.defense.find(p=>p.id==='dM').y;
+ assert.ok(highY>lowY+.5,`high-awareness defender should break toward the pass earlier (${lowY.toFixed(2)} vs ${highY.toFixed(2)}; ${target(a)} vs ${target(b)})`);
+ assert.deepEqual(C.simulate(off,high,122),b,'ball-break reaction is deterministic');
+});
+
+test('defender hands convert a close breakup into a seeded interception',()=>{
+ const off=P.createOffensePresets()[0];off.training=true;off.trainingVirtualSnap=true;off.type='pass';
+ off.players=off.players.filter(p=>['oQB','oX'].includes(p.id));const qb=off.players.find(p=>p.id==='oQB'),receiver=off.players.find(p=>p.id==='oX');
+ qb.x=0;qb.y=-5;qb.throwAt=1.2;qb.qbDropTime=1.15;receiver.x=0;receiver.y=0;receiver.route=[{x:0,y:4},{x:0,y:10},{x:0,y:14}];
+ const shell=P.createDefensePresets()[0];shell.players=shell.players.filter(p=>p.id==='dM');const low=C.clone(shell),high=C.clone(shell);
+ for(const def of [low,high]){def.players[0].job='zone';def.players[0].zone={x:0,y:10,r:8,rY:8};def.players[0].x=0;def.players[0].y=8;}
+ low.players[0].stats={hands:1,awareness:99,coverage:99};high.players[0].stats={hands:99,awareness:99,coverage:99};
+ const a=C.simulate(off,low,91),b=C.simulate(off,high,91);
+ assert.ok(a.events.some(e=>e.text==='Pass broken up by MLB'));
+ assert.ok(b.events.some(e=>e.text.startsWith('Interception by MLB')));
+ assert.deepEqual(C.simulate(off,high,91),b,'defensive ball skills remain deterministic');
+});
+
 test('juke, stiff arm, and spin have spatial effects and appear in structured play report',()=>{
  const {off,def}=isolatedRun();
  const variants=[['juke',{},'runner'],['stiff arm',{strength:99},'defender'],['spin',{vision:99,agility:1},'runner']];
@@ -148,4 +178,5 @@ test('the hosted inspector and encyclopedia expose coverage technique choices',(
  for(const technique of ['Shade inside','Shade outside','Trail the route','Balanced / match path'])assert.ok(app.includes(technique),technique);
  assert.ok(ency.includes("'Man leverage'"));assert.ok(html.includes('Coverage technique'));
  assert.ok(app.includes('Match route inside zone'));assert.ok(app.includes('one defender carries each route'));assert.ok(ency.includes("'Spot drop and route match'"));assert.ok(html.includes('Route response'));
+ assert.ok(app.includes('awareness shortens the read delay'));assert.ok(ency.includes("'Break on the ball'"));
 });

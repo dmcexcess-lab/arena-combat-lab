@@ -242,7 +242,7 @@ function renderInspector(){const el=$('inspector'),p=selectedPlayer(),isO=side==
  <div class="checks">${isO?check('onLine',p.onLine,'On line of scrimmage'):''}${isO?check('hot',p.hot,'Hot read'):''}</div>
  ${isO?'<div class="checks">'+check('reportedEligible',p.reportedEligible,'Reported eligible')+check('reportedIneligible',p.reportedIneligible,'Reported ineligible')+'</div>':''}
  <div class="two-fields">${field('Speed multiplier',input('speed',p.speed??1,'number','min="0.5" max="1.5" step="0.05"'))}${field('Power (0–1)',input('power',p.power??.68,'number','min="0" max="1" step="0.05"'))}</div>
- <details class="rating-editor" open><summary>PLAYER ATTRIBUTES • 1–99</summary><div class="rating-grid">${C.RATING_KEYS.map(k=>field(STAT_LABELS[k],input('stats.'+k,C.statsOf(p)[k],'number','min="1" max="99" step="1"'))).join('')}</div><p class="help">These scouting ratings affect gameplay, not just player labels. They are not NFL-calibrated.</p></details>
+ <details class="rating-editor" open><summary>PLAYER ATTRIBUTES • 1–99</summary><div class="rating-grid">${C.RATING_KEYS.map(k=>field(STAT_LABELS[k],input('stats.'+k,C.statsOf(p)[k],'number','min="1" max="99" step="1"'))).join('')}</div><p class="help">These ratings change gameplay. On defense, awareness shortens the read delay on a pass in flight; coverage contests the catch, while hands helps turn a close breakup into an interception. Grades are not NFL-calibrated.</p></details>
  </section>`;
  if(isO){
    if(['route','carry','release','pull'].includes(p.job))html+=`<section class="sec border-top"><div class="section-title"><h3>Route builder</h3><span class="micro">${p.route?.length||0} waypoints</span></div>

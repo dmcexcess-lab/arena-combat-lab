@@ -345,8 +345,11 @@ function simulate(off,def,seed=71){
     if(state==='air'&&flight){
       const projected=flight.to,range=dist(p,projected);
       if(range<13&&['man','zone','deep','runfit','spy'].includes(p.job)){
-        move(p,{x:projected.x,y:projected.y+clamp((p.y-projected.y)*.15,-.8,.8)},dt,
-          speedOf(p)*(.88+statsOf(p).awareness/390),18);continue;
+        const rating=statsOf(p),readDelay=clamp(.52-rating.awareness*.0038,.14,.52);
+        if(t-flight.t0>=readDelay){
+          move(p,{x:projected.x,y:projected.y+clamp((p.y-projected.y)*.15,-.8,.8)},dt,
+            speedOf(p)*clamp(.82+rating.awareness/390+rating.coverage/480,.9,1.25),18);continue;
+        }
       }
     }
     if(isRun&&handoff&&carrier.y>1){
@@ -534,7 +537,9 @@ function simulate(off,def,seed=71){
       if(Math.abs(ball.x)>=26.66||ball.y>110-(off.yardLine??50)){
         finish('Incomplete pass — out of bounds',t,point(0,0));
       }else if(closeD.d<3.3 && rand()<disruption){
-        if(rand()<.18&&closeD.d<.8){carrier=closeD.agent;state='return';returnStartY=carrier.y;interceptionY=carrier.y;possessionChanged=true;flight=null;
+        const ballSkills=statsOf(closeD.agent),interceptionChance=clamp(.04+ballSkills.hands*.0024+ballSkills.awareness*.0013+ballSkills.coverage*.0007,.08,.4);
+        const catchWindow=clamp((1.7-closeD.d)/.9,0,1);
+        if(closeD.d<1.7&&rand()<interceptionChance*catchWindow){carrier=closeD.agent;state='return';returnStartY=carrier.y;interceptionY=carrier.y;possessionChanged=true;flight=null;
           ball={x:carrier.x,y:carrier.y,kind:'held-d'};log(t,'Interception by '+carrier.label+' — return is live');}
         else finish('Pass broken up by '+closeD.agent.label,t,point(0,0));
       } else if(receiverDist<=2.3 && rand()<clamp(.70+statsOf(targetPass).hands*.0030-pickupCoverage(ball,d)*.11,.5,.985)){carrier=targetPass;state='runafter';catchTime=t;ball={x:carrier.x,y:carrier.y,kind:'held'};flight=null;log(t,'Completed to '+carrier.label);}
