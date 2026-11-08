@@ -4,7 +4,7 @@ const C=window.GridironCore,P=window.GridironPlays,K=window.RouteCampaign,E=wind
 const $=id=>document.getElementById(id),esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
 const W=1080,H=900,OX=540,OY=745,XS=18,YS=15;
 const pos=(p)=>({x:OX+p.x*XS,y:OY-p.y*YS}), world=(x,y)=>({x:C.clamp((x-OX)/XS,-26.6,26.6),y:C.clamp((OY-y)/YS,-9.2,39.5)});
-const offPresets=P.createOffensePresets(),pitchBack=P.createPitchBack(),defPresets=P.createDefensePresets();
+const offPresets=P.createOffensePresets(),pitchBack=P.createPitchBack(),goalLinePower=P.createGoalLinePower(),defPresets=P.createDefensePresets();
 const initCustom=()=>{try{let v=JSON.parse(localStorage.getItem('route-lab-custom-v1')||'{"offense":[],"defense":[]}');return v&&Array.isArray(v.offense)&&Array.isArray(v.defense)?v:{offense:[],defense:[]};}catch{return {offense:[],defense:[]};}};
 const custom=initCustom();
 let offensive=C.clone(offPresets[0]), defensive=C.clone(defPresets[0]);
@@ -19,7 +19,7 @@ const STAT_LABELS={speed:'Speed',acceleration:'Acceleration',agility:'Agility',s
 const routeKinds=['go','fade','slant','flat','out','in','dig','corner','post','curl','hitch','drag','wheel','seam','comeback','swing','angle','bubble','shallow'];
 const sidePlay=()=>side==='offense'?offensive:defensive;
 const selectedPlayer=()=>sidePlay().players.find(p=>p.id===selected);
-const allOff=()=>[...offPresets,pitchBack,...custom.offense],allDef=()=>[...defPresets,...custom.defense];
+const allOff=()=>[...offPresets,pitchBack,goalLinePower,...custom.offense],allDef=()=>[...defPresets,...custom.defense];
 function setCustom(){try{localStorage.setItem('route-lab-custom-v1',JSON.stringify(custom));}catch{}}
 function saveExhibition(){if(!gameState.teams||campaign||gameState.phase==='coinflip')return;try{localStorage.setItem('route-lab-exhibition-v1',JSON.stringify({version:1,gameState,pendingState,pendingRuling,offensive,defensive,lastKick,seed:Number($('seedInput').value)||71}));$('menuLoad').disabled=false;$('loadGameBtn').disabled=false;}catch{}}
 function showPane(name){$('startOverlay').hidden=false;document.body.classList.add('start-open');for(const pane of ['menu','profile','coin','depth','jump','campaign'])$('pane-'+pane).hidden=pane!==name;}

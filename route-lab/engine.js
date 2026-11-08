@@ -482,9 +482,9 @@ function simulate(off,def,seed=71){
       const duel=blockDuels.get(pair)||{time:0,shedChecked:false};duel.time+=dt;blockDuels.set(pair,duel);
       const aimedGap=off.runGapX??0,gapSide=Math.sign(aimedGap-blocker.x),rushSide=Math.sign(enemy.x-blocker.x);
       const leverage=clamp(.82+(gapSide&&gapSide===rushSide ? .22 : 0)+(block.awareness-70)*.001-(rush.awareness-70)*.0007,.62,1.16);
-      const power=(blocker.power??.72)*(.5+block.blocking/150)*(.68+block.strength/280)*leverage*(1-blocker.fatigue*.24);
-      const defense=(enemy.power??.66)*(.46+rush.strength/265+rush.passRush/300)*(1-enemy.fatigue*.22);
-      if(duel.time>=.3&&!duel.shedChecked){duel.shedChecked=true;const shedChance=clamp(.09+(defense-power)*.38+(rush.awareness-block.awareness)*.0015,.025,.38);if(rand()<shedChance){blockDuels.delete(pair);enemy.blockShedUntil=t+.65;enemy.engaged=false;blocker.engaged=false;enemy.vx*=.55;enemy.vy=Math.max(enemy.vy,1.3);contacts.push({t:+t.toFixed(2),kind:'shed',offenseId:blocker.id,defenseId:enemy.id,leverage:+leverage.toFixed(2),engagement:+duel.time.toFixed(2)});log(t,enemy.label+' sheds '+blocker.label+' and gets back into pursuit');continue;}}
+      const power=(blocker.power??.72)*(.55+block.blocking/155)*(.7+block.strength/300)*(1-blocker.fatigue*.24)*(isRun?leverage:1);
+      const defense=(enemy.power??.66)*(.48+rush.strength/260+rush.passRush/310)*(1-enemy.fatigue*.22);
+      if(isRun&&duel.time>=.3&&!duel.shedChecked){duel.shedChecked=true;const shedChance=clamp(.09+(defense-power)*.38+(rush.awareness-block.awareness)*.0015,.025,.38);if(rand()<shedChance){blockDuels.delete(pair);enemy.blockShedUntil=t+.65;enemy.engaged=false;blocker.engaged=false;enemy.vx*=.55;enemy.vy=Math.max(enemy.vy,1.3);contacts.push({t:+t.toFixed(2),kind:'shed',offenseId:blocker.id,defenseId:enemy.id,leverage:+leverage.toFixed(2),engagement:+duel.time.toFixed(2)});log(t,enemy.label+' sheds '+blocker.label+' and gets back into pursuit');continue;}}
       const advantage=clamp(power/(power+defense),.22,.78);
       // Sustained leverage steers the defender past the intended lane or around the pocket arc.
       enemy.x+=(enemy.x-blocker.x)*dt*advantage*(isRun?1.7:1.2);

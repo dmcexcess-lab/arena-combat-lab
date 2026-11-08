@@ -578,9 +578,9 @@ function simulate(off,def,seed=71){
       const duel=blockDuels.get(pair)||{time:0,shedChecked:false};duel.time+=dt;blockDuels.set(pair,duel);
       const aimedGap=off.runGapX??0,gapSide=Math.sign(aimedGap-blocker.x),rushSide=Math.sign(enemy.x-blocker.x);
       const leverage=clamp(.82+(gapSide&&gapSide===rushSide ? .22 : 0)+(block.awareness-70)*.001-(rush.awareness-70)*.0007,.62,1.16);
-      const power=(blocker.power??.72)*(.5+block.blocking/150)*(.68+block.strength/280)*leverage*(1-blocker.fatigue*.24);
-      const defense=(enemy.power??.66)*(.46+rush.strength/265+rush.passRush/300)*(1-enemy.fatigue*.22);
-      if(duel.time>=.3&&!duel.shedChecked){duel.shedChecked=true;const shedChance=clamp(.09+(defense-power)*.38+(rush.awareness-block.awareness)*.0015,.025,.38);if(rand()<shedChance){blockDuels.delete(pair);enemy.blockShedUntil=t+.65;enemy.engaged=false;blocker.engaged=false;enemy.vx*=.55;enemy.vy=Math.max(enemy.vy,1.3);contacts.push({t:+t.toFixed(2),kind:'shed',offenseId:blocker.id,defenseId:enemy.id,leverage:+leverage.toFixed(2),engagement:+duel.time.toFixed(2)});log(t,enemy.label+' sheds '+blocker.label+' and gets back into pursuit');continue;}}
+      const power=(blocker.power??.72)*(.55+block.blocking/155)*(.7+block.strength/300)*(1-blocker.fatigue*.24)*(isRun?leverage:1);
+      const defense=(enemy.power??.66)*(.48+rush.strength/260+rush.passRush/310)*(1-enemy.fatigue*.22);
+      if(isRun&&duel.time>=.3&&!duel.shedChecked){duel.shedChecked=true;const shedChance=clamp(.09+(defense-power)*.38+(rush.awareness-block.awareness)*.0015,.025,.38);if(rand()<shedChance){blockDuels.delete(pair);enemy.blockShedUntil=t+.65;enemy.engaged=false;blocker.engaged=false;enemy.vx*=.55;enemy.vy=Math.max(enemy.vy,1.3);contacts.push({t:+t.toFixed(2),kind:'shed',offenseId:blocker.id,defenseId:enemy.id,leverage:+leverage.toFixed(2),engagement:+duel.time.toFixed(2)});log(t,enemy.label+' sheds '+blocker.label+' and gets back into pursuit');continue;}}
       const advantage=clamp(power/(power+defense),.22,.78);
       // Sustained leverage steers the defender past the intended lane or around the pocket arc.
       enemy.x+=(enemy.x-blocker.x)*dt*advantage*(isRun?1.7:1.2);
@@ -915,8 +915,6 @@ function createOffensePresets(){
  for(const id of ['oLT','oLG','oC','oRG','oRT','oTE'])setBlock(o,id,'',1,'runblock');
  setRoute(o,'oX','slant');setRoute(o,'oSL','out');setRoute(o,'oZ','go');
  runRoute(o,'oRB',[[2,-3],[1,1],[-1,9],[0,25]]);o.runGapX=0;a.push(o);
- o=COPY(a.find(v=>v.name==='Inside Zone'));o.id='off-goal-line-power';o.name='Goal Line Power';o.runGapX=0;
- runRoute(o,'oRB',[[1,-3],[0,0],[0,2],[0,5],[0,9]]);a.push(o);
  o=offense('Empty Spacing');
  const rb=o.players.find(p=>p.id==='oRB');rb.x=-16;rb.y=-2;
  setRoute(o,'oX','hitch',2);setRoute(o,'oSL','out',3);setRoute(o,'oTE','curl',4);
@@ -928,6 +926,7 @@ function createOffensePresets(){
  return a;
 }
 function createPitchBack(){const o=COPY(createOffensePresets().find(play=>play.name==='Outside Zone Left'));o.id='off-pitch-back';o.name='Pitch Back';o.lateralToId='oQB';o.lateralAt=1.7;return o;}
+function createGoalLinePower(){const o=COPY(createOffensePresets().find(play=>play.name==='Inside Zone'));o.id='off-goal-line-power';o.name='Goal Line Power';o.runGapX=0;runRoute(o,'oRB',[[1,-3],[0,0],[0,2],[0,5],[0,9]]);return o;}
 function defense(name){
  const players=[
  p('dLE','DE',91,-5.8,1.4,false,'rush'),p('dDT1','DT',95,-1.8,1.4,false,'rush'),p('dDT2','DT',98,1.8,1.4,false,'rush'),p('dRE','DE',90,5.8,1.4,false,'rush'),
@@ -978,7 +977,7 @@ function createDefensePresets(){
  man(d.players[7],'oX');man(d.players[8],'oZ');zone(d.players[9],0,12,13,10);a.push(d);
  return a;
 }
-const api={offense,defense,routeFrom,setRoute,setBlock,createOffensePresets,createPitchBack,createDefensePresets};
+const api={offense,defense,routeFrom,setRoute,setBlock,createOffensePresets,createPitchBack,createGoalLinePower,createDefensePresets};
 root.GridironPlays=api;
 if(typeof module!=='undefined'&&module.exports)module.exports=api;
 })(typeof window!=='undefined'?window:globalThis);</script>
@@ -1828,7 +1827,7 @@ const C=window.GridironCore,P=window.GridironPlays,K=window.RouteCampaign,E=wind
 const $=id=>document.getElementById(id),esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
 const W=1080,H=900,OX=540,OY=745,XS=18,YS=15;
 const pos=(p)=>({x:OX+p.x*XS,y:OY-p.y*YS}), world=(x,y)=>({x:C.clamp((x-OX)/XS,-26.6,26.6),y:C.clamp((OY-y)/YS,-9.2,39.5)});
-const offPresets=P.createOffensePresets(),pitchBack=P.createPitchBack(),defPresets=P.createDefensePresets();
+const offPresets=P.createOffensePresets(),pitchBack=P.createPitchBack(),goalLinePower=P.createGoalLinePower(),defPresets=P.createDefensePresets();
 const initCustom=()=>{try{let v=JSON.parse(localStorage.getItem('route-lab-custom-v1')||'{"offense":[],"defense":[]}');return v&&Array.isArray(v.offense)&&Array.isArray(v.defense)?v:{offense:[],defense:[]};}catch{return {offense:[],defense:[]};}};
 const custom=initCustom();
 let offensive=C.clone(offPresets[0]), defensive=C.clone(defPresets[0]);
@@ -1843,7 +1842,7 @@ const STAT_LABELS={speed:'Speed',acceleration:'Acceleration',agility:'Agility',s
 const routeKinds=['go','fade','slant','flat','out','in','dig','corner','post','curl','hitch','drag','wheel','seam','comeback','swing','angle','bubble','shallow'];
 const sidePlay=()=>side==='offense'?offensive:defensive;
 const selectedPlayer=()=>sidePlay().players.find(p=>p.id===selected);
-const allOff=()=>[...offPresets,pitchBack,...custom.offense],allDef=()=>[...defPresets,...custom.defense];
+const allOff=()=>[...offPresets,pitchBack,goalLinePower,...custom.offense],allDef=()=>[...defPresets,...custom.defense];
 function setCustom(){try{localStorage.setItem('route-lab-custom-v1',JSON.stringify(custom));}catch{}}
 function saveExhibition(){if(!gameState.teams||campaign||gameState.phase==='coinflip')return;try{localStorage.setItem('route-lab-exhibition-v1',JSON.stringify({version:1,gameState,pendingState,pendingRuling,offensive,defensive,lastKick,seed:Number($('seedInput').value)||71}));$('menuLoad').disabled=false;$('loadGameBtn').disabled=false;}catch{}}
 function showPane(name){$('startOverlay').hidden=false;document.body.classList.add('start-open');for(const pane of ['menu','profile','coin','depth','jump','campaign'])$('pane-'+pane).hidden=pane!==name;}

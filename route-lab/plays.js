@@ -78,8 +78,6 @@ function createOffensePresets(){
  for(const id of ['oLT','oLG','oC','oRG','oRT','oTE'])setBlock(o,id,'',1,'runblock');
  setRoute(o,'oX','slant');setRoute(o,'oSL','out');setRoute(o,'oZ','go');
  runRoute(o,'oRB',[[2,-3],[1,1],[-1,9],[0,25]]);o.runGapX=0;a.push(o);
- o=COPY(a.find(v=>v.name==='Inside Zone'));o.id='off-goal-line-power';o.name='Goal Line Power';o.runGapX=0;
- runRoute(o,'oRB',[[1,-3],[0,0],[0,2],[0,5],[0,9]]);a.push(o);
  o=offense('Empty Spacing');
  const rb=o.players.find(p=>p.id==='oRB');rb.x=-16;rb.y=-2;
  setRoute(o,'oX','hitch',2);setRoute(o,'oSL','out',3);setRoute(o,'oTE','curl',4);
@@ -91,6 +89,7 @@ function createOffensePresets(){
  return a;
 }
 function createPitchBack(){const o=COPY(createOffensePresets().find(play=>play.name==='Outside Zone Left'));o.id='off-pitch-back';o.name='Pitch Back';o.lateralToId='oQB';o.lateralAt=1.7;return o;}
+function createGoalLinePower(){const o=COPY(createOffensePresets().find(play=>play.name==='Inside Zone'));o.id='off-goal-line-power';o.name='Goal Line Power';o.runGapX=0;runRoute(o,'oRB',[[1,-3],[0,0],[0,2],[0,5],[0,9]]);return o;}
 function defense(name){
  const players=[
  p('dLE','DE',91,-5.8,1.4,false,'rush'),p('dDT1','DT',95,-1.8,1.4,false,'rush'),p('dDT2','DT',98,1.8,1.4,false,'rush'),p('dRE','DE',90,5.8,1.4,false,'rush'),
@@ -141,7 +140,7 @@ function createDefensePresets(){
  man(d.players[7],'oX');man(d.players[8],'oZ');zone(d.players[9],0,12,13,10);a.push(d);
  return a;
 }
-const api={offense,defense,routeFrom,setRoute,setBlock,createOffensePresets,createPitchBack,createDefensePresets};
+const api={offense,defense,routeFrom,setRoute,setBlock,createOffensePresets,createPitchBack,createGoalLinePower,createDefensePresets};
 root.GridironPlays=api;
 if(typeof module!=='undefined'&&module.exports)module.exports=api;
 })(typeof window!=='undefined'?window:globalThis);
