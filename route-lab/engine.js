@@ -164,7 +164,7 @@ function pursuitTarget(defender,runner){
 }
 function simulate(off,def,seed=71){
  const v=validate(off,def); if(!v.valid)return {valid:false,validation:v,frames:[],events:[]};
- const rand=rng(seed), looseRand=rng(((Number(seed)||71)^0x8b21d5f3)>>>0), dt=.05, maxT=20;
+ const rand=rng(seed), looseRand=rng(((Number(seed)||71)^0x8b21d5f3)>>>0), blockRand=rng(((Number(seed)||71)^0x52e9146b)>>>0), dt=.05, maxT=20;
  const o=clone(off.players).map(p=>({...p,side:'o',homeX:p.x,vx:0,vy:0,fatigue:clamp(Number(p.fatigue)||0,0,.8),tackleCooldown:0,routeIndex:0,pressResolved:false,pressSlowUntil:0,engaged:false,speed:(p.speed??1)*(.96+rand()*.08)}));
  const d=clone(def.players).map(p=>({...p,side:'d',homeY:p.y,vx:0,vy:0,fatigue:clamp(Number(p.fatigue)||0,0,.8),tackleCooldown:0,engaged:false,speed:(p.speed??1)*(.94+rand()*.12)}));
  const byId=(id)=>o.find(p=>p.id===id), defenders=(id)=>d.find(p=>p.id===id);
@@ -484,7 +484,7 @@ function simulate(off,def,seed=71){
       const leverage=clamp(.82+(gapSide&&gapSide===rushSide ? .22 : 0)+(block.awareness-70)*.001-(rush.awareness-70)*.0007,.62,1.16);
       const power=(blocker.power??.72)*(.55+block.blocking/155)*(.7+block.strength/300)*(1-blocker.fatigue*.24)*(isRun?leverage:1);
       const defense=(enemy.power??.66)*(.48+rush.strength/260+rush.passRush/310)*(1-enemy.fatigue*.22);
-      if(isRun&&duel.time>=.3&&!duel.shedChecked){duel.shedChecked=true;const shedChance=clamp(.09+(defense-power)*.38+(rush.awareness-block.awareness)*.0015,.025,.38);if(rand()<shedChance){blockDuels.delete(pair);enemy.blockShedUntil=t+.65;enemy.engaged=false;blocker.engaged=false;enemy.vx*=.55;enemy.vy=Math.max(enemy.vy,1.3);contacts.push({t:+t.toFixed(2),kind:'shed',offenseId:blocker.id,defenseId:enemy.id,leverage:+leverage.toFixed(2),engagement:+duel.time.toFixed(2)});log(t,enemy.label+' sheds '+blocker.label+' and gets back into pursuit');continue;}}
+      if(isRun&&duel.time>=.3&&!duel.shedChecked){duel.shedChecked=true;const shedChance=clamp(.09+(defense-power)*.38+(rush.awareness-block.awareness)*.0015,.025,.38);if(blockRand()<shedChance){blockDuels.delete(pair);enemy.blockShedUntil=t+.65;enemy.engaged=false;blocker.engaged=false;enemy.vx*=.55;enemy.vy=Math.max(enemy.vy,1.3);contacts.push({t:+t.toFixed(2),kind:'shed',offenseId:blocker.id,defenseId:enemy.id,leverage:+leverage.toFixed(2),engagement:+duel.time.toFixed(2)});log(t,enemy.label+' sheds '+blocker.label+' and gets back into pursuit');continue;}}
       const advantage=clamp(power/(power+defense),.22,.78);
       // Sustained leverage steers the defender past the intended lane or around the pocket arc.
       enemy.x+=(enemy.x-blocker.x)*dt*advantage*(isRun?1.7:1.2);
