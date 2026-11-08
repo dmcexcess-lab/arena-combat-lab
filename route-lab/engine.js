@@ -222,6 +222,7 @@ function simulate(off,def,seed=71){
  } else copyFrame(0);
  for(let step=1;step<=maxT/dt && !playOver;step++){
   time=step*dt; const t=time;
+  if(off.playActionFake&&step===1)log(t,'QB carries out the handoff fake; the ball stays with the quarterback');
   for(const p of [...o,...d]){p.wasEngaged=p.engaged;p.engaged=false;p.supportBlock=false;}
   // Route pursuit with waypoints. A hot route is a read priority, not a speed boost.
   for(const p of o){
@@ -231,6 +232,10 @@ function simulate(off,def,seed=71){
       continue;
     }
     if(p.id===qb.id)continue;
+    if(off.playActionFake&&p.id===(off.playActionFake.receiverId||'oRB')&&t<1.05){
+      const fake=off.playActionFake;
+      move(p,{x:fake.x??qb.x+2,y:fake.y??-1.2},dt,speedOf(p)*.8,14);continue;
+    }
     if(state==='runafter'&&p===carrier)continue;
     if(state==='runafter'&&['route','release'].includes(p.job)&&dist(p,carrier)<8){
       const help=nearest(p,d,a=>dist(a,carrier)<7);
@@ -406,7 +411,14 @@ function simulate(off,def,seed=71){
         move(p,aim,dt,speedOf(p)*.85);
       }
     }else if(p.job==='spy'){const watch=carrier||qb;move(p,{x:watch.x,y:clamp(watch.y+3,2,12)},dt,speedOf(p)*.65);}
-    else if(p.job==='runfit'){const lead=statsOf(p).pursuit/260;move(p,handoff?{x:carrier.x+carrier.vx*lead,y:carrier.y+carrier.vy*lead}:{x:p.fitX??playDir,y:1.4},dt,speedOf(p)*.9);}
+    else if(p.job==='runfit'){
+      const rating=statsOf(p),lead=rating.pursuit/260;
+      if(off.playActionFake&&t<1.05){
+        const fake=off.playActionFake,readDelay=clamp(.85-rating.awareness*.004,.42,.82);
+        if(t>=readDelay)move(p,{x:fake.x??qb.x+2,y:Math.min(4,(fake.y??-1.2)+2)},dt,speedOf(p)*.9);
+        else move(p,{x:p.fitX??playDir,y:Math.min(3,2.8)},dt,speedOf(p)*.82);
+      }else move(p,handoff?{x:carrier.x+carrier.vx*lead,y:carrier.y+carrier.vy*lead}:{x:p.fitX??playDir,y:1.4},dt,speedOf(p)*.9);
+    }
     else if(p.job==='deep')move(p,{x:p.zone?.x??p.x,y:p.zone?.y??18},dt,speedOf(p)*.7);
   }
   // Blocking contacts: delay / deflect rushers; the pressure model uses assignments and matchups.
@@ -446,7 +458,8 @@ function simulate(off,def,seed=71){
       if(allowLoose&&looseRand()<strip)releaseLoose('fumble',t,qb,{x:qb.x+(rush.agent.x-qb.x)*.4,y:qb.y-2},qb);
       else{carrier=qb;finish('Sack ('+Math.abs(qb.y).toFixed(1)+' yd loss)',t,qb);}
     }
-    const ready=t>=Math.max(1.15,off.qbDropTime??1.15);
+    const playActionHold=off.playActionFake?clamp(.48-statsOf(qb).awareness*.002,.28,.48):0;
+    const ready=t>=Math.max(1.15,off.qbDropTime??1.15)+playActionHold;
     if(!playOver&&ready&&receivers.length){
       // Evaluate the RECEIVER AT BALL ARRIVAL, not just at the current frame.
       // Each candidate carries a coverage, trajectory, urgency and risk estimate.

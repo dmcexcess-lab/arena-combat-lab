@@ -117,6 +117,22 @@ test('defensive awareness changes break timing toward the pass target',()=>{
  assert.deepEqual(C.simulate(off,high,122),b,'ball-break reaction is deterministic');
 });
 
+test('Play Action Cross sells the handoff, holds the QB, and gives run-fit defenders an awareness-timed read',()=>{
+ const preset=P.createOffensePresets().find(p=>p.name==='Play Action Cross'),shell=P.createDefensePresets()[0];
+ const off=C.clone(preset);off.training=true;off.trainingVirtualSnap=true;
+ off.players=off.players.filter(p=>['oQB','oRB','oSL'].includes(p.id));off.playActionFake={receiverId:'oRB',x:2,y:-1.2};off.qbDropTime=1.1;off.throwAt=2.4;
+ const rb=off.players.find(p=>p.id==='oRB');rb.job='passblock';rb.route=[];
+ const def=C.clone(shell);def.players=def.players.filter(p=>p.id==='dM');def.players[0].job='runfit';def.players[0].x=2;def.players[0].y=2;
+ const low=C.clone(def),high=C.clone(def);low.players[0].stats={awareness:1};high.players[0].stats={awareness:99};
+ const a=C.simulate(off,low,45),b=C.simulate(off,high,45);
+ assert.ok(a.events.some(e=>e.text.includes('handoff fake')));
+ assert.equal(a.frames.find(f=>f.t===.5).carrierId,'oQB','the fake never transfers possession');
+ assert.ok(at(a,.5,'offense','oRB').y>-7+1,'the back must sell the mesh across the formation');
+ assert.ok(a.decisions.find(d=>d.action==='pass').t>=1.4,'the fake delays the QB release window');
+ assert.ok(at(a,.9,'defense','dM').y>at(b,.9,'defense','dM').y+.2,'low-awareness fit should bite later while the aware defender stays disciplined');
+ assert.deepEqual(C.simulate(off,high,45),b,'play-action reads remain deterministic');
+});
+
 test('defender hands convert a close breakup into a seeded interception',()=>{
  const off=P.createOffensePresets()[0];off.training=true;off.trainingVirtualSnap=true;off.type='pass';
  off.players=off.players.filter(p=>['oQB','oX'].includes(p.id));const qb=off.players.find(p=>p.id==='oQB'),receiver=off.players.find(p=>p.id==='oX');

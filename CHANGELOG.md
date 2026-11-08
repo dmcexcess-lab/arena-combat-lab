@@ -1,3 +1,7 @@
+## 2026-11-07 — Route Lab play-action read slice
+- Play Action Cross now shows a back crossing the mesh while the ball stays with the QB; the pass release window is delayed and run-fit linebackers can bite on the fake or stay disciplined according to awareness.
+- The event report records the fake and the seeded position regression verifies the moving back, held ball, delayed QB decision and awareness-based fit response.
+
 ## 2026-11-07 — Route Lab advance-state display
 - A completed snap now advances the scoreboard and full-field marker to its result immediately; during replay, the ball moves across the full field from the original snap spot. The lower tactics field keeps its snap-relative yard grid while showing the same live ball spot.
 - The Next play action is unavailable during an active replay, then runs the next CPU-selected call after the result is shown.

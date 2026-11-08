@@ -110,3 +110,6 @@ Individual zone defenders can use spot-drop or match-route behavior. Spot-drop p
 Overlapping match zones allocate each eligible receiver to one defender at a time using distance and awareness; unassigned defenders return to their landmarks. Route assignments are recalculated as the route moves, creating a simple simulated pass-off across zones. After a catch, all defenders still pursue the live carrier.
 
 On a pass in flight, awareness shortens the defender's read delay before breaking toward the projected catch point, and coverage contributes to closing speed and the contest. Hands, awareness, and coverage determine the narrow conversion chance when a close pass breakup can be intercepted. These remain seeded educational approximations, not NFL-calibrated probabilities.
+
+## Route Lab play-action read
+Play Action Cross moves its back across a QB-held ball to sell the mesh, delays the throw window briefly, and lets run-fit defenders key toward the fake. Defender awareness changes the response timing; this short scripted play mechanic is an educational approximation rather than a complete NFL read progression.
