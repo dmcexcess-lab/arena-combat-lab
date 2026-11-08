@@ -63,3 +63,22 @@ test('losses increase the distance to a first down and the two-minute warning st
  const s=G.createGame();G.setSpot(s,'home',50);let r=G.finishScrimmage(s,fake('Sack',-6),10);assert.equal(r.state.toGain,16);
  s.quarter=2;s.clock=124;r=G.finishScrimmage(s,fake('Tackle',1,6),0);assert.equal(r.state.clock,118);assert.equal(r.state.clockRunning,false);assert.ok(r.state.log.some(x=>x.includes('two-minute warning')));
 });
+test('player fatigue persists across snaps, affects replay state, and recovers during the huddle',()=>{
+ const s=G.createExhibition(482),off=P.createOffensePresets()[0],def=P.createDefensePresets()[0];G.setSpot(s,'home',50);
+ const offense=G.dressPlay(s,off,'home','offense'),defense=G.dressPlay(s,def,'away','defense');
+ const qb=offense.players.find(p=>p.label==='QB');qb.fatigue=.48;
+ const sim=C.simulate(offense,defense,712);const used=offense.players.find(p=>p.id===qb.id);const qbLoad=sim.participation.find(p=>p.id===qb.id);
+ const reduced={...sim,participation:sim.participation.map(p=>p.id===qb.id?{...p,fatigue:.53}:p)};
+ const result=G.finishScrimmage(s,reduced,0,{offense,defense});const row=result.state.teams.home.depth.offense.find(v=>v.label==='QB');
+ assert.equal(row.players[0].fatigue,.53);
+ const rested=G.dressPlay(result.state,off,'home','offense').players.find(p=>p.label==='QB');
+ assert.ok(rested.fatigue<.53,'huddle time should restore some energy');
+ const fresh=C.simulate({...offense,players:offense.players.map(p=>p.id===qb.id?{...p,fatigue:0}:p)},defense,712);
+ assert.notDeepEqual(sim.frames,fresh.frames,'incoming fatigue should affect movement');
+ assert.ok(qbLoad&&used.rosterIndex===0);
+});
+test('a heavily fatigued starter yields to an available depth-chart teammate',()=>{
+ const s=G.createExhibition(482),row=s.teams.home.depth.offense.find(v=>v.label==='RB');row.players[0].fatigue=.72;row.players[1].fatigue=.08;row.players[2].fatigue=.35;
+ const play=P.createOffensePresets()[0],rb=G.dressPlay(s,play,'home','offense').players.find(p=>p.label==='RB');
+ assert.equal(rb.rosterIndex,1);assert.equal(rb.rosterName,row.players[1].name);
+});
