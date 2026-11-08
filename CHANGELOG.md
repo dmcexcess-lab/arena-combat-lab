@@ -441,3 +441,7 @@ Current truth: `PROJECT_CONTEXT.md` · Future: `ROADMAP.md`
 - Added an individual zone response choice: spot-drop protects its landmark and closes on nearby threats, while match response carries a receiver's route inside the assigned area and recovers to the landmark after the route exits.
 - Exposed the choice in the player inspector and encyclopedia; matched the maintained engine, app and encyclopedia in the standalone hosted HTML.
 - Added seeded movement checks for distinct spot/match behavior and hosted UI/reference availability. This remains a coaching abstraction rather than a claim of full NFL pattern-match rules.
+
+## 2026-11-08 — Route Lab zone route distribution
+- Match-zone defenders now share receiver ownership in overlapping zones: the nearest eligible defender, adjusted by awareness, carries each route while other defenders protect their areas. Live carriers remain a team pursuit responsibility.
+- Documented the coverage tradeoff in the inspector and encyclopedia and added a seeded overlap check.

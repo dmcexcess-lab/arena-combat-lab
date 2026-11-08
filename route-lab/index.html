@@ -400,6 +400,24 @@ function simulate(off,def,seed=71){
     if(qb.y>-2)target={x:openFieldTarget(qb,d,t,1,o,target.x).x*.45+target.x*.55,y:target.y};
     move(qb,target,dt,speedOf(qb),18);
   }else if(!handoff){move(qb,{x:runner.x*.3,y:-4.8},dt,2.4);}
+  // Match-zone defenders share route ownership: one defender carries each
+  // receiver in overlapping zones, selected by proximity and rated awareness.
+  const zonePairs=[];
+  for(const zdef of d.filter(p=>p.job==='zone'&&p.zoneTechnique==='match')){
+    const z=zdef.zone||{x:zdef.x,y:zdef.y,r:5};
+    for(const receiver of receivers){
+      const inArea=Math.abs(receiver.x-z.x)<=(z.r||6)&&Math.abs(receiver.y-z.y)<=(z.rY||z.r||6);
+      const range=(z.r||7)*1.2,separation=dist(zdef,receiver);
+      if(inArea&&separation<range)zonePairs.push({defender:zdef,receiver,score:separation-statsOf(zdef).awareness*.006});
+    }
+  }
+  zonePairs.sort((a,b)=>a.score-b.score||String(a.defender.id).localeCompare(String(b.defender.id))||String(a.receiver.id).localeCompare(String(b.receiver.id)));
+  const zoneMatchLeads=new Map(),claimedZoneDefenders=new Set(),claimedRoutes=new Set();
+  for(const pair of zonePairs){
+    if(claimedZoneDefenders.has(pair.defender.id)||claimedRoutes.has(pair.receiver.id))continue;
+    zoneMatchLeads.set(pair.defender.id,pair.receiver);
+    claimedZoneDefenders.add(pair.defender.id);claimedRoutes.add(pair.receiver.id);
+  }
   // Defensive assignments: rush, man, match-zone, spy, and contain.
   for(const p of d){
     if(state==='loose'){move(p,ball,dt,speedOf(p)*(.79+statsOf(p).pursuit/380),18);continue;}
@@ -458,7 +476,8 @@ function simulate(off,def,seed=71){
       const z=p.zone||{x:p.x,y:p.y,r:5};
       const threats=receivers.filter(r=>dist(r,z)<(z.r||7)*1.6);
       const nearestThreat=nearest(z,threats);
-      let lead=nearestThreat.agent&&nearestThreat.d<(z.r||7)*1.2?nearestThreat.agent:null;
+      let lead=p.zoneTechnique==='match'?zoneMatchLeads.get(p.id)||null:
+        nearestThreat.agent&&nearestThreat.d<(z.r||7)*1.2?nearestThreat.agent:null;
       if(handoff&&t>.75&&dist(p,carrier)<12)lead=carrier;
       const pursuit=lead===carrier?statsOf(p).pursuit/260:0;
       const inAssignedArea=lead&&Math.abs(lead.x-z.x)<=(z.r||6)&&Math.abs(lead.y-z.y)<=(z.rY||z.r||6);
@@ -1701,7 +1720,7 @@ const raw=[
 ['Coverage','Man coverage','Each assigned defender tracks a specific eligible receiver. Leverage and help determine where the defender can be attacked.','Use bunch or crossing routes to challenge man assignments.','Cover 0,Cover 1'],
 ['Coverage','Man leverage','Inside shade places the defender on the receiver’s inside shoulder; outside shade protects the sideline side; trail technique concedes space underneath to stay behind the route.','Change a man defender’s coverage technique in the inspector, then compare the defender’s landmark and the receiver’s available shoulder.','inside leverage,outside leverage,trail technique'],
 ['Coverage','Zone coverage','Defenders protect named areas while passing routes between zones according to their responsibilities.','Move a hook zone underneath the dig, then inspect the deep window.','spot drop,match'],
-['Coverage','Spot drop and route match','A spot-drop defender protects a landmark and closes on threats nearby. A route-matching defender carries a receiver while that route remains inside the assigned area, then returns to the zone landmark.','Set the same defender to each response, run a crossing or seam route through the area, and compare the defender’s path after the receiver exits.','hook zone,pattern match,landmark'],
+['Coverage','Spot drop and route match','A spot-drop defender protects a landmark and closes on threats nearby. A route-matching defender carries a receiver while that route remains inside the assigned area, then returns to the zone landmark. When match zones overlap, the nearest defender with the better awareness read claims each route so two defenders do not chase the same receiver.','Overlap two match zones, run crossing routes through them, and compare which defender carries each route as it travels from one area to the next.','hook zone,pattern match,landmark,route distribution'],
 ['Coverage','Cover 0','A pressure-oriented man structure without a dedicated deep safety. It risks explosive gains if coverage is beaten.','Hot slant and quick outlets can attack immediate pressure.','zero blitz'],
 ['Coverage','Cover 1','Man coverage with one deep safety and typically other defenders rushing or supporting underneath.','Isolation on the outside depends on CB leverage and help angle.','single high'],
 ['Coverage','Cover 2','Two deep safety zones with defenders protecting short and intermediate areas. A common weakness is the gap between a corner and deep safety.','A corner or seam route can stress a split-safety defense.','two high'],
@@ -1985,7 +2004,7 @@ function renderInspector(){const el=$('inspector'),p=selectedPlayer(),isO=side==
    if(p.id!==(offensive.snapToId||'oQB'))html+=`<section class="sec border-top"><div class="section-title"><h3>Motion &amp; action</h3></div>${p.motion?`<div class="two-fields">${field('At-snap X',input('motion.toX',p.motion.toX,'number','step="0.5"'))}${field('At-snap Y',input('motion.toY',p.motion.toY,'number','step="0.5"'))}</div>`:'<p class="help">No pre-snap motion assigned.</p>'}<div class="row"><button data-action="motionTool">Set motion</button><button data-action="clearMotion">Clear motion</button><button data-action="makeRunner">Ball carrier</button></div></section>`;
  }else{
    if(p.job==='man')html+=`<section class="sec border-top"><div class="section-title"><h3>Man coverage</h3></div>${field('Shadow receiver',select('coverTarget',p.coverTarget||'', [['','Auto matchup'],...offensive.players.map(q=>[q.id,q.label+' #'+q.number])]))}${field('Coverage technique',select('leverage',p.leverage||'inside',[['inside','Shade inside'],['outside','Shade outside'],['trail','Trail the route'],['balanced','Balanced / match path']]))}<p class="help">Leverage changes the defender’s target landmark as the receiver releases. It can protect one shoulder and expose the other.</p><button data-action="assignTool">⇥ Pick opponent on field</button></section>`;
-   if(p.job==='zone')html+=`<section class="sec border-top"><div class="section-title"><h3>Coverage zone</h3></div><div class="two-fields">${field('Zone center X',input('zone.x',p.zone?.x??p.x,'number','step="0.5"'))}${field('Zone center Y',input('zone.y',p.zone?.y??p.y,'number','step="0.5"'))}</div><div class="two-fields">${field('Width (yards)',input('zone.r',p.zone?.r??7,'number','min="1" max="28" step="0.5"'))}${field('Depth (yards)',input('zone.rY',p.zone?.rY??7,'number','min="1" max="30" step="0.5"'))}</div>${field('Route response',select('zoneTechnique',p.zoneTechnique||'spot',[['spot','Spot-drop · protect landmark'],['match','Match route inside zone']]))}<p class="help">Match carries a receiver within this zone and returns to the landmark after the route leaves the assigned area.</p><button data-action="zoneTool">◌ Place on field</button></section>`;
+   if(p.job==='zone')html+=`<section class="sec border-top"><div class="section-title"><h3>Coverage zone</h3></div><div class="two-fields">${field('Zone center X',input('zone.x',p.zone?.x??p.x,'number','step="0.5"'))}${field('Zone center Y',input('zone.y',p.zone?.y??p.y,'number','step="0.5"'))}</div><div class="two-fields">${field('Width (yards)',input('zone.r',p.zone?.r??7,'number','min="1" max="28" step="0.5"'))}${field('Depth (yards)',input('zone.rY',p.zone?.rY??7,'number','min="1" max="30" step="0.5"'))}</div>${field('Route response',select('zoneTechnique',p.zoneTechnique||'spot',[['spot','Spot-drop · protect landmark'],['match','Match route inside zone']]))}<p class="help">Match carries a receiver within this zone and returns to the landmark after the route leaves. In overlapping match zones, one defender carries each route; the nearest defender with better awareness gets priority.</p><button data-action="zoneTool">◌ Place on field</button></section>`;
    if(p.job==='runfit')html+=`<section class="sec border-top">${field('Fit gap X',input('fitX',p.fitX??p.x,'number','step="0.5"'))}</section>`;
  }
  html+=`<section class="sec border-top"><div class="section-title"><h3>${isO?'Offensive':'Defensive'} roster</h3><span class="micro">${sidePlay().players.length} players</span></div><div class="assignment-list">${sidePlay().players.map(q=>`<button data-select="${esc(q.id)}" class="assignment ${isO?'':'def'} ${selected===q.id?'sel':''}"><span>${isO?'O':'X'}</span><strong>${esc(q.label)} <small>#${esc(q.number)}</small></strong><small>${esc(q.job)}</small></button>`).join('')}</div></section>`;

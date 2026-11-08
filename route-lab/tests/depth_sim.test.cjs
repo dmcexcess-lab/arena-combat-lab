@@ -72,6 +72,18 @@ test('zone route match carries an in-zone route while spot-drop protects its lan
  assert.deepEqual(C.simulate(base,match,55),b,'zone match behavior remains deterministic');
 });
 
+test('overlapping match zones assign an in-zone route to only one defender',()=>{
+ const base=P.createOffensePresets()[0];base.training=true;base.trainingVirtualSnap=true;base.players=base.players.filter(p=>['oQB','oX'].includes(p.id));
+ const qb=base.players.find(p=>p.id==='oQB'),receiver=base.players.find(p=>p.id==='oX');base.type='pass';qb.x=0;qb.y=-5;qb.throwAt=99;receiver.x=-10;receiver.y=0;receiver.route=[{x:-8,y:3},{x:-5,y:8},{x:-3,y:17},{x:-3,y:26}];
+ const shell=P.createDefensePresets()[0],near=shell.players.find(p=>p.id==='dM'),far=shell.players.find(p=>p.id==='dSS');shell.players=[near,far];
+ for(const p of shell.players){p.job='zone';p.zoneTechnique='match';p.zone={x:-5,y:6,r:5,rY:7};}
+ near.x=-5;near.y=4;far.x=-10;far.y=10;
+ const sim=C.simulate(base,shell,55);assert.ok(sim.valid);
+ const frame=1.5,nearPlayer=at(sim,frame,'defense','dM'),farPlayer=at(sim,frame,'defense','dSS');
+ assert.ok(nearPlayer.y>farPlayer.y+1.8,'the nearest match defender should carry the route while the other protects its landmark');
+ assert.deepEqual(C.simulate(base,shell,55),sim,'route distribution remains deterministic');
+});
+
 test('aware QB recognizes pressure early enough to escape an isolated rusher',()=>{
  const off=P.createOffensePresets()[0],def=P.createDefensePresets()[0];
  off.training=true;off.trainingVirtualSnap=true;
@@ -135,5 +147,5 @@ test('the hosted inspector and encyclopedia expose coverage technique choices',(
  const html=fs.readFileSync(path.join(__dirname,'..','index.html'),'utf8'),app=fs.readFileSync(path.join(__dirname,'..','app.js'),'utf8'),ency=fs.readFileSync(path.join(__dirname,'..','encyclopedia.js'),'utf8');
  for(const technique of ['Shade inside','Shade outside','Trail the route','Balanced / match path'])assert.ok(app.includes(technique),technique);
  assert.ok(ency.includes("'Man leverage'"));assert.ok(html.includes('Coverage technique'));
- assert.ok(app.includes('Match route inside zone'));assert.ok(ency.includes("'Spot drop and route match'"));assert.ok(html.includes('Route response'));
+ assert.ok(app.includes('Match route inside zone'));assert.ok(app.includes('one defender carries each route'));assert.ok(ency.includes("'Spot drop and route match'"));assert.ok(html.includes('Route response'));
 });

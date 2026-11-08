@@ -106,3 +106,5 @@ Individual man assignments can shade inside, shade outside, trail the receiver, 
 
 ## Route Lab zone route response
 Individual zone defenders can use spot-drop or match-route behavior. Spot-drop protects its assigned landmark and closes on nearby threats within the zone; match response anticipates and carries a receiver while that route remains inside the assigned rectangle, then recovers to the landmark if the route leaves. The player inspector and encyclopedia expose this distinction. This is a bounded coaching model, not complete NFL pattern-match communication or route-distribution logic.
+
+Overlapping match zones allocate each eligible receiver to one defender at a time using distance and awareness; unassigned defenders return to their landmarks. Route assignments are recalculated as the route moves, creating a simple simulated pass-off across zones. After a catch, all defenders still pursue the live carrier.

@@ -306,6 +306,24 @@ function simulate(off,def,seed=71){
     if(qb.y>-2)target={x:openFieldTarget(qb,d,t,1,o,target.x).x*.45+target.x*.55,y:target.y};
     move(qb,target,dt,speedOf(qb),18);
   }else if(!handoff){move(qb,{x:runner.x*.3,y:-4.8},dt,2.4);}
+  // Match-zone defenders share route ownership: one defender carries each
+  // receiver in overlapping zones, selected by proximity and rated awareness.
+  const zonePairs=[];
+  for(const zdef of d.filter(p=>p.job==='zone'&&p.zoneTechnique==='match')){
+    const z=zdef.zone||{x:zdef.x,y:zdef.y,r:5};
+    for(const receiver of receivers){
+      const inArea=Math.abs(receiver.x-z.x)<=(z.r||6)&&Math.abs(receiver.y-z.y)<=(z.rY||z.r||6);
+      const range=(z.r||7)*1.2,separation=dist(zdef,receiver);
+      if(inArea&&separation<range)zonePairs.push({defender:zdef,receiver,score:separation-statsOf(zdef).awareness*.006});
+    }
+  }
+  zonePairs.sort((a,b)=>a.score-b.score||String(a.defender.id).localeCompare(String(b.defender.id))||String(a.receiver.id).localeCompare(String(b.receiver.id)));
+  const zoneMatchLeads=new Map(),claimedZoneDefenders=new Set(),claimedRoutes=new Set();
+  for(const pair of zonePairs){
+    if(claimedZoneDefenders.has(pair.defender.id)||claimedRoutes.has(pair.receiver.id))continue;
+    zoneMatchLeads.set(pair.defender.id,pair.receiver);
+    claimedZoneDefenders.add(pair.defender.id);claimedRoutes.add(pair.receiver.id);
+  }
   // Defensive assignments: rush, man, match-zone, spy, and contain.
   for(const p of d){
     if(state==='loose'){move(p,ball,dt,speedOf(p)*(.79+statsOf(p).pursuit/380),18);continue;}
@@ -364,7 +382,8 @@ function simulate(off,def,seed=71){
       const z=p.zone||{x:p.x,y:p.y,r:5};
       const threats=receivers.filter(r=>dist(r,z)<(z.r||7)*1.6);
       const nearestThreat=nearest(z,threats);
-      let lead=nearestThreat.agent&&nearestThreat.d<(z.r||7)*1.2?nearestThreat.agent:null;
+      let lead=p.zoneTechnique==='match'?zoneMatchLeads.get(p.id)||null:
+        nearestThreat.agent&&nearestThreat.d<(z.r||7)*1.2?nearestThreat.agent:null;
       if(handoff&&t>.75&&dist(p,carrier)<12)lead=carrier;
       const pursuit=lead===carrier?statsOf(p).pursuit/260:0;
       const inAssignedArea=lead&&Math.abs(lead.x-z.x)<=(z.r||6)&&Math.abs(lead.y-z.y)<=(z.rY||z.r||6);

@@ -230,3 +230,4 @@ Operational checklist for humans + AIs. Keep compact; add only behaviors whose r
 - Against the same seeded in-zone route, match response carries farther down the route than spot-drop, which remains more landmark centered.
 - Identical match assignments and seeds reproduce the same frames; the inspector and encyclopedia expose both response choices.
 - Standalone HTML embeds the maintained engine, app, and encyclopedia.
+- In overlapping match zones, only one defender claims each route; the nearest awareness-adjusted defender carries it while the other protects its landmark.
