@@ -436,3 +436,8 @@ Current truth: `PROJECT_CONTEXT.md` · Future: `ROADMAP.md`
 ## 2026-11-08 — Route Lab man-coverage leverage
 - Added inside shade, outside shade, trail, and balanced techniques to individual man assignments. Defender target landmarks now reflect the selected technique as receivers release.
 - Added coaching-board controls and an encyclopedia entry explaining the tactical tradeoff; seeded regression checks confirm each choice changes defender position reproducibly.
+
+## 2026-11-08 — Route Lab zone route response
+- Added an individual zone response choice: spot-drop protects its landmark and closes on nearby threats, while match response carries a receiver's route inside the assigned area and recovers to the landmark after the route exits.
+- Exposed the choice in the player inspector and encyclopedia; matched the maintained engine, app and encyclopedia in the standalone hosted HTML.
+- Added seeded movement checks for distinct spot/match behavior and hosted UI/reference availability. This remains a coaching abstraction rather than a claim of full NFL pattern-match rules.

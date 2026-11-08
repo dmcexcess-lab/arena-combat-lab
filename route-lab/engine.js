@@ -367,8 +367,22 @@ function simulate(off,def,seed=71){
       let lead=nearestThreat.agent&&nearestThreat.d<(z.r||7)*1.2?nearestThreat.agent:null;
       if(handoff&&t>.75&&dist(p,carrier)<12)lead=carrier;
       const pursuit=lead===carrier?statsOf(p).pursuit/260:0;
-      const aim=lead?{x:clamp(lead.x+lead.vx*pursuit,z.x-(z.r||6),z.x+(z.r||6)),y:clamp(lead.y+lead.vy*pursuit+.2,z.y-(z.rY||z.r||6),z.y+(z.rY||z.r||6))}:z;
-      move(p,aim,dt,speedOf(p)*.85);
+      const inAssignedArea=lead&&Math.abs(lead.x-z.x)<=(z.r||6)&&Math.abs(lead.y-z.y)<=(z.rY||z.r||6);
+      if(p.zoneTechnique==='match'&&inAssignedArea){
+        const rating=statsOf(p),response=clamp((rating.awareness+rating.coverage*.65)/150,.3,1);
+        const anticipation=clamp(.4+response*.35,.45,.8);
+        move(p,{x:lead.x+lead.vx*anticipation,y:lead.y+lead.vy*anticipation},dt,speedOf(p)*clamp(.92+rating.coverage/380+rating.awareness/500,.98,1.32));
+      }else if(p.zoneTechnique==='match'&&!handoff){
+        // Match coverage carries routes only while they remain in the assignment;
+        // once they leave, recover the landmark instead of chasing them to its edge.
+        p.zoneReadX=undefined;p.zoneReadY=undefined;
+        move(p,z,dt,speedOf(p)*.92);
+      }else{
+        // Preserve landmark and threat-closing behavior for spot-drop. Once a
+        // runner is established, both responses pursue the live carrier.
+        const aim=lead?{x:clamp(lead.x+lead.vx*pursuit,z.x-(z.r||6),z.x+(z.r||6)),y:clamp(lead.y+lead.vy*pursuit+.2,z.y-(z.rY||z.r||6),z.y+(z.rY||z.r||6))}:z;
+        move(p,aim,dt,speedOf(p)*.85);
+      }
     }else if(p.job==='spy'){const watch=carrier||qb;move(p,{x:watch.x,y:clamp(watch.y+3,2,12)},dt,speedOf(p)*.65);}
     else if(p.job==='runfit'){const lead=statsOf(p).pursuit/260;move(p,handoff?{x:carrier.x+carrier.vx*lead,y:carrier.y+carrier.vy*lead}:{x:p.fitX??playDir,y:1.4},dt,speedOf(p)*.9);}
     else if(p.job==='deep')move(p,{x:p.zone?.x??p.x,y:p.zone?.y??18},dt,speedOf(p)*.7);

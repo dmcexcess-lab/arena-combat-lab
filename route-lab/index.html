@@ -461,8 +461,22 @@ function simulate(off,def,seed=71){
       let lead=nearestThreat.agent&&nearestThreat.d<(z.r||7)*1.2?nearestThreat.agent:null;
       if(handoff&&t>.75&&dist(p,carrier)<12)lead=carrier;
       const pursuit=lead===carrier?statsOf(p).pursuit/260:0;
-      const aim=lead?{x:clamp(lead.x+lead.vx*pursuit,z.x-(z.r||6),z.x+(z.r||6)),y:clamp(lead.y+lead.vy*pursuit+.2,z.y-(z.rY||z.r||6),z.y+(z.rY||z.r||6))}:z;
-      move(p,aim,dt,speedOf(p)*.85);
+      const inAssignedArea=lead&&Math.abs(lead.x-z.x)<=(z.r||6)&&Math.abs(lead.y-z.y)<=(z.rY||z.r||6);
+      if(p.zoneTechnique==='match'&&inAssignedArea){
+        const rating=statsOf(p),response=clamp((rating.awareness+rating.coverage*.65)/150,.3,1);
+        const anticipation=clamp(.4+response*.35,.45,.8);
+        move(p,{x:lead.x+lead.vx*anticipation,y:lead.y+lead.vy*anticipation},dt,speedOf(p)*clamp(.92+rating.coverage/380+rating.awareness/500,.98,1.32));
+      }else if(p.zoneTechnique==='match'&&!handoff){
+        // Match coverage carries routes only while they remain in the assignment;
+        // once they leave, recover the landmark instead of chasing them to its edge.
+        p.zoneReadX=undefined;p.zoneReadY=undefined;
+        move(p,z,dt,speedOf(p)*.92);
+      }else{
+        // Preserve landmark and threat-closing behavior for spot-drop. Once a
+        // runner is established, both responses pursue the live carrier.
+        const aim=lead?{x:clamp(lead.x+lead.vx*pursuit,z.x-(z.r||6),z.x+(z.r||6)),y:clamp(lead.y+lead.vy*pursuit+.2,z.y-(z.rY||z.r||6),z.y+(z.rY||z.r||6))}:z;
+        move(p,aim,dt,speedOf(p)*.85);
+      }
     }else if(p.job==='spy'){const watch=carrier||qb;move(p,{x:watch.x,y:clamp(watch.y+3,2,12)},dt,speedOf(p)*.65);}
     else if(p.job==='runfit'){const lead=statsOf(p).pursuit/260;move(p,handoff?{x:carrier.x+carrier.vx*lead,y:carrier.y+carrier.vy*lead}:{x:p.fitX??playDir,y:1.4},dt,speedOf(p)*.9);}
     else if(p.job==='deep')move(p,{x:p.zone?.x??p.x,y:p.zone?.y??18},dt,speedOf(p)*.7);
@@ -823,7 +837,7 @@ function defense(name){
  p('dFS','FS',21,-10,17,false,'zone'),p('dSS','SS',32,10,17,false,'zone')
  ];return {id:'def-'+name.toLowerCase().replace(/[^a-z0-9]+/g,'-'),name,side:'defense',players};
 }
-function zone(p,x,y,r=7,rY=r){p.job='zone';p.zone={x,y,r,rY};delete p.coverTarget;}
+function zone(p,x,y,r=7,rY=r){p.job='zone';p.zone={x,y,r,rY};p.zoneTechnique=p.zoneTechnique||'spot';delete p.coverTarget;}
 function man(p,target){p.job='man';p.coverTarget=target;p.leverage=p.leverage||'inside';delete p.zone;}
 function createDefensePresets(){
  let a=[],d=defense('4–3 Cover 2');
@@ -1687,6 +1701,7 @@ const raw=[
 ['Coverage','Man coverage','Each assigned defender tracks a specific eligible receiver. Leverage and help determine where the defender can be attacked.','Use bunch or crossing routes to challenge man assignments.','Cover 0,Cover 1'],
 ['Coverage','Man leverage','Inside shade places the defender on the receiver’s inside shoulder; outside shade protects the sideline side; trail technique concedes space underneath to stay behind the route.','Change a man defender’s coverage technique in the inspector, then compare the defender’s landmark and the receiver’s available shoulder.','inside leverage,outside leverage,trail technique'],
 ['Coverage','Zone coverage','Defenders protect named areas while passing routes between zones according to their responsibilities.','Move a hook zone underneath the dig, then inspect the deep window.','spot drop,match'],
+['Coverage','Spot drop and route match','A spot-drop defender protects a landmark and closes on threats nearby. A route-matching defender carries a receiver while that route remains inside the assigned area, then returns to the zone landmark.','Set the same defender to each response, run a crossing or seam route through the area, and compare the defender’s path after the receiver exits.','hook zone,pattern match,landmark'],
 ['Coverage','Cover 0','A pressure-oriented man structure without a dedicated deep safety. It risks explosive gains if coverage is beaten.','Hot slant and quick outlets can attack immediate pressure.','zero blitz'],
 ['Coverage','Cover 1','Man coverage with one deep safety and typically other defenders rushing or supporting underneath.','Isolation on the outside depends on CB leverage and help angle.','single high'],
 ['Coverage','Cover 2','Two deep safety zones with defenders protecting short and intermediate areas. A common weakness is the gap between a corner and deep safety.','A corner or seam route can stress a split-safety defense.','two high'],
@@ -1970,7 +1985,7 @@ function renderInspector(){const el=$('inspector'),p=selectedPlayer(),isO=side==
    if(p.id!==(offensive.snapToId||'oQB'))html+=`<section class="sec border-top"><div class="section-title"><h3>Motion &amp; action</h3></div>${p.motion?`<div class="two-fields">${field('At-snap X',input('motion.toX',p.motion.toX,'number','step="0.5"'))}${field('At-snap Y',input('motion.toY',p.motion.toY,'number','step="0.5"'))}</div>`:'<p class="help">No pre-snap motion assigned.</p>'}<div class="row"><button data-action="motionTool">Set motion</button><button data-action="clearMotion">Clear motion</button><button data-action="makeRunner">Ball carrier</button></div></section>`;
  }else{
    if(p.job==='man')html+=`<section class="sec border-top"><div class="section-title"><h3>Man coverage</h3></div>${field('Shadow receiver',select('coverTarget',p.coverTarget||'', [['','Auto matchup'],...offensive.players.map(q=>[q.id,q.label+' #'+q.number])]))}${field('Coverage technique',select('leverage',p.leverage||'inside',[['inside','Shade inside'],['outside','Shade outside'],['trail','Trail the route'],['balanced','Balanced / match path']]))}<p class="help">Leverage changes the defender’s target landmark as the receiver releases. It can protect one shoulder and expose the other.</p><button data-action="assignTool">⇥ Pick opponent on field</button></section>`;
-   if(p.job==='zone')html+=`<section class="sec border-top"><div class="section-title"><h3>Coverage zone</h3></div><div class="two-fields">${field('Zone center X',input('zone.x',p.zone?.x??p.x,'number','step="0.5"'))}${field('Zone center Y',input('zone.y',p.zone?.y??p.y,'number','step="0.5"'))}</div><div class="two-fields">${field('Width (yards)',input('zone.r',p.zone?.r??7,'number','min="1" max="28" step="0.5"'))}${field('Depth (yards)',input('zone.rY',p.zone?.rY??7,'number','min="1" max="30" step="0.5"'))}</div><button data-action="zoneTool">◌ Place on field</button></section>`;
+   if(p.job==='zone')html+=`<section class="sec border-top"><div class="section-title"><h3>Coverage zone</h3></div><div class="two-fields">${field('Zone center X',input('zone.x',p.zone?.x??p.x,'number','step="0.5"'))}${field('Zone center Y',input('zone.y',p.zone?.y??p.y,'number','step="0.5"'))}</div><div class="two-fields">${field('Width (yards)',input('zone.r',p.zone?.r??7,'number','min="1" max="28" step="0.5"'))}${field('Depth (yards)',input('zone.rY',p.zone?.rY??7,'number','min="1" max="30" step="0.5"'))}</div>${field('Route response',select('zoneTechnique',p.zoneTechnique||'spot',[['spot','Spot-drop · protect landmark'],['match','Match route inside zone']]))}<p class="help">Match carries a receiver within this zone and returns to the landmark after the route leaves the assigned area.</p><button data-action="zoneTool">◌ Place on field</button></section>`;
    if(p.job==='runfit')html+=`<section class="sec border-top">${field('Fit gap X',input('fitX',p.fitX??p.x,'number','step="0.5"'))}</section>`;
  }
  html+=`<section class="sec border-top"><div class="section-title"><h3>${isO?'Offensive':'Defensive'} roster</h3><span class="micro">${sidePlay().players.length} players</span></div><div class="assignment-list">${sidePlay().players.map(q=>`<button data-select="${esc(q.id)}" class="assignment ${isO?'':'def'} ${selected===q.id?'sel':''}"><span>${isO?'O':'X'}</span><strong>${esc(q.label)} <small>#${esc(q.number)}</small></strong><small>${esc(q.job)}</small></button>`).join('')}</div></section>`;

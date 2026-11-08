@@ -103,3 +103,6 @@ Individual man assignments can shade inside, shade outside, trail the receiver, 
 
 ## Route Lab man-coverage leverage
 Individual man assignments can shade inside, shade outside, trail the receiver, or match the route path evenly. The selected technique moves the defender's live target landmark and therefore changes separation and throwing windows. The editor and encyclopedia explain the concept. This models assignment intent in the shared engine; it does not include NFL-calibrated press technique, route-specific hand fighting, or safety help communication.
+
+## Route Lab zone route response
+Individual zone defenders can use spot-drop or match-route behavior. Spot-drop protects its assigned landmark and closes on nearby threats within the zone; match response anticipates and carries a receiver while that route remains inside the assigned rectangle, then recovers to the landmark if the route leaves. The player inspector and encyclopedia expose this distinction. This is a bounded coaching model, not complete NFL pattern-match communication or route-distribution logic.

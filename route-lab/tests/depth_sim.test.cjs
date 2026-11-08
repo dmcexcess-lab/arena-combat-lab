@@ -61,6 +61,17 @@ test('man coverage leverage moves the defender to different route landmarks',()=
  assert.deepEqual(C.simulate(base,inside,31),i,'coverage technique remains seed-reproducible');
 });
 
+test('zone route match carries an in-zone route while spot-drop protects its landmark',()=>{
+ const base=P.createOffensePresets()[0];base.training=true;base.trainingVirtualSnap=true;base.players=base.players.filter(p=>['oQB','oX'].includes(p.id));
+ const qb=base.players.find(p=>p.id==='oQB'),receiver=base.players.find(p=>p.id==='oX');base.type='pass';qb.x=0;qb.y=-5;qb.throwAt=99;receiver.x=-10;receiver.y=0;receiver.route=[{x:-8,y:3},{x:-5,y:8},{x:-3,y:17},{x:-3,y:26}];
+ const shell=P.createDefensePresets()[0],hook=shell.players.find(p=>p.id==='dM');shell.players=[hook];hook.job='zone';hook.x=-5;hook.y=4;hook.zone={x:-5,y:6,r:5,rY:5};
+ const spot=C.clone(shell),match=C.clone(shell);spot.players[0].zoneTechnique='spot';match.players[0].zoneTechnique='match';
+ const a=C.simulate(base,spot,55),b=C.simulate(base,match,55);assert.ok(a.valid&&b.valid);
+ const insideAt=1.5;
+ assert.ok(at(b,insideAt,'defense','dM').y>at(a,insideAt,'defense','dM').y+2,'match should carry the in-zone route path while spot-drop protects the landmark');
+ assert.deepEqual(C.simulate(base,match,55),b,'zone match behavior remains deterministic');
+});
+
 test('aware QB recognizes pressure early enough to escape an isolated rusher',()=>{
  const off=P.createOffensePresets()[0],def=P.createDefensePresets()[0];
  off.training=true;off.trainingVirtualSnap=true;
@@ -120,8 +131,9 @@ test('the play result displays executed special moves',()=>{
  assert.ok(app.includes('sim.specialMoves.map'));
  assert.ok(app.includes('sim.participation.filter'));
 });
-test('the hosted inspector and encyclopedia expose man-coverage technique choices',()=>{
+test('the hosted inspector and encyclopedia expose coverage technique choices',()=>{
  const html=fs.readFileSync(path.join(__dirname,'..','index.html'),'utf8'),app=fs.readFileSync(path.join(__dirname,'..','app.js'),'utf8'),ency=fs.readFileSync(path.join(__dirname,'..','encyclopedia.js'),'utf8');
  for(const technique of ['Shade inside','Shade outside','Trail the route','Balanced / match path'])assert.ok(app.includes(technique),technique);
  assert.ok(ency.includes("'Man leverage'"));assert.ok(html.includes('Coverage technique'));
+ assert.ok(app.includes('Match route inside zone'));assert.ok(ency.includes("'Spot drop and route match'"));assert.ok(html.includes('Route response'));
 });

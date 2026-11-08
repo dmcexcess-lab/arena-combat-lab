@@ -225,3 +225,8 @@ Operational checklist for humans + AIs. Keep compact; add only behaviors whose r
 - Repeating the same play, technique, and seed reproduces the same frames.
 - The inspector exposes all four techniques; the hosted encyclopedia explains the leverage tradeoffs.
 - The standalone HTML embeds exact current engine, playbook, encyclopedia, and app modules.
+
+## Route Lab zone route response
+- Against the same seeded in-zone route, match response carries farther down the route than spot-drop, which remains more landmark centered.
+- Identical match assignments and seeds reproduce the same frames; the inspector and encyclopedia expose both response choices.
+- Standalone HTML embeds the maintained engine, app, and encyclopedia.
