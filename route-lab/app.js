@@ -118,7 +118,8 @@ function doKick(kind){
  const rated=kind==='punt'?`P ${team.punter.power} power / ${team.punter.hang} hang`:`K ${team.kicker.power} power / ${team.kicker.accuracy} accuracy`;
  const alignment=kr.alignment?.lockedUntilLanding?` · dynamic alignment: ${kr.alignment.setup} in setup zone, ${kr.alignment.onLine} on restraining line, ${kr.alignment.deep} deep; coverage locked until landing`:
   kr.alignment?` · declared onside alignment: ${kr.alignment.setup} receivers set`:'';
- const details=`<div>22 players over ${kr.frames.length} replay frames · ${kr.contacts} return contacts${kr.recovery?' · '+esc(kr.recovery.player)+' recovered for '+kr.recovery.team.toUpperCase():''}${kr.blocked?' · blocked kick':''}${kr.decision==='fair catch'?' · fair catch':''}${kr.decision==='short kick'?' · landing-zone enforcement':''}</div>`;
+ const details=`<div>22 players over ${kr.frames.length} replay frames · ${kr.contacts} return contacts${kr.recovery?' · '+esc(kr.recovery.player)+' recovered for '+kr.recovery.team.toUpperCase():''}${kr.blocked?' · blocked kick':''}${kr.decision==='fair catch'?' · fair catch':''}${kr.decision==='fair catch awarded'?' · fair catch awarded after interference':''}${kr.decision==='short kick'?' · landing-zone enforcement':''}</div>`+
+  (kr.penalty?`<div><b>OFFICIAL FLAG</b> · ${esc(kr.penalty.code)} ${esc(kr.penalty.player)} at ${kr.penalty.time.toFixed(1)}s, field yard ${kr.penalty.spot.toFixed(1)}; 15-yard enforcement — ${esc(kr.penalty.evidence)}</div>`:'');
  $('moveReport').innerHTML='<b>SPECIAL TEAMS EXECUTION</b> · '+rated+alignment+details;
  $('eventLog').innerHTML=kr.events.map(e=>`<div><em>${e.t.toFixed(2)}s</em> ${esc(e.text)}</div>`).join('');
  $('officialCall').textContent='Referee: '+result.call;

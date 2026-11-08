@@ -76,3 +76,6 @@ Free Play now opens a start menu, collects a saved heads/tails call and home uni
 
 ## Route Lab between-play reset
 Committing a completed play now calls `RouteGame.resetToLine()` before the next play is selected. It immediately deducts a simulated 27–35 second reset (capped under a 25-second administrative play clock) from a running game clock, logs the elapsed time, and uses `lineReady` so the following snap or scrimmage kick does not deduct it again. Stopped-clock resets leave the game clock unchanged. The reset can trigger the two-minute warning or end a period before the next snap; no walk-back animation is required.
+
+## Route Lab fair-catch officiating
+On free kicks and punts, a fair-catch call enables an in-flight catch-window check. If a coverage player actually reaches within contact distance of the returner while the kick is catchable after the signal, the seeded spatial replay returns a Fair Catch Interference foul. It awards a dead-ball fair catch 15 yards from the observed contact spot, logs the player/time/evidence, and reports it alongside the kick. Other kick fouls, accept/decline, and fair-catch kicks remain incomplete.

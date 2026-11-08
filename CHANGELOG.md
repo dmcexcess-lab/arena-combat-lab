@@ -1,3 +1,7 @@
+## 2026-11-07 — Route Lab fair-catch officiating
+- Fair-catch signals now run through the kick replay's moving-player frames. Actual contact by coverage inside the receiver's catch window can produce a rare, evidence-backed interference foul.
+- The officials award the fair catch and advance the receiving team 15 yards from the contact spot; the play report and game book identify the player, time, spot and frame evidence.
+
 ## 2026-11-07 — Route Lab between-play clock reset
 - Moving from a completed play to the next lineup now immediately simulates the 27–35 second reset (capped under a 25-second administrative play clock) and deducts it from a running game clock. The game book records the elapsed time; no player walk-back animation is shown.
 - Scrimmage snaps, punts and field goals consume the prepared lineup without charging the same interval twice. Stopped clocks do not burn game time, and a reset can reach a two-minute warning or period end before a snap.
