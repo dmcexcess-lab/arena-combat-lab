@@ -214,3 +214,10 @@ Operational checklist for humans + AIs. Keep compact; add only behaviors whose r
 - Return contacts and lane choices move the 22 replay actors; a carrier reaching the opposite goal scores, and the ensuing try or kickoff state is correct.
 - A kick short of the 20-yard landing-zone front line awards the favorable landing/25-yard spot (30 for a safety kick). Direct end-zone touchbacks use 35, while punt touchbacks use 20.
 - The standalone HTML embeds the maintained modules exactly. Existing Route Lab and site CI remain the deployment gate.
+
+
+## Route Lab persistent game fatigue
+- Identical seeded plays remain deterministic when player fatigue is part of the input state.
+- Movement fatigue from the snap is stored on the actual roster participant and appears in the next snap's replay energy.
+- Huddle time restores some player energy before the next snap; a heavily fatigued starter can be replaced by the least-fatigued available depth-chart player.
+- Standalone `index.html` embeds the exact updated engine and game modules.
