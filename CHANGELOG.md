@@ -1,3 +1,7 @@
+## 2026-11-07 — Route Lab one-click opening kickoff and field locator
+- The coin-toss CPU-lineup action now runs the opening kickoff immediately; selecting Done from the depth chart does the same. Situation jump still enters its chosen state without starting a kickoff.
+- The lower tactics field now labels and marks the ball at the same possession spot shown in the full-field game view. CPU play selection remains automatic, and Next play runs that call.
+
 ## 2026-11-07 — Route Lab missed field-goal returns
 - A seeded short field-goal miss can now stay inbounds beyond the line, where a receiving player can field it and continue through the existing spatial return and tackle simulation. Untouched misses retain the kick-spot/receiver-20 dead-ball ruling.
 - The special-teams report identifies a fielded missed kick, and the rules audit records this as a bounded case with muff and boundary exceptions still open.

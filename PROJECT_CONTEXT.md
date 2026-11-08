@@ -85,3 +85,6 @@ Kickoff, safety-kick and declared onside-kick trajectories now use seeded latera
 
 ## Route Lab missed field-goal return slice
 A seeded short field-goal miss may land inbounds beyond the line of scrimmage. Receiving players pursue the ball during its flight; a receiving player within catch range can secure it and run through the existing return/tackle path, including a possible return touchdown. Uncaught or longer misses retain the untouched missed-field-goal dead-ball spot. The report identifies a fielded miss. This is a bounded Rule 11 case; muffed/touched misses and boundary/goalpost exceptions remain open in `route-lab/RULES_AUDIT.md`.
+
+## Route Lab kickoff entry and field-position display
+The opening coin-toss CPU-lineup action now resolves the toss and immediately runs the kickoff; the equivalent depth-chart Done action does likewise, while the situation-jump flow does not start a kick. The lower tactics field overlay names the current ball spot from the game state and places a ball marker at the line of scrimmage, matching the full-field overview. `Next play` continues to execute the current CPU-selected call unless the player overrides it.
