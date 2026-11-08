@@ -68,11 +68,11 @@ test('player fatigue persists across snaps, affects replay state, and recovers d
  const offense=G.dressPlay(s,off,'home','offense'),defense=G.dressPlay(s,def,'away','defense');
  const qb=offense.players.find(p=>p.label==='QB');qb.fatigue=.48;
  const sim=C.simulate(offense,defense,712);const used=offense.players.find(p=>p.id===qb.id);const qbLoad=sim.participation.find(p=>p.id===qb.id);
- const reduced={...sim,participation:sim.participation.map(p=>p.id===qb.id?{...p,fatigue:.53}:p)};
- const result=G.finishScrimmage(s,reduced,0,{offense,defense});const row=result.state.teams.home.depth.offense.find(v=>v.label==='QB');
- assert.equal(row.players[0].fatigue,.53);
+ assert.ok(qbLoad.fatigue>.48,'snap movement should add to fatigue already carried in');
+ const result=G.finishScrimmage(s,sim,0,{offense,defense});const row=result.state.teams.home.depth.offense.find(v=>v.label==='QB');
+ assert.equal(row.players[0].fatigue,qbLoad.fatigue);
  const rested=G.dressPlay(result.state,off,'home','offense').players.find(p=>p.label==='QB');
- assert.ok(rested.fatigue<.53,'huddle time should restore some energy');
+ assert.ok(rested.fatigue<qbLoad.fatigue,'huddle time should restore some energy');
  const fresh=C.simulate({...offense,players:offense.players.map(p=>p.id===qb.id?{...p,fatigue:0}:p)},defense,712);
  assert.notDeepEqual(sim.frames,fresh.frames,'incoming fatigue should affect movement');
  assert.ok(qbLoad&&used.rosterIndex===0);
