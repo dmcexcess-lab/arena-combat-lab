@@ -82,3 +82,6 @@ On free kicks and punts, a fair-catch call enables an in-flight catch-window che
 
 ## Route Lab free-kick sideline ruling
 Kickoff, safety-kick and declared onside-kick trajectories now use seeded lateral error influenced by kicker accuracy. When an untouched kick crosses a sideline before landing, `RouteGame.kick()` records the crossing and the officials give the receiving team the more favorable legal choice between the inbounds sideline spot and 25 yards from the kick spot. The special-teams report names both the ruling and awarded spot. This bounded case does not model a player touching the kick before it goes out or every end-zone/out-of-bounds interaction; see `route-lab/RULES_AUDIT.md`.
+
+## Route Lab missed field-goal return slice
+A seeded short field-goal miss may land inbounds beyond the line of scrimmage. Receiving players pursue the ball during its flight; a receiving player within catch range can secure it and run through the existing return/tackle path, including a possible return touchdown. Uncaught or longer misses retain the untouched missed-field-goal dead-ball spot. The report identifies a fielded miss. This is a bounded Rule 11 case; muffed/touched misses and boundary/goalpost exceptions remain open in `route-lab/RULES_AUDIT.md`.

@@ -1,3 +1,7 @@
+## 2026-11-07 — Route Lab missed field-goal returns
+- A seeded short field-goal miss can now stay inbounds beyond the line, where a receiving player can field it and continue through the existing spatial return and tackle simulation. Untouched misses retain the kick-spot/receiver-20 dead-ball ruling.
+- The special-teams report identifies a fielded missed kick, and the rules audit records this as a bounded case with muff and boundary exceptions still open.
+
 ## 2026-11-07 — Route Lab fair-catch officiating
 - Fair-catch signals now run through the kick replay's moving-player frames. Actual contact by coverage inside the receiver's catch window can produce a rare, evidence-backed interference foul.
 - The officials award the fair catch and advance the receiving team 15 yards from the contact spot; the play report and game book identify the player, time, spot and frame evidence.

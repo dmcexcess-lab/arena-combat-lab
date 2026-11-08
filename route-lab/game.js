@@ -321,7 +321,7 @@ function kick(state,kind,seed=71,choice='auto'){
   players=coverageLanes.map((lane,i)=>({id:'K'+i,team,role:i===5?(punt?'punter':'kicker'):'coverage',yard:from-dir(team)*(i===5?(punt?12:7):i%3===0?2:0),lane,speed:4.7+squad.coverage*.03+rand()*.8,power:squad.coverage}));
   const receiveLanes=[-22,-18,-13,-9,-5,5,9,13,18,22];
   players.push(...receiveLanes.map((lane,i)=>({id:'B'+i,team:receive,role:'blocker',yard:from+dir(team)*(i<5?3:12),lane,speed:4.5+recv.returnBlocking*.029+rand()*.8,power:recv.returnBlocking})));
-  players.push({id:'KR',team:receive,role:'returner',yard:from+dir(team)*(punt?43:12),lane:0,speed:5+recv.returner.speed*.039,power:recv.returner.agility});
+  players.push({id:'KR',team:receive,role:'returner',yard:kind==='fieldGoal'?goal(team)-dir(team)*3:from+dir(team)*(punt?43:12),lane:0,speed:5+recv.returner.speed*.039,power:recv.returner.agility});
  }
  snap();
  let call='',endedTeam=null,runSeconds=0;
@@ -369,9 +369,9 @@ function kick(state,kind,seed=71,choice='auto'){
    if(Math.abs(carrier.lane)>=26.3){event('Returner steps out of bounds');snap();break;}
   }
   kick.returnYards=Math.max(0,Math.round((carrier.yard-start)*direction));runSeconds=Math.max(runSeconds,Math.ceil(free?elapsed-returnStartTime:elapsed));
-  if((carrier.yard-end)*direction>=0){touchdown(ownerTeam,kind==='punt'?'Punt return':kind==='kickoff'||kind==='safetyKick'?'Kick return':'Blocked-kick return');event(call);}
+  if((carrier.yard-end)*direction>=0){touchdown(ownerTeam,kind==='punt'?'Punt return':kind==='kickoff'||kind==='safetyKick'?'Kick return':kind==='fieldGoal'&&!kick.blocked?'Missed field-goal return':'Blocked-kick return');event(call);}
   else if(ownerTeam===receive&&free&&!onside&&(carrier.yard-own(receive))*dir(receive)<=0){kick.touchback=true;const ownSpot=(kick.landing-own(receive))*dir(receive)<=0?35:20;receiveAt(along(receive,ownSpot),'Returner downed in own end zone — touchback');s.clockRunning=false;}
-  else{newSeries(s,ownerTeam,clamp(carrier.yard,1,99));call=`${kind==='punt'?'Punt':goalKick?'Blocked kick':'Kickoff'} ${kick.kickYards} yd, ${ownerTeam.toUpperCase()} return ${kick.returnYards} yd (${kick.move||'lane read'}) to ${spotText(s)}`;endedTeam=other(ownerTeam);s.clockRunning=false;}
+  else{newSeries(s,ownerTeam,clamp(carrier.yard,1,99));call=`${kind==='punt'?'Punt':kind==='fieldGoal'&&!kick.blocked?'Missed field-goal return':goalKick?'Blocked kick':'Kickoff'} ${kick.kickYards} yd, ${ownerTeam.toUpperCase()} return ${kick.returnYards} yd (${kick.move||'lane read'}) to ${spotText(s)}`;endedTeam=other(ownerTeam);s.clockRunning=false;}
  }
  function scramble(y,kindOfLoose,canAdvance){
   ball={yard:clamp(y,-10,110),lane:(rand()-.5)*7,phase:'loose'};event(kindOfLoose+' — loose ball');
@@ -435,8 +435,30 @@ function kick(state,kind,seed=71,choice='auto'){
   kick.made=rand()<chance;
   if(kind==='extraPoint'){if(kick.made)score(s,team,1,'Extra point');call=kick.made?'Extra point good':'Extra point no good';s.phase='kickoff';s.kicking=team;s.ball=team==='home'?35:65;s.clockRunning=false;}
   else if(kick.made){score(s,team,3,`${distance}-yard field goal`);call=`Field goal good from ${distance}`;s.phase='kickoff';s.kicking=team;s.ball=team==='home'?35:65;s.clockRunning=false;}
-  else{const kickSpot=from-dir(team)*7,own20=receive==='home'?20:80;receiveAt(receive==='home'?Math.max(20,kickSpot):Math.min(80,kickSpot),`${distance}-yard field goal missed`);}
-  runSeconds=5;
+  else{
+   const kickSpot=from-dir(team)*7,deadBallSpot=receive==='home'?Math.max(20,kickSpot):Math.min(80,kickSpot);
+   // A short miss can be caught in the field of play. Once the receiver
+   // touches it beyond the line, the normal live scrimmage-kick return applies.
+   const shortMissChance=clamp(.08+Math.max(0,distance-35)*.007,.08,.28);
+   let fielded=false;
+   if(rand()<shortMissChance){
+    const missSpot=goal(team)-dir(team)*(2+rand()*9),missLane=clamp((rand()-.5)*10,-6,6),missFlight=1.7,steps=Math.ceil(missFlight/.2);
+    kick.landing=missSpot;event('Field-goal attempt falls short and stays in the field of play');
+    for(let i=1;i<=steps;i++){
+     elapsed+=Math.min(.2,missFlight-(i-1)*.2);const progress=i/steps;
+     ball={yard:kickStart+(missSpot-kickStart)*progress,lane:missLane*progress,phase:'missedFlight'};
+     for(const p of players)shift(p,ball.yard,ball.lane,.2,p.speed*(p.team===receive?1:.78));
+     snap();
+    }
+    const catcher=near(ball,players.filter(p=>p.team===receive));
+    if(catcher.p&&catcher.d<=1.25&&rand()<clamp(.52+recv.returner.vision*.003,.60,.84)){
+     fielded=true;kick.decision='field-goal miss returned';event(`${catcher.p.id} fields the short field-goal miss inbounds`);
+     returnBall(catcher.p,receive,missSpot);
+    }else event('Short field-goal miss is not controlled by the receiving team');
+   }
+   if(!fielded){kick.decision='missed field goal dead';receiveAt(deadBallSpot,`${distance}-yard field goal missed`);}
+  }
+  runSeconds=Math.max(runSeconds,5);
  }
  if(!goalKick&&!kick.blocked){
   kick.kickYards=onside?10+Math.floor(rand()*5):Math.round((punt?29+squad.punter.power*.19:safety?52+squad.kicker.power*.14:47+squad.kicker.power*.15)+(rand()-.5)*(punt?14:16));
