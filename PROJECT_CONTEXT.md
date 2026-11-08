@@ -88,3 +88,6 @@ A seeded short field-goal miss may land inbounds beyond the line of scrimmage. R
 
 ## Route Lab kickoff entry and field-position display
 The opening coin-toss CPU-lineup action now resolves the toss and immediately runs the kickoff; the equivalent depth-chart Done action does likewise, while the situation-jump flow does not start a kick. The lower tactics field overlay names the current ball spot from the game state and places a ball marker at the line of scrimmage, matching the full-field overview. `Next play` continues to execute the current CPU-selected call unless the player overrides it.
+
+## Route Lab play progression display correction
+A settled scrimmage result is now the displayed game state while remaining pending for the next lineup and penalty/review choices. The full-field marker tracks the replay ball from the saved snap spot; the tactics grid stays rooted at that snap and labels the matching live ball spot. Next and Set next play are disabled during active replay so a click cannot cancel a snap; after the replay, Next resets to the resulting state, picks CPU plays, and runs the next snap.

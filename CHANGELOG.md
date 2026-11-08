@@ -1,3 +1,7 @@
+## 2026-11-07 — Route Lab advance-state display
+- A completed snap now advances the scoreboard and full-field marker to its result immediately; during replay, the ball moves across the full field from the original snap spot. The lower tactics field keeps its snap-relative yard grid while showing the same live ball spot.
+- The Next play action is unavailable during an active replay, then runs the next CPU-selected call after the result is shown.
+
 ## 2026-11-07 — Route Lab one-click opening kickoff and field locator
 - The coin-toss CPU-lineup action now runs the opening kickoff immediately; selecting Done from the depth chart does the same. Situation jump still enters its chosen state without starting a kickoff.
 - The lower tactics field now labels and marks the ball at the same possession spot shown in the full-field game view. CPU play selection remains automatic, and Next play runs that call.
@@ -410,3 +414,8 @@ Current truth: `PROJECT_CONTEXT.md` · Future: `ROADMAP.md`
 - Officials automatically award the receiving team the more favorable legal choice between the inbounds sideline spot and 25 yards from the kick spot. The replay, event log and play report expose the crossing, choices and selected spot.
 - Documented the bounded rule scope and remaining touching/end-zone cases in the audit and project context.
 
+
+## 2026-11-07 — Route Lab progression and synchronized field views
+- Keep the settled play result visible during the snap replay while preserving it for the next-play/reset and official ruling flow.
+- Track the same live ball spot in the full-field overview and tactical field, then show the settled next spot at the final replay frame.
+- Keep the tactical view anchored at the snap alignment during playback, disable advance controls while the snap is active, and resume CPU play selection on Next.
