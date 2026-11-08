@@ -207,7 +207,6 @@ Operational checklist for humans + AIs. Keep compact; add only behaviors whose r
 - A teammate recovering a fourth-down or post-two-minute fumble cannot advance it beyond the fumble spot. Interception in the defender's end zone is a 20-yard touchback; momentum into that end zone retains the interception spot.
 - Replays, referee log, and play report identify the live loose ball and recovery. Standalone HTML embeds exact current modules.
 
-
 ## Route Lab special teams slice (2026-11-07)
 - Published kickoff replay shows ten coverage players on the receiving 40, nine setup players with five on the receiving 35, two deep receivers, and all 22 moving after landing.
 - Fair-catch calls stop a caught kick at its spot; a muff stays live and either team can recover. A kick-team recovery beyond the scrimmage line is dead, while a blocked kick behind the line can be advanced.
@@ -215,9 +214,14 @@ Operational checklist for humans + AIs. Keep compact; add only behaviors whose r
 - A kick short of the 20-yard landing-zone front line awards the favorable landing/25-yard spot (30 for a safety kick). Direct end-zone touchbacks use 35, while punt touchbacks use 20.
 - The standalone HTML embeds the maintained modules exactly. Existing Route Lab and site CI remain the deployment gate.
 
+## Route Lab man-coverage leverage
+- Inside and outside shade produce distinct defensive landmarks against the same receiver route; trail changes the defender's depth target.
+- Repeating the same play, technique, and seed reproduces the same frames.
+- The inspector exposes all four techniques; the hosted encyclopedia explains the leverage tradeoffs.
+- The standalone HTML embeds exact current engine, playbook, encyclopedia, and app modules.
 
-## Route Lab persistent game fatigue
-- Identical seeded plays remain deterministic when player fatigue is part of the input state.
-- Movement fatigue from the snap is stored on the actual roster participant and appears in the next snap's replay energy.
-- Huddle time restores some player energy before the next snap; a heavily fatigued starter can be replaced by the least-fatigued available depth-chart player.
-- Standalone `index.html` embeds the exact updated engine and game modules.
+## Route Lab man-coverage leverage
+- Inside and outside shade produce distinct defensive landmarks against the same receiver route; trail changes the defender's depth target.
+- Repeating the same play, technique, and seed reproduces the same frames.
+- The inspector exposes all four techniques; the hosted encyclopedia explains the leverage tradeoffs.
+- The standalone HTML embeds exact current engine, playbook, encyclopedia, and app modules.

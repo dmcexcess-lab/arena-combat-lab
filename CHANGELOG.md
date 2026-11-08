@@ -424,8 +424,15 @@ Current truth: `PROJECT_CONTEXT.md` · Future: `ROADMAP.md`
 - Added a visible Continue to next play button after replay finishes; it runs the same progression path as Next play, letting the CPU choose the next call and run the next snap.
 - Kept Set next play as the separate lineup and play override action.
 
-
 ## 2026-11-08 — Route Lab game fatigue and rotation
 - Carry per-player fatigue from one full-game snap into the next; stamina loss is produced by the live movement simulation and stored on the roster player who actually played.
 - Recover some energy during the between-play huddle, and automatically rotate a heavily fatigued starter to the least-fatigued available depth-chart option.
 - Preserve deterministic replay behavior and extend engine, game, and depth-chart regression coverage. Fatigue remains a bounded teaching model, not a calibrated NFL workload model.
+
+## 2026-11-08 — Route Lab man-coverage leverage
+- Added inside shade, outside shade, trail, and balanced techniques to individual man assignments. Defender target landmarks now reflect the selected technique as receivers release.
+- Added coaching-board controls and an encyclopedia entry explaining the tactical tradeoff; seeded regression checks confirm each choice changes defender position reproducibly.
+
+## 2026-11-08 — Route Lab man-coverage leverage
+- Added inside shade, outside shade, trail, and balanced techniques to individual man assignments. Defender target landmarks now reflect the selected technique as receivers release.
+- Added coaching-board controls and an encyclopedia entry explaining the tactical tradeoff; seeded regression checks confirm each choice changes defender position reproducibly.

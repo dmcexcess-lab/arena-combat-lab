@@ -249,7 +249,7 @@ function pursuitTarget(defender,runner){
 function simulate(off,def,seed=71){
  const v=validate(off,def); if(!v.valid)return {valid:false,validation:v,frames:[],events:[]};
  const rand=rng(seed), looseRand=rng(((Number(seed)||71)^0x8b21d5f3)>>>0), dt=.05, maxT=12;
- const o=clone(off.players).map(p=>({...p,side:'o',vx:0,vy:0,fatigue:clamp(Number(p.fatigue)||0,0,.8),tackleCooldown:0,routeIndex:0,engaged:false,speed:(p.speed??1)*(.96+rand()*.08)}));
+ const o=clone(off.players).map(p=>({...p,side:'o',homeX:p.x,vx:0,vy:0,fatigue:clamp(Number(p.fatigue)||0,0,.8),tackleCooldown:0,routeIndex:0,engaged:false,speed:(p.speed??1)*(.96+rand()*.08)}));
  const d=clone(def.players).map(p=>({...p,side:'d',homeY:p.y,vx:0,vy:0,fatigue:clamp(Number(p.fatigue)||0,0,.8),tackleCooldown:0,engaged:false,speed:(p.speed??1)*(.94+rand()*.12)}));
  const byId=(id)=>o.find(p=>p.id===id), defenders=(id)=>d.find(p=>p.id===id);
  const qb=byId(off.snapToId||'oQB')||o.find(p=>p.label==='QB'), runner=byId(off.runnerId)||qb;
@@ -448,8 +448,11 @@ function simulate(off,def,seed=71){
         const targetY=carrier===m?p.readY+m.vy*lead:
           p.label.startsWith('CB')&&m.onLine?Math.max(p.homeY-1.5,p.readY+m.vy*lead+1):
           p.readY+m.vy*lead-.8;
+        const receiverSide=(m.homeX??m.x)<=0?1:-1;
+        const leverageX=p.leverage==='inside'?receiverSide*.85:p.leverage==='outside'?-receiverSide*.85:0;
+        const trailY=p.leverage==='trail'?-1.35:0;
         const coveragePace=carrier===m?.74+rated.coverage/470:.84+rated.coverage/430;
-        move(p,{x:p.readX+m.vx*lead,y:targetY},dt,speedOf(p)*coveragePace);
+        move(p,{x:p.readX+m.vx*lead+leverageX,y:targetY+trailY},dt,speedOf(p)*coveragePace);
       }
     }else if(p.job==='zone'){
       const z=p.zone||{x:p.x,y:p.y,r:5};
@@ -821,7 +824,7 @@ function defense(name){
  ];return {id:'def-'+name.toLowerCase().replace(/[^a-z0-9]+/g,'-'),name,side:'defense',players};
 }
 function zone(p,x,y,r=7,rY=r){p.job='zone';p.zone={x,y,r,rY};delete p.coverTarget;}
-function man(p,target){p.job='man';p.coverTarget=target;delete p.zone;}
+function man(p,target){p.job='man';p.coverTarget=target;p.leverage=p.leverage||'inside';delete p.zone;}
 function createDefensePresets(){
  let a=[],d=defense('4–3 Cover 2');
  zone(d.players[4],-9,8,7,7);zone(d.players[5],0,11,9,9);zone(d.players[6],9,8,7,7);
@@ -1682,6 +1685,7 @@ const raw=[
 ['Concepts','Inside zone','Linemen work playside combinations while a back reads how blocks develop and chooses a crease.','Run the same front several times; a run gap should adapt to defenders, not teleport.','run,zone blocking'],
 ['Concepts','Power run','A gap-scheme concept using down blocks and often a pulling guard or lead blocker to create a numbers advantage.','Read the point of attack and backside pursuit.','pull,gap'],
 ['Coverage','Man coverage','Each assigned defender tracks a specific eligible receiver. Leverage and help determine where the defender can be attacked.','Use bunch or crossing routes to challenge man assignments.','Cover 0,Cover 1'],
+['Coverage','Man leverage','Inside shade places the defender on the receiver’s inside shoulder; outside shade protects the sideline side; trail technique concedes space underneath to stay behind the route.','Change a man defender’s coverage technique in the inspector, then compare the defender’s landmark and the receiver’s available shoulder.','inside leverage,outside leverage,trail technique'],
 ['Coverage','Zone coverage','Defenders protect named areas while passing routes between zones according to their responsibilities.','Move a hook zone underneath the dig, then inspect the deep window.','spot drop,match'],
 ['Coverage','Cover 0','A pressure-oriented man structure without a dedicated deep safety. It risks explosive gains if coverage is beaten.','Hot slant and quick outlets can attack immediate pressure.','zero blitz'],
 ['Coverage','Cover 1','Man coverage with one deep safety and typically other defenders rushing or supporting underneath.','Isolation on the outside depends on CB leverage and help angle.','single high'],
@@ -1965,7 +1969,7 @@ function renderInspector(){const el=$('inspector'),p=selectedPlayer(),isO=side==
      <div class="checks">${check('allowScramble',offensive.allowScramble!==false,'QB scramble under pressure')}</div></section>`;
    if(p.id!==(offensive.snapToId||'oQB'))html+=`<section class="sec border-top"><div class="section-title"><h3>Motion &amp; action</h3></div>${p.motion?`<div class="two-fields">${field('At-snap X',input('motion.toX',p.motion.toX,'number','step="0.5"'))}${field('At-snap Y',input('motion.toY',p.motion.toY,'number','step="0.5"'))}</div>`:'<p class="help">No pre-snap motion assigned.</p>'}<div class="row"><button data-action="motionTool">Set motion</button><button data-action="clearMotion">Clear motion</button><button data-action="makeRunner">Ball carrier</button></div></section>`;
  }else{
-   if(p.job==='man')html+=`<section class="sec border-top"><div class="section-title"><h3>Man coverage</h3></div>${field('Shadow receiver',select('coverTarget',p.coverTarget||'', [['','Auto matchup'],...offensive.players.map(q=>[q.id,q.label+' #'+q.number])]))}<button data-action="assignTool">⇥ Pick opponent on field</button></section>`;
+   if(p.job==='man')html+=`<section class="sec border-top"><div class="section-title"><h3>Man coverage</h3></div>${field('Shadow receiver',select('coverTarget',p.coverTarget||'', [['','Auto matchup'],...offensive.players.map(q=>[q.id,q.label+' #'+q.number])]))}${field('Coverage technique',select('leverage',p.leverage||'inside',[['inside','Shade inside'],['outside','Shade outside'],['trail','Trail the route'],['balanced','Balanced / match path']]))}<p class="help">Leverage changes the defender’s target landmark as the receiver releases. It can protect one shoulder and expose the other.</p><button data-action="assignTool">⇥ Pick opponent on field</button></section>`;
    if(p.job==='zone')html+=`<section class="sec border-top"><div class="section-title"><h3>Coverage zone</h3></div><div class="two-fields">${field('Zone center X',input('zone.x',p.zone?.x??p.x,'number','step="0.5"'))}${field('Zone center Y',input('zone.y',p.zone?.y??p.y,'number','step="0.5"'))}</div><div class="two-fields">${field('Width (yards)',input('zone.r',p.zone?.r??7,'number','min="1" max="28" step="0.5"'))}${field('Depth (yards)',input('zone.rY',p.zone?.rY??7,'number','min="1" max="30" step="0.5"'))}</div><button data-action="zoneTool">◌ Place on field</button></section>`;
    if(p.job==='runfit')html+=`<section class="sec border-top">${field('Fit gap X',input('fitX',p.fitX??p.x,'number','step="0.5"'))}</section>`;
  }

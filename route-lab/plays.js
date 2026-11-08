@@ -98,7 +98,7 @@ function defense(name){
  ];return {id:'def-'+name.toLowerCase().replace(/[^a-z0-9]+/g,'-'),name,side:'defense',players};
 }
 function zone(p,x,y,r=7,rY=r){p.job='zone';p.zone={x,y,r,rY};delete p.coverTarget;}
-function man(p,target){p.job='man';p.coverTarget=target;delete p.zone;}
+function man(p,target){p.job='man';p.coverTarget=target;p.leverage=p.leverage||'inside';delete p.zone;}
 function createDefensePresets(){
  let a=[],d=defense('4–3 Cover 2');
  zone(d.players[4],-9,8,7,7);zone(d.players[5],0,11,9,9);zone(d.players[6],9,8,7,7);

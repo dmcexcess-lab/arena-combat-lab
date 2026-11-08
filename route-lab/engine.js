@@ -155,7 +155,7 @@ function pursuitTarget(defender,runner){
 function simulate(off,def,seed=71){
  const v=validate(off,def); if(!v.valid)return {valid:false,validation:v,frames:[],events:[]};
  const rand=rng(seed), looseRand=rng(((Number(seed)||71)^0x8b21d5f3)>>>0), dt=.05, maxT=12;
- const o=clone(off.players).map(p=>({...p,side:'o',vx:0,vy:0,fatigue:clamp(Number(p.fatigue)||0,0,.8),tackleCooldown:0,routeIndex:0,engaged:false,speed:(p.speed??1)*(.96+rand()*.08)}));
+ const o=clone(off.players).map(p=>({...p,side:'o',homeX:p.x,vx:0,vy:0,fatigue:clamp(Number(p.fatigue)||0,0,.8),tackleCooldown:0,routeIndex:0,engaged:false,speed:(p.speed??1)*(.96+rand()*.08)}));
  const d=clone(def.players).map(p=>({...p,side:'d',homeY:p.y,vx:0,vy:0,fatigue:clamp(Number(p.fatigue)||0,0,.8),tackleCooldown:0,engaged:false,speed:(p.speed??1)*(.94+rand()*.12)}));
  const byId=(id)=>o.find(p=>p.id===id), defenders=(id)=>d.find(p=>p.id===id);
  const qb=byId(off.snapToId||'oQB')||o.find(p=>p.label==='QB'), runner=byId(off.runnerId)||qb;
@@ -354,8 +354,11 @@ function simulate(off,def,seed=71){
         const targetY=carrier===m?p.readY+m.vy*lead:
           p.label.startsWith('CB')&&m.onLine?Math.max(p.homeY-1.5,p.readY+m.vy*lead+1):
           p.readY+m.vy*lead-.8;
+        const receiverSide=(m.homeX??m.x)<=0?1:-1;
+        const leverageX=p.leverage==='inside'?receiverSide*.85:p.leverage==='outside'?-receiverSide*.85:0;
+        const trailY=p.leverage==='trail'?-1.35:0;
         const coveragePace=carrier===m?.74+rated.coverage/470:.84+rated.coverage/430;
-        move(p,{x:p.readX+m.vx*lead,y:targetY},dt,speedOf(p)*coveragePace);
+        move(p,{x:p.readX+m.vx*lead+leverageX,y:targetY+trailY},dt,speedOf(p)*coveragePace);
       }
     }else if(p.job==='zone'){
       const z=p.zone||{x:p.x,y:p.y,r:5};
