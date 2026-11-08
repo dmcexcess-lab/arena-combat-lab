@@ -82,3 +82,33 @@ test('a heavily fatigued starter yields to an available depth-chart teammate',()
  const play=P.createOffensePresets()[0],rb=G.dressPlay(s,play,'home','offense').players.find(p=>p.label==='RB');
  assert.equal(rb.rosterIndex,1);assert.equal(rb.rosterName,row.players[1].name);
 });
+
+test('tries do not consume the game clock and throwaways stop it',()=>{
+ const s=G.createGame();G.setSpot(s,'home',98);s.phase='try';s.clockRunning=true;const result=G.finishScrimmage(s,fake('Tackle by LB',0,3),0);assert.equal(result.state.clock,900);assert.equal(result.state.clockRunning,false);
+ const pass=G.createGame();G.setSpot(pass,'home',50);pass.clockRunning=true;const incomplete=G.finishScrimmage(pass,fake('Throwaway — incomplete pass',0,3),0);assert.equal(incomplete.state.clock,897);assert.equal(incomplete.state.clockRunning,false);
+});
+test('CPU fourth-down kick is staged for Run and can be overridden',()=>{
+ const s=G.createGame();G.setSpot(s,'home',40,4,8);assert.equal(G.cpuFourthDownKick(s),'punt');assert.equal(G.cpuFourthDownKick(s,true),null);
+ G.setSpot(s,'home',70,4,8);assert.equal(G.cpuFourthDownKick(s),'fieldGoal');G.setSpot(s,'home',70,4,2);assert.equal(G.cpuFourthDownKick(s),null);
+});
+test('an exhausted depth slot cannot put an injured starter back on the field',()=>{
+ const s=G.createExhibition(42),off=P.createOffensePresets()[0],def=P.createDefensePresets()[0],row=s.teams.home.depth.offense.find(v=>v.slot==='oLT');row.players.forEach(p=>{p.outForGame=true;});
+ const dressed=G.dressPlay(s,off,'home','offense');assert.equal(dressed.players.find(p=>p.id==='oLT').unavailable,true);assert.ok(!C.validate(dressed,def).valid);
+});
+test('a defensive fumble recovery is not passed through the offensive tackle loop',()=>{
+ const off=P.createOffensePresets()[8],def=P.createDefensePresets()[0];off.enableLooseBall=true;const sim=C.simulate(off,def,22);assert.ok(sim.result.loose?.recoverySide==='d');assert.equal(sim.contacts.some(c=>c.offenseId===c.defenseId),false);
+});
+
+test('rejected pre-snap fouls use a fresh attempt seed on retry',()=>{
+ const off=P.createOffensePresets()[0],def=P.createDefensePresets()[0],s=G.createGame();G.setSpot(s,'home',50);let first=null,attemptSim=null;
+ for(let seed=1;seed<=5000&&!first;seed++){const sim={...fake('Tackle',2),result:{...fake('Tackle',2).result,seed}};const r=G.finishScrimmage(s,sim,0,{offense:off,defense:def});if(r.foul){first=r;attemptSim=sim;}}
+ assert.ok(first,'fixture should produce a pre-snap foul');assert.equal(first.state.preSnapAttempts,1);
+ const retry=G.finishScrimmage(first.state,attemptSim,0,{offense:off,defense:def});if(retry.foul)assert.notEqual(retry.foul.attemptSeed,first.foul.attemptSeed);else assert.equal(retry.state.preSnapAttempts,0);
+});
+
+test('depth-chart dressing passes the exact to-gain into the QB decision context',()=>{
+ const s=G.createExhibition(71),off=G.dressPlay(s,P.createOffensePresets()[0],'home','offense');G.setSpot(s,'home',50,3,2);const thirdAndTwo=G.dressPlay(s,P.createOffensePresets()[0],'home','offense');assert.equal(thirdAndTwo.toGain,2);assert.equal(thirdAndTwo.yardLine,50);assert.ok(off.toGain>0);
+});
+test('a kickoff is stopped when the selected kicker has no active replacement',()=>{
+ const s=G.createExhibition(17);G.flipCoin(s,'heads','heads');const row=s.teams[s.kicking].depth.special.find(v=>v.slot==='K');row.players.forEach(p=>{p.outForGame=true;});const result=G.kick(s,'kickoff',3);assert.equal(result.accepted,false);assert.match(result.call,/No available kicker/);
+});

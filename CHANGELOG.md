@@ -1,3 +1,10 @@
+## 2026-11-08 — Route Lab game correctness slice one
+- Rejected false starts and offside calls now advance a game-state attempt seed, so retrying the same snap cannot deterministically repeat the same pre-snap event.
+- Defensive fumble recoveries use the return tackle path without re-entering the offensive runner tackle code; the recovered defender can no longer be recorded as tackling itself.
+- An exhausted depth slot now reports no active roster player and blocks the snap/kick instead of silently reusing an unavailable player; kicks also require an available kicker or punter and returner.
+- Throwaways stop the clock and try attempts consume no game time. The QB read now receives the actual down-to-gain from exhibition and campaign situations.
+- CPU fourth-down kicks are staged when the next play is selected. Run play executes the kick, while changing the play clears the staged kick and allows the player to go for it.
+
 ## 2026-11-08 — Route Lab between-play and field markings
 - Continue to next play now resets the down, lets the CPU choose the next offense and defense calls, and waits for the player to press Run play. Scrimmage Next is hidden so it cannot accidentally snap the ball.
 - Both full-field and tactics views show the line of scrimmage and the 10-yard line to gain, aligned to the current snap and field spot.

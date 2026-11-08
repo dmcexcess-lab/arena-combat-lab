@@ -21,6 +21,7 @@ function validate(off,def){
     const ids=new Set();
     p.players.forEach(a=>{
       if(ids.has(a.id)) err('Duplicate '+side+' player ID '+a.id+'.'); ids.add(a.id);
+      if(a.unavailable) err(a.label+' has no available roster player; replace the unavailable player before the snap.');
       if(!Number.isFinite(a.x)||!Number.isFinite(a.y)||Math.abs(a.x)>26.66) err(a.label+' is out of bounds.');
       if(side==='offense' && a.y>0.24) err(a.label+' is beyond the offensive side of the neutral zone.');
       if(side==='defense' && a.y<0.95) err(a.label+' is in the neutral zone / offside.');
@@ -650,7 +651,7 @@ function simulate(off,def,seed=71){
       move(carrier,openFieldTarget(carrier,d,t,1,o),dt,speedOf(carrier)*(t-catchTime<.35?.82:1),18);
     }
     if(carrier)ball={x:carrier.x,y:carrier.y,kind:carrier.side==='d'?'held-d':'held'};
-    if(carrier&&((isRun&&handoff)||(state==='runafter'))){
+    if(carrier&&carrier.side==='o'&&((isRun&&handoff)||(state==='runafter'))){
       evade(carrier,d,t);
       const near=nearest(carrier,d,a=>!a.engaged&&a.tackleCooldown<=0);
       if(near.d<1.3 && t>.8){
