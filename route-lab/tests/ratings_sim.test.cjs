@@ -117,6 +117,25 @@ test('Cover 2 safeties rotate over their own vertical threats and reduce the mat
  assert.ok(tampaReads.some(r=>r.defender==='FS')&&tampaReads.some(r=>r.defender==='SS'),'Tampa 2 safeties should make the same deep-half reads');
 });
 
+test('Tampa 2 middle linebacker carries the inside seam and reduces a seeded seam-pass sample',()=>{
+ const off=C.clone(P.createOffensePresets().find(play=>play.name==='Four Verticals'));
+ off.training=true;off.trainingVirtualSnap=true;off.players=off.players.filter(p=>['oQB','oTE'].includes(p.id));
+ off.qbDropTime=2.4;off.throwAt=3.3;off.players.find(p=>p.id==='oQB').y=-6;
+ const te=off.players.find(p=>p.id==='oTE');te.x=0;te.y=0;te.route=[{x:0,y:8},{x:0,y:22},{x:0,y:30}];
+ const tampa=C.clone(P.createDefensePresets().find(play=>play.name==='Tampa 2'));tampa.players=tampa.players.filter(p=>p.id==='dM');
+ const spotDrop=C.clone(tampa);spotDrop.name='Tampa 2 spot-drop comparison';delete spotDrop.coverageScheme;
+ const sample=C.simulate(off,tampa,71),comparison=C.simulate(off,spotDrop,71);assert.ok(sample.valid&&comparison.valid);
+ assert.ok(sample.coverageReads.some(r=>r.defender==='MLB'&&r.receiver==='TE'&&r.role==='Tampa 2 middle seam'&&r.decision==='carries inside vertical'));
+ assert.ok(sample.events.some(e=>e.text==='MLB carries TE up the inside seam'));
+ assert.deepEqual(C.simulate(off,tampa,71),sample,'the seam carry remains deterministic');
+ let carried=0,baseline=0;const count=20;
+ for(let seed=1;seed<=count;seed++){
+  carried+=C.simulate(off,tampa,seed).result.yards;
+  baseline+=C.simulate(off,spotDrop,seed).result.yards;
+ }
+ assert.ok(carried/count<baseline/count-3,`Tampa 2 seam help should reduce this fixed sample (${carried/count} vs ${baseline/count})`);
+});
+
 
 test('Quarters Match uses route ownership and reduces the seeded vertical-route gain sample',()=>{
  const off=P.createOffensePresets().find(play=>play.name==='Four Verticals');
