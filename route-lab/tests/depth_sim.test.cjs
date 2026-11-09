@@ -110,6 +110,15 @@ test('HB screen linemen release only after a behind-line throw and pursue the ca
  assert.deepEqual(b,a,'screen release and blocking remain seed-reproducible');
 });
 
+test('a defender covering the back behind the line contests the screen catch point',()=>{
+ const off=P.createOffensePresets().find(p=>p.name==='HB Screen');off.training=true;off.trainingVirtualSnap=true;
+ off.players=off.players.filter(p=>['oQB','oRB'].includes(p.id));off.players.find(p=>p.id==='oRB').route=[{x:4,y:-3},{x:5,y:-3}];
+ const def=P.createDefensePresets()[0];def.players=def.players.filter(p=>p.id==='dCB2');const cb=def.players[0];cb.job='man';cb.coverTarget='oRB';cb.x=4;cb.y=1;cb.stats={speed:99,coverage:99,awareness:99,hands:99};
+ const sim=C.simulate(off,def,3),contest=sim.catchContests.find(c=>c.receiver==='RB');
+ assert.ok(sim.valid&&contest);assert.equal(contest.defender,'CB');assert.ok(Number.isFinite(contest.defenderDistance)&&contest.defenderDistance<2);
+ assert.ok(contest.disruptionChance>0,'a physically close defender behind the line must affect the catch contest');
+ assert.deepEqual(C.simulate(off,def,3),sim,'behind-line coverage contests remain seeded and reproducible');
+});
 test('match coverage hands a route to the next zone defender and reports the exchange',()=>{
  const base=P.createOffensePresets()[0];base.training=true;base.trainingVirtualSnap=true;base.type='pass';
  base.players=base.players.filter(p=>['oQB','oX'].includes(p.id));
