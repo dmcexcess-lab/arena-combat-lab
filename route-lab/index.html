@@ -524,10 +524,10 @@ function simulate(off,def,seed=71){
       let target=attack,pace=p.job==='blitz'?1.03:.85;
       if(!isRun&&p.stunt&&t>=p.stunt.delay){
         const partner=defenders(p.stunt.partnerId);
-        if(p.stunt.role==='penetrate'&&Math.abs(p.x-p.stunt.aimX)>.7){target={x:p.stunt.aimX,y:Math.max(p.y+.7,qb.y+.4)};pace*=.96;}
+        if(p.stunt.role==='penetrate'&&Math.abs(p.x-p.stunt.aimX)>.7){target={x:p.stunt.aimX,y:qb.y+.4};pace*=.96;}
         else if(p.stunt.role==='loop'&&partner){
           const crossed=partner.y>p.y+.15||t>=p.stunt.delay+.55;
-          target=crossed?{x:p.stunt.aimX,y:Math.max(p.y+.5,qb.y+.7)}:{x:p.x+(p.stunt.aimX-p.x)*.3,y:p.y+.5};
+          target=crossed?{x:p.stunt.aimX,y:qb.y+.7}:{x:p.x+(p.stunt.aimX-p.x)*.3,y:p.y+.5};
           pace*=crossed?1.03:.78;
           if(crossed&&!p.stuntReported){p.stuntReported=true;stuntActions.push({t:+t.toFixed(2),penetrator:partner.label,looper:p.label});
             log(t,partner.label+' penetrates inside; '+p.label+' loops outside on the stunt');}
