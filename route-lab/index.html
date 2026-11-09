@@ -94,7 +94,8 @@ body.ency-open{overflow:hidden}.ency-overlay[hidden]{display:none}.ency-overlay{
 <div class="ency-cats" id="encyCategories"></div>
 <div class="ency-body"><div class="ency-results" id="encyResults"></div><article class="ency-article" id="encyArticle"></article></div></div></div>
 
-<script>/* Route Lab — deterministic 11-on-11 tactical simulation core. World units: yards.
+<script>
+/* Route Lab — deterministic 11-on-11 tactical simulation core. World units: yards.
    Standalone/no dependencies. Accuracy is an evolving model, not a certified football engine. */
 (function(root){
 'use strict';
@@ -1028,8 +1029,10 @@ function simulate(off,def,seed=71){
 const api={validate,simulate,eligibleNumber,clone,clamp,dist,statsOf,defaultStats,RATING_KEYS};
 root.GridironCore=api;
 if(typeof module!=='undefined'&&module.exports)module.exports=api;
-})(typeof window!=='undefined'?window:globalThis);</script>
-<script>/* Formation factory and editable playbook. */
+})(typeof window!=='undefined'?window:globalThis);
+</script>
+<script>
+/* Formation factory and editable playbook. */
 (function(root){
 'use strict';
 const c=root.GridironCore;
@@ -1190,8 +1193,10 @@ function createDefensePresets(){
 const api={offense,defense,routeFrom,setRoute,setBlock,createOffensePresets,createPitchBack,createGoalLinePower,createDefensePresets};
 root.GridironPlays=api;
 if(typeof module!=='undefined'&&module.exports)module.exports=api;
-})(typeof window!=='undefined'?window:globalThis);</script>
-<script>/* Route Lab campaigns: progressive small-sided instructional drills and full-squad challenges. */
+})(typeof window!=='undefined'?window:globalThis);
+</script>
+<script>
+/* Route Lab campaigns: progressive small-sided instructional drills and full-squad challenges. */
 (function(root){
 'use strict';
 const C=root.GridironCore||(typeof require!=="undefined"?require("./engine.js"):null),P=root.GridironPlays||(typeof require!=="undefined"?require("./plays.js"):null);
@@ -1410,8 +1415,10 @@ function assess(lesson,before,offense,defense,sim){const s=lesson.role.startsWit
 }
 root.RouteCampaign={lessons,setup,readProgress,changed,assess,advanceSeries,SCRIMMAGE_WAVES,SCRIMMAGE_ROSTERS,scrimmageSetup,objectiveForWave};
 if(typeof module!=='undefined'&&module.exports)module.exports=root.RouteCampaign;
-})(typeof window!=='undefined'?window:globalThis);</script>
-<script>/* Route Lab game state, officiating, and seeded special teams. Yard coordinates run home goal (0) to away goal (100). */
+})(typeof window!=='undefined'?window:globalThis);
+</script>
+<script>
+/* Route Lab game state, officiating, and seeded special teams. Yard coordinates run home goal (0) to away goal (100). */
 (function(root){
 'use strict';
 const C=root.GridironCore||require('./engine.js');
@@ -1649,7 +1656,7 @@ function settleLoose(state,s,r,wasTry,expired,twoMinute){
    if(s.toGain<=0&&!latePass){s.down=1;s.toGain=Math.min(10,Math.max(1,off==='home'?100-s.ball:s.ball));call=`First down after ${l.kind==='backwardPass'?'backward pass':'fumble'} at ${spotText(s)}`;}
    else if(s.down===4){newSeries(s,def,global);endedTeam=off;call=`Turnover on downs after ${l.kind==='backwardPass'?'backward pass':'fumble'} — ${def.toUpperCase()} ball at ${spotText(s)}`;}
    else{s.down++;s.toGain=Math.max(1,s.toGain);call=`${l.kind==='backwardPass'?'Backward pass':'Fumble'} ${restricted?'teammate recovery stopped at earlier spot':l.dead==='recovered'?'recovered':'out of bounds'}${latePass?' — loss of down and 5 yards'+(runoff?', 10-second runoff':''):''}; ${s.down} & ${Math.ceil(s.toGain)} at ${spotText(s)}`;}
-   s.clockRunning=l.dead==='recovered'&&!restricted;
+   s.clockRunning=s.possession===off&&l.dead==='recovered'&&!restricted;
   }
   if(l.dead!=='recovered')s.clockRunning=false;
  }
@@ -1694,7 +1701,7 @@ function finishScrimmage(state,sim,huddle=25,plays=null,options={}){const s=copy
   endedTeam=team;
  }
  else if(v.startsWith('Touchdown')||state.ball+advance>=100&&team==='home'||state.ball+advance<=0&&team==='away'){score(s,team,6,'Touchdown');s.phase=s.quarter===5?'kickoff':'try';s.kicking=team;s.ball=s.quarter===5?(team==='home'?35:65):(team==='home'?98:2);s.clockRunning=false;call=s.quarter===5?'Touchdown — overtime possession ends':'Touchdown — choose extra point or two';endedTeam=team;}
- else {s.ball=clamp(state.ball+advance,1,99);s.toGain-=Number(r.yards)||0;if(s.toGain<=0){s.down=1;s.toGain=Math.min(10,Math.max(1,team==='home'?100-s.ball:s.ball));call=`First down at ${spotText(s)}`;}else if(s.down===4){newSeries(s,op,s.ball);endedTeam=team;call=`Turnover on downs — ${op.toUpperCase()} ball at ${spotText(s)}`;}else{s.down++;call=`${s.down} & ${Math.ceil(s.toGain)} at ${spotText(s)}`;}const out=/Out of bounds|out of bounds/i.test(v),incomplete=/incomplete|broken up|throwaway/i.test(v),lateOut=(s.quarter===2&&s.clock<=120)||(s.quarter===4&&s.clock<=300)||(s.quarter===5&&s.clock<=300);s.clockRunning=!incomplete&&(!out||!lateOut);}
+ else {s.ball=clamp(state.ball+advance,1,99);s.toGain-=Number(r.yards)||0;if(s.toGain<=0){s.down=1;s.toGain=Math.min(10,Math.max(1,team==='home'?100-s.ball:s.ball));call=`First down at ${spotText(s)}`;}else if(s.down===4){newSeries(s,op,s.ball);endedTeam=team;call=`Turnover on downs — ${op.toUpperCase()} ball at ${spotText(s)}`;}else{s.down++;call=`${s.down} & ${Math.ceil(s.toGain)} at ${spotText(s)}`;}const out=/Out of bounds|out of bounds/i.test(v),incomplete=/incomplete|broken up|throwaway/i.test(v),lateOut=(s.quarter===2&&s.clock<=120)||(s.quarter===4&&s.clock<=300)||(s.quarter===5&&s.clock<=300);s.clockRunning=s.possession===team&&!incomplete&&(!out||!lateOut);}
  s.log.push('Referee: '+call+'.');if(twoMinute&&!expired){s.clockRunning=false;s.log.push('Referee: two-minute warning.');}if(expired){if(s.phase==='try')s.pendingPeriodEnd=true;else periodEnd(s);}otCheck(s,endedTeam);return {state:s,call,accepted:true};}
 function kick(state,kind,seed=71,choice='auto'){
  const s=copy(state),free=['kickoff','safetyKick','onside'].includes(kind),team=free?s.kicking:s.possession,receive=other(team);
@@ -1957,8 +1964,10 @@ function kick(state,kind,seed=71,choice='auto'){
 function autoPick(state,offenses,defenses){const s=state,d=s.toGain,own=s.possession==='home'?s.ball:100-s.ball,sequence=s.plays+(s.rosterSeed||0),short=d<=3,long=d>=8,goal=own>=97,red=own>=80;let wants=s.phase==='try'?['Inside Zone']:goal?['Goal Line Power','Inside Zone','Play Action Cross','Slant / Flat']:red?['Power Right','Inside Zone','Play Action Cross','Slant / Flat','RPO Glance']:s.down>=3&&long?['Shotgun Mesh','Trips Flood','Slant / Flat','Four Verticals']:short?['Inside Zone','Power Right','RPO Glance','Slant / Flat']:s.down===1?['Inside Zone','Outside Zone Left','Power Right','Slant / Flat','HB Screen','Play Action Cross','Shotgun Mesh','Trips Flood']:['Outside Zone Left','Inside Zone','Power Right','Slant / Flat','Shotgun Mesh','HB Screen','Play Action Cross'];const want=s.down<=2&&!red&&sequence%17===0?'Pitch Back':wants[sequence%wants.length],defWants=goal||red&&short?['Goal Line 6–2','3–4 Cover 3','Cover 1 Man']:s.down>=3&&long?['Nickel Cover 3','4–3 Cover 2','Quarters Match']:short?['4–3 Cover 2','3–4 Cover 3','Goal Line 6–2']:['4–3 Cover 2','Cover 1 Man','Nickel Cover 3'];const off=offenses.find(p=>p.name===want)||offenses[0],def=defenses.find(p=>p.name===defWants[(sequence+Math.round(d))%defWants.length])||defenses[0];return {offense:off?.id,defense:def?.id};}
 function cpuFourthDownKick(s,manualOverride=false){if(manualOverride||s.phase!=='scrimmage'||s.down!==4||s.toGain<=2)return null;const own=s.possession==='home'?s.ball:100-s.ball;return own>=65?'fieldGoal':'punt';}
 const api={createGame,createExhibition,roster,setStarter,dressPlay,syncSpecialists,flipCoin,jumpTo,huddleSeconds,resetToLine,passInterference,liveFouls,reviewSpot,spotText,timeout,flag,setSpot,preSnap,finishScrimmage,kick,autoPick,cpuFourthDownKick};root.RouteGame=api;if(typeof module!=='undefined'&&module.exports)module.exports=api;
-})(typeof window!=='undefined'?window:globalThis);</script>
-<script>/* Route Lab playbook reference. Rules simplified; NFL Rulebook remains authoritative. */
+})(typeof window!=='undefined'?window:globalThis);
+</script>
+<script>
+/* Route Lab playbook reference. Rules simplified; NFL Rulebook remains authoritative. */
 (function(root){'use strict';
 const raw=[
 ['Game','Down and distance','A down is a single opportunity to advance the ball. The offense normally has four downs to gain ten yards; crossing the line to gain awards a new series.','On 3rd & 3, a shallow route can be more useful than a deep post.','line to gain,first down'],
@@ -2030,8 +2039,10 @@ const entries=raw.map(([category,title,description,practice,tags],i)=>({id:'term
 const byTitle=term=>entries.find(e=>e.title.toLowerCase()===String(term).toLowerCase())||entries.find(e=>e.title.toLowerCase().includes(String(term).toLowerCase()));
 root.RouteEncyclopedia={entries,byTitle};
 if(typeof module!=='undefined'&&module.exports)module.exports=root.RouteEncyclopedia;
-})(typeof window!=='undefined'?window:globalThis);</script>
-<script>(function(){
+})(typeof window!=='undefined'?window:globalThis);
+</script>
+<script>
+(function(){
 'use strict';
 const C=window.GridironCore,P=window.GridironPlays,K=window.RouteCampaign,E=window.RouteEncyclopedia,G=window.RouteGame;
 const $=id=>document.getElementById(id),esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
@@ -2673,6 +2684,7 @@ $('campaignStageList').onclick=e=>{const b=e.target.closest('[data-stage]');if(b
 $('coachLayer').addEventListener('change',e=>{coachLayer=e.target.value;renderField();});
 bindEncyclopedia();bindEvents();paintUniform();renderSpecialists();fillPresets();autoNext();refresh();modeCampaignUI();showPane('menu');try{const has=!!localStorage.getItem('route-lab-exhibition-v1');$('menuLoad').disabled=!has;$('loadGameBtn').disabled=!has;}catch{$('menuLoad').disabled=true;$('loadGameBtn').disabled=true;}document.getElementById('startupFallback')?.remove();
 
-})();</script>
+})();
+</script>
 
 </body></html>

@@ -88,7 +88,7 @@ NFL rule checks: [2026 Official Playing Rules](https://media.nfl.com/content/dam
 ## Repair slices
 
 1. **Incomplete-pass spotting — implemented in this update:** exclude incomplete, broken-up, and thrown-away passes from chain measurement; test that the ball stays at the prior spot and no first down is awarded.
-2. **Possession-change clock:** keep the clock stopped after an interception, turnover on downs, or other new series until the receiving offense's next snap; cover late-game runoff.
+2. **Possession-change clock — implemented in this update:** preserve the stopped clock after an interception, turnover on downs, or other new series until the receiving offense's next snap; verify that huddle time does not run off and the next live play does.
 3. **Overtime touchdown progression:** stage the required try before deciding whether overtime possession opportunities have ended; cover ordinary and return/loose-ball touchdowns.
 4. **Stable roster identity:** retain exact depth-chart person and slot identity through role changes, then apply fatigue, injury, availability and substitution to that player.
 5. **Backward-pass advancement:** apply fourth-down/two-minute teammate recovery restrictions to fumbles only; preserve legal backward-pass advances.

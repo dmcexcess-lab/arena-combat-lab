@@ -63,6 +63,18 @@ test('losses increase the distance to a first down and the two-minute warning st
  const s=G.createGame();G.setSpot(s,'home',50);let r=G.finishScrimmage(s,fake('Sack',-6),10);assert.equal(r.state.toGain,16);
  s.quarter=2;s.clock=124;r=G.finishScrimmage(s,fake('Tackle',1,6),0);assert.equal(r.state.clock,118);assert.equal(r.state.clockRunning,false);assert.ok(r.state.log.some(x=>x.includes('two-minute warning')));
 });
+test('possession changes stop the clock until the new offense snaps',()=>{
+ const turnover=G.createGame();G.setSpot(turnover,'home',50,4,10);turnover.quarter=4;turnover.clock=100;turnover.clockRunning=true;
+ const changed=G.finishScrimmage(turnover,fake('Tackle',2,4),0);
+ assert.equal(changed.state.possession,'away');assert.equal(changed.state.clock,96);assert.equal(changed.state.clockRunning,false);
+ const reset=G.resetToLine(changed.state);assert.equal(reset.ready,true);assert.equal(reset.burned,0);assert.equal(reset.state.clock,96);
+ const next=G.finishScrimmage(reset.state,fake('Tackle',0,5),0);assert.equal(next.state.clock,91);assert.equal(next.state.clockRunning,true);
+ const fumble=G.createGame();G.setSpot(fumble,'home',50,4,10);fumble.quarter=4;fumble.clock=100;fumble.clockRunning=true;
+ const loose=fake('Fumble recovered',2,4,'offense',2);loose.result.deadBallY=2;loose.result.loose={kind:'fumble',dead:'recovered',sourceSide:'o',sourceId:'runner',recoverySide:'o',recoveryId:'runner',originY:0,recoveryY:2};
+ const recovery=G.finishScrimmage(fumble,loose,0);
+ assert.equal(recovery.state.possession,'away');assert.equal(recovery.state.clock,96);assert.equal(recovery.state.clockRunning,false);
+ assert.equal(G.resetToLine(recovery.state).burned,0);
+});
 test('player fatigue persists across snaps, affects replay state, and recovers during the huddle',()=>{
  const s=G.createExhibition(482),off=P.createOffensePresets()[0],def=P.createDefensePresets()[0];G.setSpot(s,'home',50);
  const offense=G.dressPlay(s,off,'home','offense'),defense=G.dressPlay(s,def,'away','defense');

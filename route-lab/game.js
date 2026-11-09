@@ -236,7 +236,7 @@ function settleLoose(state,s,r,wasTry,expired,twoMinute){
    if(s.toGain<=0&&!latePass){s.down=1;s.toGain=Math.min(10,Math.max(1,off==='home'?100-s.ball:s.ball));call=`First down after ${l.kind==='backwardPass'?'backward pass':'fumble'} at ${spotText(s)}`;}
    else if(s.down===4){newSeries(s,def,global);endedTeam=off;call=`Turnover on downs after ${l.kind==='backwardPass'?'backward pass':'fumble'} — ${def.toUpperCase()} ball at ${spotText(s)}`;}
    else{s.down++;s.toGain=Math.max(1,s.toGain);call=`${l.kind==='backwardPass'?'Backward pass':'Fumble'} ${restricted?'teammate recovery stopped at earlier spot':l.dead==='recovered'?'recovered':'out of bounds'}${latePass?' — loss of down and 5 yards'+(runoff?', 10-second runoff':''):''}; ${s.down} & ${Math.ceil(s.toGain)} at ${spotText(s)}`;}
-   s.clockRunning=l.dead==='recovered'&&!restricted;
+   s.clockRunning=s.possession===off&&l.dead==='recovered'&&!restricted;
   }
   if(l.dead!=='recovered')s.clockRunning=false;
  }
@@ -281,7 +281,7 @@ function finishScrimmage(state,sim,huddle=25,plays=null,options={}){const s=copy
   endedTeam=team;
  }
  else if(v.startsWith('Touchdown')||state.ball+advance>=100&&team==='home'||state.ball+advance<=0&&team==='away'){score(s,team,6,'Touchdown');s.phase=s.quarter===5?'kickoff':'try';s.kicking=team;s.ball=s.quarter===5?(team==='home'?35:65):(team==='home'?98:2);s.clockRunning=false;call=s.quarter===5?'Touchdown — overtime possession ends':'Touchdown — choose extra point or two';endedTeam=team;}
- else {s.ball=clamp(state.ball+advance,1,99);s.toGain-=Number(r.yards)||0;if(s.toGain<=0){s.down=1;s.toGain=Math.min(10,Math.max(1,team==='home'?100-s.ball:s.ball));call=`First down at ${spotText(s)}`;}else if(s.down===4){newSeries(s,op,s.ball);endedTeam=team;call=`Turnover on downs — ${op.toUpperCase()} ball at ${spotText(s)}`;}else{s.down++;call=`${s.down} & ${Math.ceil(s.toGain)} at ${spotText(s)}`;}const out=/Out of bounds|out of bounds/i.test(v),incomplete=/incomplete|broken up|throwaway/i.test(v),lateOut=(s.quarter===2&&s.clock<=120)||(s.quarter===4&&s.clock<=300)||(s.quarter===5&&s.clock<=300);s.clockRunning=!incomplete&&(!out||!lateOut);}
+ else {s.ball=clamp(state.ball+advance,1,99);s.toGain-=Number(r.yards)||0;if(s.toGain<=0){s.down=1;s.toGain=Math.min(10,Math.max(1,team==='home'?100-s.ball:s.ball));call=`First down at ${spotText(s)}`;}else if(s.down===4){newSeries(s,op,s.ball);endedTeam=team;call=`Turnover on downs — ${op.toUpperCase()} ball at ${spotText(s)}`;}else{s.down++;call=`${s.down} & ${Math.ceil(s.toGain)} at ${spotText(s)}`;}const out=/Out of bounds|out of bounds/i.test(v),incomplete=/incomplete|broken up|throwaway/i.test(v),lateOut=(s.quarter===2&&s.clock<=120)||(s.quarter===4&&s.clock<=300)||(s.quarter===5&&s.clock<=300);s.clockRunning=s.possession===team&&!incomplete&&(!out||!lateOut);}
  s.log.push('Referee: '+call+'.');if(twoMinute&&!expired){s.clockRunning=false;s.log.push('Referee: two-minute warning.');}if(expired){if(s.phase==='try')s.pendingPeriodEnd=true;else periodEnd(s);}otCheck(s,endedTeam);return {state:s,call,accepted:true};}
 function kick(state,kind,seed=71,choice='auto'){
  const s=copy(state),free=['kickoff','safetyKick','onside'].includes(kind),team=free?s.kicking:s.possession,receive=other(team);
