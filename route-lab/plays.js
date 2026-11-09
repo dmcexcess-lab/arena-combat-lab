@@ -100,6 +100,11 @@ function defense(name){
 }
 function zone(p,x,y,r=7,rY=r){p.job='zone';p.zone={x,y,r,rY};p.zoneTechnique=p.zoneTechnique||'spot';delete p.coverTarget;}
 function man(p,target){p.job='man';p.coverTarget=target;p.leverage=p.leverage||'inside';delete p.zone;}
+function twist(def,penetratorId,looperId,insideX,outsideX){
+ const penetrator=def.players.find(p=>p.id===penetratorId),looper=def.players.find(p=>p.id===looperId);
+ if(penetrator)penetrator.stunt={role:'penetrate',partnerId:looperId,aimX:insideX,delay:0};
+ if(looper)looper.stunt={role:'loop',partnerId:penetratorId,aimX:outsideX,delay:.18};
+}
 function createDefensePresets(){
  let a=[],d=defense('4–3 Cover 2');
  zone(d.players[4],-9,8,7,7);zone(d.players[5],0,11,9,9);zone(d.players[6],9,8,7,7);
@@ -116,6 +121,7 @@ function createDefensePresets(){
  d.players[10].job='spy';a.push(d);
  d=defense('Cover 0 Blitz');
  man(d.players[4],'oRB');d.players[5].job='blitz';d.players[6].job='blitz';
+ twist(d,'dLE','dDT1',-1.4,-5.8);
  man(d.players[7],'oX');man(d.players[8],'oZ');man(d.players[9],'oSL');man(d.players[10],'oTE');a.push(d);
  d=defense('Tampa 2');
  zone(d.players[4],-9,9,8,8);zone(d.players[5],0,17,8,12);zone(d.players[6],9,9,8,8);

@@ -415,6 +415,8 @@ function run(){if(running)return;if(!campaign&&!pendingState&&stagedCpuKick&&!ma
  const active=sim.participation.filter(p=>p.yardsMoved>.5).length;
  $('moveReport').innerHTML='<b>ON-FIELD EXECUTION</b> · '+active+'/'+sim.participation.length+' players moved'+
   '<div><b>SPECIAL MOVES</b> · '+(sim.specialMoves.length?sim.specialMoves.map(m=>esc(m.t.toFixed(2)+'s '+m.player+' '+m.move+' vs '+m.defender+' — '+m.outcome)).join('<br>'):'none attempted on this snap')+'</div>'+
+  (sim.rushMoves?.length?'<div><b>PASS RUSH TECHNIQUE</b> · '+sim.rushMoves.map(m=>esc(`${m.t.toFixed(2)}s ${m.defender} ${m.move} vs ${m.blocker} — ${m.result} (${Math.round(m.chance*100)}% matchup estimate)`)).join('<br>')+'</div>':'')+
+  (sim.stuntActions?.length?'<div><b>FRONT EXCHANGE</b> · '+sim.stuntActions.map(s=>esc(`${s.t.toFixed(2)}s ${s.penetrator} penetrates; ${s.looper} loops`)).join('<br>')+'</div>':'')+
   (sim.result.loose?'<div><b>LOOSE BALL</b> · '+esc(sim.result.loose.kind==='backwardPass'?'Backward pass':'Fumble')+'; '+esc(gameRuling?.call||sim.result.verdict)+'</div>':'')+
   (gameRuling?.fouls?.length?'<div><b>OFFICIALS</b> · '+gameRuling.fouls.map(f=>esc(`${f.code} ${f.player} at ${f.time.toFixed(2)}s, +${f.spotY.toFixed(1)} yd — ${f.evidence}`)).join('<br>')+'</div>':'')+
   (gameRuling?.injuries?.length?'<div><b>MEDICAL / SUBSTITUTIONS</b> · '+gameRuling.injuries.map(i=>esc(`${i.at.toFixed(2)}s ${i.name} (${i.team.toUpperCase()} ${i.label}) — ${i.mechanism}; ${i.status==='out'?'out for game':i.status==='limited'?'at least five downs':'at least one down'}`)).join('<br>')+'</div>':'');
