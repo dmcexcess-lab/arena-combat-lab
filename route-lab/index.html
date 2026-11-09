@@ -649,6 +649,21 @@ function simulate(off,def,seed=71){
     }else if(p.job==='zone'){
       const z=p.zone||{x:p.x,y:p.y,r:5};
       const safety=['FS','SS','S'].includes(p.label)||(p.homeY??0)>14;
+      const tampaMike=def.coverageScheme==='tampa2'&&p.label==='MLB'&&Math.abs(z.x)<2&&z.y>=14;
+      if(tampaMike&&state==='live'&&!handoff){
+        const seam=receivers.filter(r=>r.y>3&&r.vy>.35&&Math.max(r.y,...(r.route||[]).map(pt=>pt.y))>=18&&Math.abs(r.homeX??r.x)<8)
+          .sort((a,b)=>dist(a,z)-dist(b,z)||b.y-a.y)[0];
+        if(seam){
+          if(p.tampaSeamReceiverId!==seam.id){
+            p.tampaSeamReceiverId=seam.id;
+            const read={t:+t.toFixed(2),defenderId:p.id,defender:p.label,receiverId:seam.id,receiver:seam.label,role:'Tampa 2 middle seam',decision:'carries inside vertical',depth:+seam.y.toFixed(1)};
+            coverageReads.push(read);log(t,p.label+' carries '+seam.label+' up the inside seam');
+          }
+          const target={x:clamp(seam.x+seam.vx*.3,z.x-5,z.x+5),y:clamp(Math.max(z.y-1,seam.y+1.8),z.y-8,z.y+12)};
+          move(p,target,dt,speedOf(p)*clamp(.84+statsOf(p).awareness/460+statsOf(p).coverage/520,.92,1.18));continue;
+        }
+        p.tampaSeamReceiverId=null;
+      }
       const splitSafetyCall=['cover2','tampa2'].includes(def.coverageScheme)&&safety&&z.y>=16;
       if(splitSafetyCall&&state==='live'&&!handoff){
         const half=(p.homeX??p.x)<0?-1:1;
@@ -2508,7 +2523,7 @@ function run(){if(running)return;if(!campaign&&!pendingState&&stagedCpuKick&&!ma
   (sim.blockingActions?.some(a=>a.kind==='chip-release')?'<div><b>TIGHT END CHIP / RELEASE</b> · '+sim.blockingActions.filter(a=>a.kind==='chip-release').map(a=>esc(`${a.t.toFixed(2)}s ${a.blocker} ${a.phase==='chip'?'chips':'releases from'} ${a.defender}`)).join('<br>')+'</div>':'')+
   (sim.blockingActions?.some(a=>a.kind==='screen-release'||a.kind==='screen-contact')?'<div><b>SCREEN RELEASE / BLOCKS</b> · '+sim.blockingActions.filter(a=>a.kind==='screen-release'||a.kind==='screen-contact').map(a=>esc(`${a.t.toFixed(2)}s ${a.kind==='screen-release'?`${a.blocker} releases for ${a.receiver}`:`${a.blocker} engages ${a.defender}`}`)).join('<br>')+'</div>':'')+
   (sim.playActionReads?.length?'<div><b>PLAY ACTION KEYS</b> · '+sim.playActionReads.map(r=>esc(`${r.t.toFixed(2)}s ${r.defender} (${r.role}) ${r.decision}; ${r.cue}`)).join('<br>')+'</div>':'')+
-  (sim.coverageReads?.length?'<div><b>DEEP SAFETY HELP</b> · '+sim.coverageReads.map(r=>esc(`${r.t.toFixed(2)}s ${r.defender} ${r.decision} over ${r.receiver} (${r.role})`)).join('<br>')+'</div>':'')+
+  (sim.coverageReads?.length?'<div><b>ZONE COVERAGE READS</b> · '+sim.coverageReads.map(r=>esc(`${r.t.toFixed(2)}s ${r.defender} ${r.decision} over ${r.receiver} (${r.role})`)).join('<br>')+'</div>':'')+
   (sim.result.loose?'<div><b>LOOSE BALL</b> · '+esc(sim.result.loose.kind==='backwardPass'?'Backward pass':'Fumble')+'; '+esc(gameRuling?.call||sim.result.verdict)+'</div>':'')+
   (gameRuling?.fouls?.length?'<div><b>OFFICIALS</b> · '+gameRuling.fouls.map(f=>esc(`${f.code} ${f.player} at ${f.time.toFixed(2)}s, +${f.spotY.toFixed(1)} yd — ${f.evidence}`)).join('<br>')+'</div>':'')+
   (gameRuling?.injuries?.length?'<div><b>MEDICAL / SUBSTITUTIONS</b> · '+gameRuling.injuries.map(i=>esc(`${i.at.toFixed(2)}s ${i.name} (${i.team.toUpperCase()} ${i.label}) — ${i.mechanism}; ${i.status==='out'?'out for game':i.status==='limited'?'at least five downs':'at least one down'}`)).join('<br>')+'</div>':'');

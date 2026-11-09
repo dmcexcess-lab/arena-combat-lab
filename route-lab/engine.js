@@ -552,6 +552,21 @@ function simulate(off,def,seed=71){
     }else if(p.job==='zone'){
       const z=p.zone||{x:p.x,y:p.y,r:5};
       const safety=['FS','SS','S'].includes(p.label)||(p.homeY??0)>14;
+      const tampaMike=def.coverageScheme==='tampa2'&&p.label==='MLB'&&Math.abs(z.x)<2&&z.y>=14;
+      if(tampaMike&&state==='live'&&!handoff){
+        const seam=receivers.filter(r=>r.y>3&&r.vy>.35&&Math.max(r.y,...(r.route||[]).map(pt=>pt.y))>=18&&Math.abs(r.homeX??r.x)<8)
+          .sort((a,b)=>dist(a,z)-dist(b,z)||b.y-a.y)[0];
+        if(seam){
+          if(p.tampaSeamReceiverId!==seam.id){
+            p.tampaSeamReceiverId=seam.id;
+            const read={t:+t.toFixed(2),defenderId:p.id,defender:p.label,receiverId:seam.id,receiver:seam.label,role:'Tampa 2 middle seam',decision:'carries inside vertical',depth:+seam.y.toFixed(1)};
+            coverageReads.push(read);log(t,p.label+' carries '+seam.label+' up the inside seam');
+          }
+          const target={x:clamp(seam.x+seam.vx*.3,z.x-5,z.x+5),y:clamp(Math.max(z.y-1,seam.y+1.8),z.y-8,z.y+12)};
+          move(p,target,dt,speedOf(p)*clamp(.84+statsOf(p).awareness/460+statsOf(p).coverage/520,.92,1.18));continue;
+        }
+        p.tampaSeamReceiverId=null;
+      }
       const splitSafetyCall=['cover2','tampa2'].includes(def.coverageScheme)&&safety&&z.y>=16;
       if(splitSafetyCall&&state==='live'&&!handoff){
         const half=(p.homeX??p.x)<0?-1:1;
