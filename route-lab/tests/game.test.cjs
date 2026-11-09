@@ -146,6 +146,13 @@ test('a defensive fumble recovery is not passed through the offensive tackle loo
  for(const hit of sim.contacts.filter(c=>c.kind==='return tackle'))assert.equal(hit.defenseId,loose.recoveryId,'defensive carrier must be tackled by the offense');
 });
 
+test('backward-pass teammate recoveries can advance on fourth down and after two minutes; fumbles cannot',()=>{
+ const loosePlay=kind=>{const sim=fake(kind==='fumble'?'Fumble recovered':'Backward pass recovered',10,0,'offense',10);sim.result.deadBallY=10;sim.result.loose={kind,dead:'recovered',sourceSide:'o',sourceId:'qb',recoverySide:'o',recoveryId:'teammate',originY:0,recoveryY:10};return sim;};
+ const fourthPass=G.createGame();G.setSpot(fourthPass,'home',50,4,10);let result=G.finishScrimmage(fourthPass,loosePlay('backwardPass'),0);assert.equal(result.state.possession,'home');assert.equal(result.state.ball,60);assert.equal(result.state.down,1,'a legal fourth-down backward-pass advance reaches the line to gain');
+ const fourthFumble=G.createGame();G.setSpot(fourthFumble,'home',50,4,10);result=G.finishScrimmage(fourthFumble,loosePlay('fumble'),0);assert.equal(result.state.possession,'away');assert.equal(result.state.ball,50,'a fourth-down teammate fumble recovery is dead at the fumble spot');
+ const latePass=G.createGame();G.setSpot(latePass,'home',50,3,10);latePass.quarter=4;latePass.clock=100;result=G.finishScrimmage(latePass,loosePlay('backwardPass'),0);assert.equal(result.state.possession,'home');assert.equal(result.state.ball,60);assert.equal(result.state.down,1,'the two-minute teammate fumble restriction does not apply to a backward pass');
+ const lateFumble=G.createGame();G.setSpot(lateFumble,'home',50,3,10);lateFumble.quarter=4;lateFumble.clock=100;result=G.finishScrimmage(lateFumble,loosePlay('fumble'),0);assert.equal(result.state.possession,'home');assert.equal(result.state.ball,50,'a teammate fumble recovery after two minutes is dead at the fumble spot');assert.equal(result.state.down,4);
+});
 test('rejected pre-snap fouls use a fresh attempt seed on retry',()=>{
  const off=P.createOffensePresets()[0],def=P.createDefensePresets()[0],s=G.createGame();G.setSpot(s,'home',50);let first=null,attemptSim=null;
  for(let seed=1;seed<=5000&&!first;seed++){const sim={...fake('Tackle',2),result:{...fake('Tackle',2).result,seed}};const r=G.finishScrimmage(s,sim,0,{offense:off,defense:def});if(r.foul){first=r;attemptSim=sim;}}
