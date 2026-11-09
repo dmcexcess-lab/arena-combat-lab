@@ -181,7 +181,7 @@ function simulate(off,def,seed=71){
  let carrier=qb, state=usesSnap?'snap':'live', ball=usesSnap?{...snapFrom,kind:'snap'}:{x:qb.x,y:qb.y,kind:'held'}, targetPass=null,flight=null, thrown=false, handoff=false, playOver=false, verdict='', yards=0, time=0, sack=false,returnStartY=null,catchTime=-1;
  let snapProgress=0,handoffMissed=false,watchdog=null;
  let loose=null,looseResult=null,looseCount=0,lateralUsed=false,possessionChanged=false,interceptionY=null;
- const frames=[],events=[],decisions=[],specialMoves=[],rushMoves=[],stuntActions=[],catchContests=[],contacts=[],blockContacts=new Set(),blockDuels=new Map(); const log=(t,text)=>events.push({t:+t.toFixed(2),text});
+ const frames=[],events=[],decisions=[],specialMoves=[],rushMoves=[],stuntActions=[],catchContests=[],blockingActions=[],contacts=[],blockContacts=new Set(),blockDuels=new Map(),comboPairs=new Set(); const log=(t,text)=>events.push({t:+t.toFixed(2),text});
  const isRun=['run','option'].includes(off.type),directRun=isRun&&runner===qb,allowLoose=off.enableLooseBall===true&&!off.training&&!off.trainingVirtualSnap;
  const eligible=new Set(off.training?o.filter(p=>p.job==='route').map(p=>p.id):v.eligible);
  const receivers=o.filter(p=>p.job==='route'&&eligible.has(p.id));
@@ -334,10 +334,25 @@ function simulate(off,def,seed=71){
         target=nearest(zone,d,a=>a.job==='rush'||a.job==='blitz'||a.job==='contain'||(isRun&&a.y<5)).agent;
       }
       if(target){
-        const desired={x:target.x,y:target.y-(isRun?.7:1.15)};
+        p.blockedDefenderId=target.id;
+        const adjacent=nearest(p,o.filter(q=>q!==p&&
+          (linemen.has(q.label)||q.label==='TE')&&['passblock','runblock','block'].includes(q.job)&&
+          q.blockedDefenderId===target.id&&(q.wasEngaged||q.engaged)&&dist(q,target)<2.9&&dist(q,p)<3.8));
+        const threatens=isRun?target.y>0&&Math.abs(target.x-(off.runGapX??playDir))<5.5:target.y<p.y+1.8;
+        let desired={x:target.x,y:target.y-(isRun?.7:1.15)};
+        if(adjacent.agent&&threatens&&(linemen.has(p.label)||p.label==='TE')){
+          const helperSide=Math.sign(p.x-adjacent.agent.x)||1,comboKey=[p.id,adjacent.agent.id,target.id].sort().join(':');
+          p.comboWithId=adjacent.agent.id;p.comboTargetId=target.id;
+          adjacent.agent.comboWithId=p.id;adjacent.agent.comboTargetId=target.id;
+          desired={x:target.x+helperSide*.58,y:target.y-(isRun?.72:1.2)};
+          if(!comboPairs.has(comboKey)){
+            comboPairs.add(comboKey);blockingActions.push({t:+t.toFixed(2),kind:'combo',blockers:[adjacent.agent.label,p.label],defender:target.label});
+            log(t,adjacent.agent.label+' and '+p.label+' combine on '+target.label);
+          }
+        }else{p.comboWithId=null;p.comboTargetId=null;}
         if(!isRun && desired.y>.55) desired.y=.55;
         move(p,desired,dt,speedOf(p)*.55,18);
-      }
+      }else{p.blockedDefenderId=null;p.comboWithId=null;p.comboTargetId=null;}
     }
   }
   // QB drops, holds, or scrambles once pressure arrives.
@@ -521,7 +536,8 @@ function simulate(off,def,seed=71){
       const duel=blockDuels.get(pair)||{time:0,shedChecked:false};duel.time+=dt;blockDuels.set(pair,duel);
       const aimedGap=off.runGapX??0,gapSide=Math.sign(aimedGap-blocker.x),rushSide=Math.sign(enemy.x-blocker.x);
       const leverage=clamp(.82+(gapSide&&gapSide===rushSide ? .22 : 0)+(block.awareness-70)*.001-(rush.awareness-70)*.0007,.62,1.16);
-      const power=(blocker.power??.72)*(.55+block.blocking/155)*(.7+block.strength/300)*(1-blocker.fatigue*.24)*(isRun?leverage:1);
+      const comboHelp=blocker.comboTargetId===enemy.id&&blocker.comboWithId?1.12:1;
+      const power=(blocker.power??.72)*(.55+block.blocking/155)*(.7+block.strength/300)*(1-blocker.fatigue*.24)*(isRun?leverage:1)*comboHelp;
       const defense=(enemy.power??.66)*(.48+rush.strength/260+rush.passRush/310)*(1-enemy.fatigue*.22);
       if(!isRun&&['rush','blitz'].includes(enemy.job)&&duel.time>=.2&&!duel.passMoveResolved){
         duel.passMoveResolved=true;
@@ -791,7 +807,7 @@ function simulate(off,def,seed=71){
   return {id:p.id,label:p.label,side:p.side,assignment:p.job,
    yardsMoved:+travelled.toFixed(1),contactSeconds:+engaged.toFixed(2),fatigue:+p.fatigue.toFixed(4)};
  });
- return {valid:!watchdog,validation:v,diagnostic:watchdog,frames,events,decisions,specialMoves,rushMoves,stuntActions,catchContests,contacts,participation,result:{verdict,yards,seconds:+time.toFixed(2),seed,offense:off.name,defense:def.name,sack,completed:!watchdog,
+ return {valid:!watchdog,validation:v,diagnostic:watchdog,frames,events,decisions,specialMoves,rushMoves,stuntActions,catchContests,blockingActions,contacts,participation,result:{verdict,yards,seconds:+time.toFixed(2),seed,offense:off.name,defense:def.name,sack,completed:!watchdog,
   possession:carrier?.side==='d'||!carrier&&looseResult?.sourceSide==='d'?'defense':'offense',
   possessionChanged,interceptionY,deadBallY:+(ball?.y??carrier?.y??0).toFixed(2),loose:looseResult,
   returnYards:returnStartY===null?0:+(returnStartY-(carrier?.y??returnStartY)).toFixed(1)}};
