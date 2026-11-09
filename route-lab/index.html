@@ -1628,9 +1628,9 @@ function stageTouchdown(s,team,prior){
 function score(s,team,points,reason){s.score[team]+=points;if(s.quarter===5){s.ot??={first:null,firstEnded:false,firstScored:false,second:null,initial:{home:s.score.home-(team==='home'?points:0),away:s.score.away-(team==='away'?points:0)}};if(!s.ot.first)s.ot.first=team;if(team!==s.ot.first){s.ot.firstEnded=true;s.ot.second=team;s.ot.secondEnded=true;}}s.log.push(`Referee: ${reason}. ${team.toUpperCase()} +${points}. Score ${s.score.home}–${s.score.away}.`);}
 function settleLoose(state,s,r,wasTry,expired,twoMinute){
  const l=r.loose,off=state.possession,def=other(off),yardsFromOwn=off==='home'?state.ball:100-state.ball,localGoal=-yardsFromOwn,farGoal=100-yardsFromOwn;
- const at=y=>state.ball+dir(off)*y,afterTwo=[2,4,5].includes(state.quarter)&&state.clock<=120;
+ const at=y=>state.ball+dir(off)*y,afterTwo=[2,4].includes(state.quarter)&&state.clock<=120;
  const sideTeam=side=>side==='d'?def:off,point=Number.isFinite(r.deadBallY)?r.deadBallY:(l.outY??l.recoveryY??l.originY);
- const restricted=l.dead==='recovered'&&l.recoverySide===l.sourceSide&&l.recoveryId!==l.sourceId&&
+ const restricted=l.kind==='fumble'&&l.dead==='recovered'&&l.recoverySide===l.sourceSide&&l.recoveryId!==l.sourceId&&
   (afterTwo||wasTry||(state.down===4&&l.sourceSide==='o'));
  const y=restricted?(l.sourceSide==='o'?Math.min(l.originY,l.recoveryY):Math.max(l.originY,l.recoveryY)):point;
  const owner=y<=localGoal?off:y>=farGoal?def:l.dead==='out'&&l.originY<=localGoal?off:l.dead==='out'&&l.originY>=farGoal?def:null;
