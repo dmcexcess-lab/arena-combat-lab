@@ -529,8 +529,9 @@ function simulate(off,def,seed=71){
           chance:+chance.toFixed(2),result:success?'wins the rush':'is stalled'};
         rushMoves.push(item);log(t,enemy.label+' attempts a '+moveName+' on '+blocker.label+' — '+item.result);
         if(success){blockDuels.delete(pair);enemy.blockShedUntil=t+.48;enemy.engaged=false;blocker.engaged=false;
-          enemy.vx*=.55;enemy.vy=Math.max(enemy.vy,1.5);contacts.push({t:+t.toFixed(2),kind:'rush-move',offenseId:blocker.id,defenseId:enemy.id,technique:moveName,success:true});continue;}
-        blocker.vy=Math.max(blocker.vy,enemy.vy+.45);
+          enemy.x+=Math.sign(enemy.x-blocker.x||1)*.22;enemy.y-=.65;enemy.vx*=.55;enemy.vy=Math.min(enemy.vy,-1.35);
+          contacts.push({t:+t.toFixed(2),kind:'rush-move',offenseId:blocker.id,defenseId:enemy.id,technique:moveName,success:true});continue;}
+        enemy.x+=Math.sign(enemy.x-blocker.x||1)*.12;enemy.vy*=.72;
         contacts.push({t:+t.toFixed(2),kind:'rush-move',offenseId:blocker.id,defenseId:enemy.id,technique:moveName,success:false});
       }
       if(isRun&&duel.time>=.3&&!duel.shedChecked){duel.shedChecked=true;const shedChance=clamp(.09+(defense-power)*.38+(rush.awareness-block.awareness)*.0015,.025,.38);if(blockRand()<shedChance){blockDuels.delete(pair);enemy.blockShedUntil=t+.65;enemy.engaged=false;blocker.engaged=false;enemy.vx*=.55;enemy.vy=Math.max(enemy.vy,1.3);contacts.push({t:+t.toFixed(2),kind:'shed',offenseId:blocker.id,defenseId:enemy.id,leverage:+leverage.toFixed(2),engagement:+duel.time.toFixed(2)});log(t,enemy.label+' sheds '+blocker.label+' and gets back into pursuit');continue;}}
