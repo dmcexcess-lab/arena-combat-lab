@@ -677,12 +677,12 @@ function simulate(off,def,seed=71){
     const fakeBites=playActionReads.filter(r=>r.decision==='bit on fake').length;
     const playActionHold=off.playActionFake?clamp(.38+(80-statsOf(qb).awareness)*.0015,.28,.5)+Math.min(.18,fakeBites*.06):0;
     const ready=t>=Math.max(1.15,off.qbDropTime??1.15)+playActionHold;
-    if(!playOver&&ready&&receivers.length){
+    if(!playOver&&ready&&(receivers.length||t>=(qb.throwAt??off.throwAt??3.2))){
       // Evaluate the RECEIVER AT BALL ARRIVAL, not just at the current frame.
       // Each candidate carries a coverage, trajectory, urgency and risk estimate.
       const rushDistance=rush.d;
       const desperate=rushDistance<3.1;
-      const maxWait=off.throwAt??3.2;
+      const maxWait=qb.throwAt??off.throwAt??3.2;
       const clockPressure=clamp((t-maxWait+.6)/.8,0,1);
       const firstDown=Number.isFinite(off.toGain)?off.toGain:10;
       const passTargets=optionPass?receivers.filter(r=>r.id===(off.rpoReceiverId||'oX')):receivers;
@@ -721,7 +721,14 @@ function simulate(off,def,seed=71){
           (urgency?Math.max(0,depth-12)*.055:0)+
           (rand()-.5)*(.9-statsOf(qb).awareness*.005);
         return {r,predict,risk,separation,lane,depth,score:value,open:cushion};
-      }).filter(a=>a.predict.y>-.2||(off.screen&&a.r.id===off.screen.receiverId&&a.predict.y>-9)).sort((a,b)=>b.score-a.score);
+      }).sort((a,b)=>b.score-a.score);
+      // Behind-line checkdowns are legal forward passes. If there is no eligible
+      // target at the QB's decision deadline, end the snap with a real throwaway.
+      if(!graded.length&&t>=maxWait){
+        thrown=true;carrier=null;state='dead';
+        decisions.push({t:+t.toFixed(2),action:'throwaway',reason:'No eligible receiver available'});
+        finish('Throwaway — incomplete pass',t,point(0,0));
+      }
       // Softmax within a credible read window. A different seed can produce a
       // different defensible choice while clear, low-risk winners stay favored.
       const progression=graded.slice().sort((a,b)=>(Number(a.r.read)||3)-(Number(b.r.read)||3)||Number(b.r.hot)-Number(a.r.hot));
