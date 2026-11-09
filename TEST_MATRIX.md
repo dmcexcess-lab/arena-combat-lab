@@ -249,3 +249,8 @@ Operational checklist for humans + AIs. Keep compact; add only behaviors whose r
 - A behind-the-line throw to the HB triggers five OL releases only after the pass decision; actual contact in the catch lane appears in the blocking report.
 - The same screen, defender alignment, and seed reproduce the read, release timing, movement, and contact report.
 - The screen-specific target can be evaluated behind the LOS; the hosted report identifies releases and screen engagements.
+
+## Route Lab Play Action Cross keyed fake
+- The QB keeps the ball through the back's mesh fake; second-level defenders record a seeded bite or pass diagnosis from awareness and pass-set cues.
+- Deep safeties key the play while limiting any false step to protect top coverage; their read appears in replay events and player decision review.
+- A fooled second-level defender shifts the QB throw window, while disciplined reactions leave it shorter; repeated seed and ratings reproduce defender reads, movement and timing.

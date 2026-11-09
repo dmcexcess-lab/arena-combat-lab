@@ -188,7 +188,7 @@ function simulate(off,def,seed=71){
  let carrier=qb, state=usesSnap?'snap':'live', ball=usesSnap?{...snapFrom,kind:'snap'}:{x:qb.x,y:qb.y,kind:'held'}, targetPass=null,flight=null, thrown=false, handoff=false, playOver=false, verdict='', yards=0, time=0, sack=false,returnStartY=null,catchTime=-1;
  let snapProgress=0,handoffMissed=false,watchdog=null;
  let loose=null,looseResult=null,looseCount=0,lateralUsed=false,possessionChanged=false,interceptionY=null;
- const frames=[],events=[],decisions=[],qbReads=[],specialMoves=[],rushMoves=[],stuntActions=[],catchContests=[],blockingActions=[],contacts=[],blockContacts=new Set(),blockDuels=new Map(),comboPairs=new Set(); const log=(t,text)=>events.push({t:+t.toFixed(2),text});
+ const frames=[],events=[],decisions=[],qbReads=[],playActionReads=[],specialMoves=[],rushMoves=[],stuntActions=[],catchContests=[],blockingActions=[],contacts=[],blockContacts=new Set(),blockDuels=new Map(),comboPairs=new Set(); const log=(t,text)=>events.push({t:+t.toFixed(2),text});
  const isRun=['run','option'].includes(off.type),directRun=isRun&&runner===qb,allowLoose=off.enableLooseBall===true&&!off.training&&!off.trainingVirtualSnap;
  let optionPass=false,optionResolved=false;
  const isPass=()=>!isRun||optionPass;
@@ -259,7 +259,7 @@ function simulate(off,def,seed=71){
     ball={x:snapFrom.x+(qb.x-snapFrom.x)*pct,y:snapFrom.y+(qb.y-snapFrom.y)*pct,kind:'snap'};
     if(snapProgress>=snapDistance){carrier=qb;state='live';ball={x:qb.x,y:qb.y,kind:'held'};log(t,'Center snaps the ball to '+qb.label+' — exchange secured');}
   }
-  if(off.playActionFake&&step===1)log(t,'QB carries out the handoff fake; the ball stays with the quarterback');
+  if(off.playActionFake&&step===1)log(t,'QB carries out the handoff fake; ball stays with the quarterback while the back crosses the mesh');
   for(const p of [...o,...d]){p.wasEngaged=p.engaged;p.engaged=false;p.supportBlock=false;}
   // Route pursuit with waypoints. A hot route is a read priority, not a speed boost.
   for(const p of o){
@@ -276,7 +276,7 @@ function simulate(off,def,seed=71){
       continue;
     }
     if(p.id===qb.id)continue;
-    if(off.playActionFake&&p.id===(off.playActionFake.receiverId||'oRB')&&t<1.05){
+    if(off.playActionFake&&p.id===(off.playActionFake.receiverId||'oRB')&&t<(off.playActionFake.endAt??1.12)){
       const fake=off.playActionFake;
       move(p,{x:fake.x??qb.x+2,y:fake.y??-1.2},dt,speedOf(p)*.8,14);continue;
     }
@@ -465,6 +465,32 @@ function simulate(off,def,seed=71){
       }
       continue;
     }
+    const pa=off.playActionFake,paEnd=pa?.endAt??1.12;
+    const safety=['FS','SS','S'].includes(p.label)||(p.homeY??0)>14;
+    const linebacker=['LB','MLB','OLB','ILB','W','M'].includes(p.label);
+    const keyer=!!pa&&(p.job==='runfit'||linebacker&&p.job==='zone'||safety&&(p.job==='zone'||p.job==='deep'));
+    if(keyer&&state==='live'&&!handoff&&t<=paEnd+.28){
+      const rating=statsOf(p),readAt=clamp(.55+(78-rating.awareness)*.005,.45,1.08);
+      if(!p.playActionResolved&&t>=readAt){
+        p.playActionResolved=true;
+        const passSet=o.filter(q=>linemen.has(q.label)&&q.job==='passblock').length>=4;
+        const recognition=rating.awareness*.65+rating.coverage*.35;
+        const biteChance=clamp(.83-recognition*.009-(passSet?.20:0),.04,.82);
+        p.playActionBite=rand()<biteChance;
+        const read={t:+t.toFixed(2),defenderId:p.id,defender:p.label,role:safety?'deep safety':'second level',awareness:rating.awareness,
+          decision:p.playActionBite?'bit on fake':'diagnosed pass',cue:passSet?'RB mesh with pass-set line':'RB crossing the mesh'};
+        playActionReads.push(read);
+        log(t,p.label+' '+(p.playActionBite?'steps toward the run fake':'reads the pass set and stays in coverage')+' — '+read.cue);
+      }
+      if(p.playActionBite&&t<=paEnd+.28){
+        const target=safety?{x:(p.homeX??p.x)+((pa.x??qb.x+2)-(p.homeX??p.x))*.12,y:Math.max(12,(p.homeY??p.y)-.55)}:
+          {x:pa.x??qb.x+2,y:Math.min(5,(pa.y??-1.2)+2.4)};
+        move(p,target,dt,speedOf(p)*(safety?.72:.88),18);continue;
+      }
+      if(p.playActionResolved&&!p.playActionBite&&p.job==='runfit'){
+        move(p,{x:p.fitX??playDir,y:1.4},dt,speedOf(p)*.82);continue;
+      }
+    }
     if(state==='runafter'){
       const rating=statsOf(p);
       if(t<catchTime+clamp((82-rating.awareness)/300,0,.18))continue;
@@ -550,11 +576,7 @@ function simulate(off,def,seed=71){
     }else if(p.job==='spy'){const watch=carrier||qb;move(p,{x:watch.x,y:clamp(watch.y+3,2,12)},dt,speedOf(p)*.65);}
     else if(p.job==='runfit'){
       const rating=statsOf(p),lead=rating.pursuit/260;
-      if(off.playActionFake&&t<1.05){
-        const fake=off.playActionFake,readDelay=clamp(.85-rating.awareness*.004,.42,.82);
-        if(t>=readDelay)move(p,{x:fake.x??qb.x+2,y:Math.min(4,(fake.y??-1.2)+2)},dt,speedOf(p)*.9);
-        else move(p,{x:p.fitX??playDir,y:Math.min(3,2.8)},dt,speedOf(p)*.82);
-      }else if(handoff&&carrier){
+      if(handoff&&carrier){
         const assigned=p.fitX??playDir,readX=carrier.x+carrier.vx*lead,escape=Math.abs(readX-assigned);
         // The fit defender keys the back and nearby blocks, then scrapes only
         // when the runner has declared away from the assigned gap. Awareness
@@ -652,7 +674,8 @@ function simulate(off,def,seed=71){
       if(allowLoose&&looseRand()<strip)releaseLoose('fumble',t,qb,{x:qb.x+(rush.agent.x-qb.x)*.4,y:qb.y-2},qb);
       else{carrier=qb;finish('Sack ('+Math.abs(qb.y).toFixed(1)+' yd loss)',t,qb);}
     }
-    const playActionHold=off.playActionFake?clamp(.48-statsOf(qb).awareness*.002,.28,.48):0;
+    const fakeBites=playActionReads.filter(r=>r.decision==='bit on fake').length;
+    const playActionHold=off.playActionFake?clamp(.38+(80-statsOf(qb).awareness)*.0015,.28,.5)+Math.min(.18,fakeBites*.06):0;
     const ready=t>=Math.max(1.15,off.qbDropTime??1.15)+playActionHold;
     if(!playOver&&ready&&receivers.length){
       // Evaluate the RECEIVER AT BALL ARRIVAL, not just at the current frame.
@@ -901,7 +924,7 @@ function simulate(off,def,seed=71){
   return {id:p.id,label:p.label,side:p.side,assignment:p.job,
    yardsMoved:+travelled.toFixed(1),contactSeconds:+engaged.toFixed(2),fatigue:+p.fatigue.toFixed(4)};
  });
- return {valid:!watchdog,validation:v,diagnostic:watchdog,frames,events,decisions,qbReads,specialMoves,rushMoves,stuntActions,catchContests,blockingActions,contacts,participation,result:{verdict,yards,seconds:+time.toFixed(2),seed,offense:off.name,defense:def.name,sack,completed:!watchdog,
+ return {valid:!watchdog,validation:v,diagnostic:watchdog,frames,events,decisions,qbReads,playActionReads,specialMoves,rushMoves,stuntActions,catchContests,blockingActions,contacts,participation,result:{verdict,yards,seconds:+time.toFixed(2),seed,offense:off.name,defense:def.name,sack,completed:!watchdog,
   possession:carrier?.side==='d'||!carrier&&looseResult?.sourceSide==='d'?'defense':'offense',
   possessionChanged,interceptionY,deadBallY:+(ball?.y??carrier?.y??0).toFixed(2),loose:looseResult,
   returnYards:returnStartY===null?0:+(returnStartY-(carrier?.y??returnStartY)).toFixed(1)}};

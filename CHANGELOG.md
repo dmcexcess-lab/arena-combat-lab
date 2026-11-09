@@ -1,3 +1,7 @@
+# 2026-11-08 — Route Lab Play Action Cross keyed fake
+- Linebackers now read the back crossing the mesh against the pass-set line. Awareness influences how early they diagnose and whether a defender bites; deep safeties key the action with a smaller, top-leverage-preserving response.
+- False steps move defenders toward the fake and can extend the QB's read window. Replay events and player decision review show each defender's cue and reaction; fixed-seed tests compare fooled and disciplined defenders and verify safety behavior.
+
 # 2026-11-08 — Route Lab HB Screen release timing
 - HB Screen can target its back behind the line of scrimmage. The offensive line stays in pass protection until the screen throw, then releases toward pursuit in the catch lane and records actual engagements.
 - The play report now shows screen releases and contacts; a fixed-seed regression checks a thrown screen, post-throw release timing, pursuit contact and replay determinism.
