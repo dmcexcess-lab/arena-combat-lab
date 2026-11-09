@@ -44,6 +44,26 @@ test('tied regulation enters ten-minute overtime and each team gets a possession
  const s=G.createGame();G.setSpot(s,'home',50);s.quarter=4;s.clock=1;s.score={home:10,away:10};let r=G.finishScrimmage(s,fake('Tackle',0,2),0);assert.equal(r.state.quarter,5);assert.equal(r.state.phase,'kickoff');assert.equal(r.state.clock,600);assert.equal(r.state.timeouts.home,2);
  const k=G.kick(r.state,'kickoff',15);assert.equal(k.state.quarter,5);assert.equal(k.state.otSeen[k.state.possession],true);
 });
+test('overtime touchdowns complete the try before finalizing the game',()=>{
+ const first=G.createGame();first.quarter=5;first.clock=300;first.ot={first:'home',firstEnded:false,firstScored:false,second:null,secondEnded:false,initial:{home:0,away:0}};
+ G.setSpot(first,'home',95);let r=G.finishScrimmage(first,fake('Touchdown',5,4),0);
+ assert.equal(r.state.score.home,6);assert.equal(r.state.phase,'try');assert.notEqual(r.state.phase,'final');
+ const tryResult=G.finishScrimmage(r.state,fake('Touchdown',0,0),0);
+ assert.equal(tryResult.state.score.home,8);assert.equal(tryResult.state.phase,'kickoff');assert.notEqual(tryResult.state.phase,'final');
+ const second=G.createGame();second.quarter=5;second.clock=300;second.score={home:6,away:0};second.ot={first:'home',firstEnded:true,firstScored:true,second:'away',secondEnded:false,initial:{home:0,away:0}};
+ G.setSpot(second,'away',5);r=G.finishScrimmage(second,fake('Touchdown',5,4),0);
+ assert.equal(r.state.score.away,6);assert.equal(r.state.phase,'try');assert.notEqual(r.state.phase,'final');
+ const failedTry=G.finishScrimmage(r.state,fake('Incomplete pass',0,0),0);
+ assert.equal(failedTry.state.score.home,6);assert.equal(failedTry.state.score.away,6);assert.equal(failedTry.state.phase,'kickoff');assert.notEqual(failedTry.state.phase,'final');
+ const loose=G.createGame();loose.quarter=5;loose.clock=300;loose.ot={first:'home',firstEnded:false,firstScored:false,second:null,secondEnded:false,initial:{home:0,away:0}};
+ G.setSpot(loose,'home',95);const fumble=fake('Fumble recovered',6,3,'offense',6);fumble.result.deadBallY=6;fumble.result.loose={kind:'fumble',dead:'recovered',sourceSide:'o',sourceId:'runner',recoverySide:'o',recoveryId:'runner',originY:0,recoveryY:6};
+ const looseTd=G.finishScrimmage(loose,fumble,0);assert.equal(looseTd.state.score.home,6);assert.equal(looseTd.state.phase,'try');assert.notEqual(looseTd.state.phase,'final');
+ const returnKick=G.createGame();returnKick.quarter=5;returnKick.clock=300;returnKick.kicking='home';returnKick.ot={first:null,firstEnded:false,firstScored:false,second:null,secondEnded:false,initial:{home:0,away:0}};
+ returnKick.specialists.home.coverage=1;returnKick.specialists.away.returner={speed:99,vision:99,agility:99};returnKick.specialists.away.returnBlocking=99;
+ let returnTd=null;for(let seed=1;seed<=256&&!returnTd;seed++){const attempt=G.kick(returnKick,'kickoff',seed);if(attempt.call.toLowerCase().includes('touchdown'))returnTd=attempt;}
+ assert.ok(returnTd,'boosted return unit should produce a kickoff touchdown in the deterministic seed range');
+ assert.equal(returnTd.state.phase,'try');
+});
 test('specialist ratings change field goal and return outcomes with same seed',()=>{
  const s=G.createGame();G.setSpot(s,'home',58);const low=C.clone(s),high=C.clone(s);low.specialists.home.kicker.accuracy=1;high.specialists.home.kicker.accuracy=99;
  let changed=false;for(let seed=1;seed<100;seed++){if(G.kick(low,'fieldGoal',seed).kick.made!==G.kick(high,'fieldGoal',seed).kick.made){changed=true;break;}}
