@@ -95,5 +95,6 @@ NFL rule checks: [2026 Official Playing Rules](https://media.nfl.com/content/dam
 6. **Behind-line pass contests — implemented in this update:** choose the nearest physical defender at the catch point and include all defenders in catch-pressure coverage, even behind the line of scrimmage.
 7. **QB outlet and dead-ball fallback — implemented in this update:** allow legal ordinary checkdowns behind the line and resolve an empty progression with a throwaway at the QB decision deadline. Preserve the watchdog diagnostic for explicitly configured holds beyond the simulation window.
 8. **Cover 2 / Tampa 2 deep safety help — implemented in this update:** FS and SS read vertical threats in their own deep half, rotate over the top, and report the matchup. A fixed 20-seed isolated vertical-route comparison records lower offensive yardage with the safety response; this is relative mechanic evidence, not NFL calibration.
+9. **Tampa 2 middle seam carry — implemented in this update:** the MLB carries an inside vertical through the seam, logs the receiver and coverage read, and follows a short-horizon route/area heuristic. A deterministic 20-seed isolated seam-pass comparison records lower offensive yardage than a spot-drop control; this is relative mechanic evidence, not NFL calibration.
 
-The repairs remain separate so each behavioral change has its own regression and reviewable result. Slices 1–8 are implemented.
+The repairs remain separate so each behavioral change has its own regression and reviewable result. Slices 1–9 are implemented.
