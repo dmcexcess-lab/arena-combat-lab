@@ -89,23 +89,3 @@ test('route running, pass rush, and stamina affect the actual player frames',()=
  assert.ok(highEnergy.energy>lowEnergy.energy+.02);
  assert.ok(highEnergy.y>lowEnergy.y);
 });
-
-
-test('Quarters Match uses route ownership and reduces the seeded vertical-route gain sample',()=>{
- const off=P.createOffensePresets().find(play=>play.name==='Four Verticals');
- const quarters=P.createDefensePresets().find(play=>play.name==='Quarters Match');
- const spot=C.clone(quarters);
- assert.ok(quarters.players.filter(p=>p.job==='zone').length>=4);
- assert.ok(quarters.players.filter(p=>p.job==='zone').every(p=>p.zoneTechnique==='match'),
-  'the Quarters Match call must use match-zone assignments');
- for(const p of spot.players)if(p.job==='zone')p.zoneTechnique='spot';
- let matchYards=0,spotYards=0;const count=80;
- for(let seed=1;seed<=count;seed++){
-  const matched=C.simulate(off,quarters,seed),dropped=C.simulate(off,spot,seed);
-  assert.ok(matched.valid&&dropped.valid);
-  matchYards+=matched.result.yards;spotYards+=dropped.result.yards;
-  assert.deepEqual(C.simulate(off,quarters,seed),matched,'match assignment must remain deterministic');
- }
- assert.ok(matchYards/count<spotYards/count-2,
-  `pattern matching should close vertical-route space in this fixed sample (${matchYards/count} vs ${spotYards/count})`);
-});

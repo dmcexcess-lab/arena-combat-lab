@@ -258,3 +258,6 @@ Operational checklist for humans + AIs. Keep compact; add only behaviors whose r
 ## Route Lab Quarters Match defense
 - The Quarters Match preset assigns match response to all its zone defenders.
 - Against Four Verticals, an 80-seed paired comparison produces lower average gains than the same defense in spot-drop mode; repeated seeds reproduce the same play results. This is a relative mechanics check, not NFL statistical calibration.
+
+## Route Lab incomplete-pass spotting
+- A seeded Pass broken up result with its flight endpoint beyond the line to gain remains at the previous spot, advances the down, and cannot trigger chain measurement or a first down.

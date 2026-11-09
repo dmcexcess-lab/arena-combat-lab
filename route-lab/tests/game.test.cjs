@@ -115,3 +115,19 @@ test('depth-chart dressing passes the exact to-gain into the QB decision context
 test('a kickoff is stopped when the selected kicker has no active replacement',()=>{
  const s=G.createExhibition(17);G.flipCoin(s,'heads','heads');const row=s.teams[s.kicking].depth.special.find(v=>v.slot==='K');row.players.forEach(p=>{p.outForGame=true;});const result=G.kick(s,'kickoff',3);assert.equal(result.accepted,false);assert.match(result.call,/No available kicker/);
 });
+
+
+test('a pass breakup near the line to gain keeps its previous spot and cannot award a first down',()=>{
+ const off=P.createOffensePresets()[0],def=P.createDefensePresets()[0];
+ const sim=C.simulate(off,def,24);
+ assert.equal(sim.result.verdict,'Pass broken up by CB');
+ assert.equal(sim.result.yards,0);
+ assert.ok(sim.result.deadBallY>10,'the simulated ball-flight endpoint is near/past the marker');
+ const state=G.createGame();G.setSpot(state,'home',50,3,10);
+ const ruling=G.finishScrimmage(state,sim,0,{offense:off,defense:def});
+ assert.equal(ruling.accepted,true);
+ assert.equal(ruling.state.ball,50,'an incomplete pass returns to the previous spot');
+ assert.equal(ruling.state.down,4,'the failed third down remains fourth down');
+ assert.equal(ruling.state.toGain,10);
+ assert.doesNotMatch(ruling.call,/first down|Chain crew/i);
+});

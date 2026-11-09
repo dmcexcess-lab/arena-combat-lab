@@ -1661,8 +1661,8 @@ function settleLoose(state,s,r,wasTry,expired,twoMinute){
 }
 function finishScrimmage(state,sim,huddle=25,plays=null,options={}){const s=copy(state);if(s.phase!=='scrimmage'&&s.phase!=='try')return {state:s,call:'No scrimmage snap available',accepted:false};const prep=preSnap(s,huddle);if(!prep.ok)return {state:s,call:prep.call,accepted:false};if(!sim?.valid)return {state:s,call:'Illegal formation — snap disallowed',accepted:false};const attempt=(s.preSnapAttempts||0)+1,attemptSeed=((Number(sim.result.seed)||1)^Math.imul(attempt,0x9e3779b9))>>>0,early=plays&&s.phase==='scrimmage'?(falseStart(plays.offense,plays.defense,attemptSeed)||snapOffside(plays.defense,attemptSeed)):null;if(early){early.attemptSeed=attemptSeed;const offense=!!early.label,ruled=flag(s,offense?'offense':'defense',offense?`False start — ${early.player} moves ${early.step} yd before the snap`:`Offside — ${early.player} anticipated the snap (${early.step} yd)`,5);ruled.state.preSnapAttempts=attempt;return {state:ruled.state,call:ruled.call,accepted:false,foul:early};}s.preSnapAttempts=0;if(plays&&!options.noFouls&&s.phase==='scrimmage'){
   const fouls=liveFouls(plays.offense,plays.defense,sim);
-  const raw=Number(sim.result.deadBallY),near=!sim.result.loose&&sim.result.possession!=='defense'&&Number.isFinite(raw)&&
-   !/Incomplete|Touchdown|Safety|Interception|Out of bounds|out of bounds/.test(sim.result.verdict||'')&&Math.abs(raw-state.toGain)<.8;
+  const raw=Number(sim.result.deadBallY),verdict=sim.result.verdict||'',near=!sim.result.loose&&sim.result.possession!=='defense'&&Number.isFinite(raw)&&
+   !/incomplete|throwaway|broken up|touchdown|safety|interception|out of bounds/i.test(verdict)&&Math.abs(raw-state.toGain)<.8;
   const calledSpot=near?Math.round(raw*2)/2:raw;
   const marked=near?{...sim,result:{...sim.result,yards:calledSpot,deadBallY:calledSpot}}:sim;
   let base=finishScrimmage(state,marked,huddle,plays,{noFouls:true});

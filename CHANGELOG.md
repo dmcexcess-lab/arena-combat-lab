@@ -1,3 +1,7 @@
+# 2026-11-09 — Route Lab review repair slice 1: incomplete pass spots
+- Passes ruled incomplete, broken up or thrown away are excluded from line-to-gain measurement; the ball's airborne endpoint can no longer award yards or a first down.
+- A fixed-seed Shotgun Mesh breakup near the marker now verifies the previous spot and down progression.
+
 # 2026-11-08 — Route Lab Quarters Match coverage
 - The Quarters Match defense now uses match-zone assignments, carrying routes through each quarter and handing them to overlapping defenders at zone boundaries instead of spot-dropping.
 - A fixed 80-seed Four Verticals sample checks the matchup effect and repeatability. It measures a relative mechanics change, not NFL-calibrated passing rates.
