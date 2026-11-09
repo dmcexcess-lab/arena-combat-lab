@@ -92,7 +92,7 @@ NFL rule checks: [2026 Official Playing Rules](https://media.nfl.com/content/dam
 3. **Overtime touchdown progression — implemented in this update:** stage tries when the score can still change the winner; end on a decisive touchdown when both initial opportunities are complete or the second team is already ahead. Defensive return touchdowns end immediately after both teams have possessed. Regression coverage includes both initial possessions, loose-ball scores, kickoff-return decision cases, ties, and sudden death.
 4. **Stable roster identity — implemented in this update:** carry the selected depth-chart slot and person index with each dressed player; use that stable identity when applying fatigue and medical availability, even if a role label changes or names collide.
 5. **Backward-pass advancement — implemented in this update:** limit fourth-down, two-minute, and try teammate-recovery restrictions to fumbles; allow backward-pass teammates to advance, including across the line to gain. Do not treat overtime as having a two-minute warning.
-6. **Behind-line pass contests:** include defenders at the actual catch point on screens and other legal passes, independent of their downfield coordinate.
+6. **Behind-line pass contests — implemented in this update:** choose the nearest physical defender at the catch point and include all defenders in catch-pressure coverage, even behind the line of scrimmage.
 7. **QB outlet and dead-ball fallback:** allow legal ordinary checkdowns behind the line and resolve the play with a QB run or throwaway if no target is eligible.
 
-The repairs remain separate so each behavioral change has its own regression and reviewable result. Slices 1–5 are implemented; slices 6–7 remain.
+The repairs remain separate so each behavioral change has its own regression and reviewable result. Slices 1–6 are implemented; slice 7 remains.
