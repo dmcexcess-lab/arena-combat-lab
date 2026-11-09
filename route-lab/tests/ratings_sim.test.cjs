@@ -89,3 +89,50 @@ test('route running, pass rush, and stamina affect the actual player frames',()=
  assert.ok(highEnergy.energy>lowEnergy.energy+.02);
  assert.ok(highEnergy.y>lowEnergy.y);
 });
+
+test('Cover 2 safeties rotate over their own vertical threats and reduce the matched deep-pass sample',()=>{
+ const off=C.clone(P.createOffensePresets().find(play=>play.name==='Four Verticals'));
+ off.training=true;off.trainingVirtualSnap=true;off.players=off.players.filter(p=>['oQB','oX','oZ'].includes(p.id));
+ off.qbDropTime=2.4;off.throwAt=3.3;off.players.find(p=>p.id==='oQB').y=-6;
+ const left=off.players.find(p=>p.id==='oX');left.x=-19;left.y=0;left.route=[{x:-19,y:9},{x:-19,y:25},{x:-19,y:32}];
+ const right=off.players.find(p=>p.id==='oZ');right.x=19;right.y=-2;right.route=[{x:19,y:7},{x:19,y:23},{x:19,y:30}];
+ const shell=C.clone(P.createDefensePresets().find(play=>play.name==='4–3 Cover 2'));
+ shell.players=shell.players.filter(p=>['dFS','dSS'].includes(p.id));
+ const spotDrop=C.clone(shell);spotDrop.name='Cover 2 spot-drop comparison';delete spotDrop.coverageScheme;
+ const sample=C.simulate(off,shell,71),comparison=C.simulate(off,spotDrop,71);
+ assert.ok(sample.valid&&comparison.valid);
+ assert.deepEqual(sample.coverageReads.map(r=>[r.defender,r.receiver,r.decision]),[
+  ['FS','X','rotates to cap vertical'],['SS','Z','rotates to cap vertical']]);
+ assert.ok(sample.events.some(e=>e.text.includes('FS rotates to cap X'))&&sample.events.some(e=>e.text.includes('SS rotates to cap Z')));
+ assert.deepEqual(C.simulate(off,shell,71),sample,'safety rotations remain deterministic');
+ let helped=0,baseline=0;const count=20;
+ for(let seed=1;seed<=count;seed++){
+  helped+=C.simulate(off,shell,seed).result.yards;
+  baseline+=C.simulate(off,spotDrop,seed).result.yards;
+ }
+ assert.ok(helped/count<baseline/count-5,`safety help should reduce this fixed deep-vertical sample (${helped/count} vs ${baseline/count})`);
+ const tampa=P.createDefensePresets().find(play=>play.name==='Tampa 2');
+ tampa.players=tampa.players.filter(p=>['dFS','dSS'].includes(p.id));
+ const tampaReads=C.simulate(off,tampa,71).coverageReads;
+ assert.ok(tampaReads.some(r=>r.defender==='FS')&&tampaReads.some(r=>r.defender==='SS'),'Tampa 2 safeties should make the same deep-half reads');
+});
+
+
+test('Quarters Match uses route ownership and reduces the seeded vertical-route gain sample',()=>{
+ const off=P.createOffensePresets().find(play=>play.name==='Four Verticals');
+ const quarters=P.createDefensePresets().find(play=>play.name==='Quarters Match');
+ const spot=C.clone(quarters);
+ assert.ok(quarters.players.filter(p=>p.job==='zone').length>=4);
+ assert.ok(quarters.players.filter(p=>p.job==='zone').every(p=>p.zoneTechnique==='match'),
+  'the Quarters Match call must use match-zone assignments');
+ for(const p of spot.players)if(p.job==='zone')p.zoneTechnique='spot';
+ let matchYards=0,spotYards=0;const count=80;
+ for(let seed=1;seed<=count;seed++){
+  const matched=C.simulate(off,quarters,seed),dropped=C.simulate(off,spot,seed);
+  assert.ok(matched.valid&&dropped.valid);
+  matchYards+=matched.result.yards;spotYards+=dropped.result.yards;
+  assert.deepEqual(C.simulate(off,quarters,seed),matched,'match assignment must remain deterministic');
+ }
+ assert.ok(matchYards/count<spotYards/count-2,
+  `pattern matching should close vertical-route space in this fixed sample (${matchYards/count} vs ${spotYards/count})`);
+});

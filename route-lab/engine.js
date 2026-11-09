@@ -188,7 +188,7 @@ function simulate(off,def,seed=71){
  let carrier=qb, state=usesSnap?'snap':'live', ball=usesSnap?{...snapFrom,kind:'snap'}:{x:qb.x,y:qb.y,kind:'held'}, targetPass=null,flight=null, thrown=false, handoff=false, playOver=false, verdict='', yards=0, time=0, sack=false,returnStartY=null,catchTime=-1;
  let snapProgress=0,handoffMissed=false,watchdog=null;
  let loose=null,looseResult=null,looseCount=0,lateralUsed=false,possessionChanged=false,interceptionY=null;
- const frames=[],events=[],decisions=[],qbReads=[],playActionReads=[],specialMoves=[],rushMoves=[],stuntActions=[],catchContests=[],blockingActions=[],contacts=[],blockContacts=new Set(),blockDuels=new Map(),comboPairs=new Set(); const log=(t,text)=>events.push({t:+t.toFixed(2),text});
+ const frames=[],events=[],decisions=[],qbReads=[],playActionReads=[],coverageReads=[],specialMoves=[],rushMoves=[],stuntActions=[],catchContests=[],blockingActions=[],contacts=[],blockContacts=new Set(),blockDuels=new Map(),comboPairs=new Set(); const log=(t,text)=>events.push({t:+t.toFixed(2),text});
  const isRun=['run','option'].includes(off.type),directRun=isRun&&runner===qb,allowLoose=off.enableLooseBall===true&&!off.training&&!off.trainingVirtualSnap;
  let optionPass=false,optionResolved=false;
  const isPass=()=>!isRun||optionPass;
@@ -551,6 +551,25 @@ function simulate(off,def,seed=71){
       }
     }else if(p.job==='zone'){
       const z=p.zone||{x:p.x,y:p.y,r:5};
+      const safety=['FS','SS','S'].includes(p.label)||(p.homeY??0)>14;
+      const splitSafetyCall=['cover2','tampa2'].includes(def.coverageScheme)&&safety&&z.y>=16;
+      if(splitSafetyCall&&state==='live'&&!handoff){
+        const half=(p.homeX??p.x)<0?-1:1;
+        const vertical=receivers.filter(r=>r.y>4&&r.vy>.35&&Math.max(r.y,...(r.route||[]).map(pt=>pt.y))>=18&&((r.homeX??r.x)*half>1.5))
+          .sort((a,b)=>dist(a,z)-dist(b,z)||b.y-a.y);
+        const threat=vertical[0];
+        if(threat){
+          if(p.safetyHelpReceiverId!==threat.id){
+            p.safetyHelpReceiverId=threat.id;
+            const read={t:+t.toFixed(2),defenderId:p.id,defender:p.label,receiverId:threat.id,receiver:threat.label,role:'deep-half safety rotation',decision:'rotates to cap vertical',depth:+threat.y.toFixed(1)};
+            coverageReads.push(read);log(t,p.label+' rotates to cap '+threat.label+' on the vertical route');
+          }
+          const target={x:clamp(threat.x+threat.vx*.35,z.x-(z.r||7),z.x+(z.r||7)),
+            y:clamp(Math.max(z.y-2,threat.y+2.5),z.y-3,z.y+8)};
+          move(p,target,dt,speedOf(p)*clamp(.88+statsOf(p).awareness/520+statsOf(p).coverage/500,.96,1.2));continue;
+        }
+        p.safetyHelpReceiverId=null;
+      }
       const threats=receivers.filter(r=>dist(r,z)<(z.r||7)*1.6);
       const nearestThreat=nearest(z,threats);
       let lead=p.zoneTechnique==='match'?zoneMatchLeads.get(p.id)||null:
@@ -931,7 +950,7 @@ function simulate(off,def,seed=71){
   return {id:p.id,label:p.label,side:p.side,assignment:p.job,
    yardsMoved:+travelled.toFixed(1),contactSeconds:+engaged.toFixed(2),fatigue:+p.fatigue.toFixed(4)};
  });
- return {valid:!watchdog,validation:v,diagnostic:watchdog,frames,events,decisions,qbReads,playActionReads,specialMoves,rushMoves,stuntActions,catchContests,blockingActions,contacts,participation,result:{verdict,yards,seconds:+time.toFixed(2),seed,offense:off.name,defense:def.name,sack,completed:!watchdog,
+ return {valid:!watchdog,validation:v,diagnostic:watchdog,frames,events,decisions,qbReads,playActionReads,coverageReads,specialMoves,rushMoves,stuntActions,catchContests,blockingActions,contacts,participation,result:{verdict,yards,seconds:+time.toFixed(2),seed,offense:off.name,defense:def.name,sack,completed:!watchdog,
   possession:carrier?.side==='d'||!carrier&&looseResult?.sourceSide==='d'?'defense':'offense',
   possessionChanged,interceptionY,deadBallY:+(ball?.y??carrier?.y??0).toFixed(2),loose:looseResult,
   returnYards:returnStartY===null?0:+(returnStartY-(carrier?.y??returnStartY)).toFixed(1)}};

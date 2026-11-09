@@ -115,7 +115,7 @@ function createDefensePresets(){
  let a=[],d=defense('4–3 Cover 2');
  zone(d.players[4],-9,8,7,7);zone(d.players[5],0,11,9,9);zone(d.players[6],9,8,7,7);
  zone(d.players[7],-19,5,8,6);zone(d.players[8],19,5,8,6);
- zone(d.players[9],-13,19,13,12);zone(d.players[10],13,19,13,12);a.push(d);
+ zone(d.players[9],-13,19,13,12);zone(d.players[10],13,19,13,12);d.coverageScheme='cover2';a.push(d);
  d=defense('Nickel Cover 3');
  d.players[6].label='NB';d.players[6].x=14;d.players[6].y=9;
  zone(d.players[4],-7,9,8,7);zone(d.players[5],1,10,8,8);zone(d.players[6],16,7,9,7);
@@ -132,7 +132,7 @@ function createDefensePresets(){
  d=defense('Tampa 2');
  zone(d.players[4],-9,9,8,8);zone(d.players[5],0,17,8,12);zone(d.players[6],9,9,8,8);
  zone(d.players[7],-19,6,8,7);zone(d.players[8],19,6,8,7);
- zone(d.players[9],-13,23,12,13);zone(d.players[10],13,23,12,13);a.push(d);
+ zone(d.players[9],-13,23,12,13);zone(d.players[10],13,23,12,13);d.coverageScheme='tampa2';a.push(d);
  d=defense('Quarters Match');
  zone(d.players[4],-10,8,8);zone(d.players[5],0,10,9);zone(d.players[6],10,8,8);
  zone(d.players[7],-19,19,8,13);zone(d.players[8],19,19,8,13);

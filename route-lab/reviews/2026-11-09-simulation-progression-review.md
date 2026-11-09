@@ -94,5 +94,6 @@ NFL rule checks: [2026 Official Playing Rules](https://media.nfl.com/content/dam
 5. **Backward-pass advancement — implemented in this update:** limit fourth-down, two-minute, and try teammate-recovery restrictions to fumbles; allow backward-pass teammates to advance, including across the line to gain. Do not treat overtime as having a two-minute warning.
 6. **Behind-line pass contests — implemented in this update:** choose the nearest physical defender at the catch point and include all defenders in catch-pressure coverage, even behind the line of scrimmage.
 7. **QB outlet and dead-ball fallback — implemented in this update:** allow legal ordinary checkdowns behind the line and resolve an empty progression with a throwaway at the QB decision deadline. Preserve the watchdog diagnostic for explicitly configured holds beyond the simulation window.
+8. **Cover 2 / Tampa 2 deep safety help — implemented in this update:** FS and SS read vertical threats in their own deep half, rotate over the top, and report the matchup. A fixed 20-seed isolated vertical-route comparison records lower offensive yardage with the safety response; this is relative mechanic evidence, not NFL calibration.
 
-The repairs remain separate so each behavioral change has its own regression and reviewable result. Slices 1–7 are implemented.
+The repairs remain separate so each behavioral change has its own regression and reviewable result. Slices 1–8 are implemented.
