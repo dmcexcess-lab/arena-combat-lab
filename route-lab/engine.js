@@ -61,6 +61,12 @@ function validate(off,def){
     const mesh=off.handoffPoint||back?.route?.[0]||back;
     if(back&&mesh&&(dist(qb,mesh)>12||dist(back,mesh)>12))
       err('QB and runner cannot reach the designed handoff mesh.');
+    if(off.type==='option'){
+      const readId=off.rpoReadId||'dW',targetId=off.rpoReceiverId||'oX';
+      if(!def.players.some(p=>p.id===readId))err('RPO needs its designated read defender ('+readId+').');
+      const target=off.players.find(p=>p.id===targetId);
+      if(!target||target.job!=='route'||!target.route?.length)err('RPO needs a routed glance receiver ('+targetId+').');
+    }
   }
   const legalTargets=new Set(def.players.map(p=>p.id)), oTargets=new Set(off.players.map(p=>p.id));
   for(const p of off.players){
@@ -184,6 +190,8 @@ function simulate(off,def,seed=71){
  let loose=null,looseResult=null,looseCount=0,lateralUsed=false,possessionChanged=false,interceptionY=null;
  const frames=[],events=[],decisions=[],qbReads=[],specialMoves=[],rushMoves=[],stuntActions=[],catchContests=[],blockingActions=[],contacts=[],blockContacts=new Set(),blockDuels=new Map(),comboPairs=new Set(); const log=(t,text)=>events.push({t:+t.toFixed(2),text});
  const isRun=['run','option'].includes(off.type),directRun=isRun&&runner===qb,allowLoose=off.enableLooseBall===true&&!off.training&&!off.trainingVirtualSnap;
+ let optionPass=false,optionResolved=false;
+ const isPass=()=>!isRun||optionPass;
  const eligible=new Set(off.training?o.filter(p=>p.job==='route'||p.chipRelease).map(p=>p.id):v.eligible);
  const receivers=o.filter(p=>(p.job==='route'||p.job==='chiprelease')&&eligible.has(p.id));
  let playDir=off.runGapX??2;
@@ -316,6 +324,7 @@ function simulate(off,def,seed=71){
       move(p,loc,dt,5.1);
     }else if(p.job==='carry'){
       if(p!==runner){move(p,p.route?.[0]||{x:p.x,y:p.y+2},dt,speedOf(p)*.5,12);continue;}
+      if(isRun&&optionPass){const path=p.route||[],fake=path[Math.min(1,path.length-1)]||handoffPoint;move(p,fake,dt,speedOf(p)*.78,18);continue;}
       if(isRun && !handoff){move(p,handoffPoint,dt,speedOf(p)*.78,18);}
       if(isRun && handoff&&carrier===p){let goal= p.route?.[Math.min(p.routeIndex,p.route.length-1)]||{x:playDir,y:35};
         if((dist(p,goal)<.8||p.y>=goal.y-.4)&&p.routeIndex<(p.route?.length||1)-1){
@@ -372,7 +381,7 @@ function simulate(off,def,seed=71){
     }
   }
   // QB drops, holds, or scrambles once pressure arrives.
-  if(!isRun&&state==='live'&&carrier===qb){
+  if(isPass()&&state==='live'&&carrier===qb){
     const rush=nearest(qb,d,a=>['rush','blitz','contain'].includes(a.job));
     let pressure=rush.d<2.65+statsOf(qb).awareness/55;
     const reactAt=.85+clamp((95-statsOf(qb).awareness)/120,0,.7);
@@ -394,7 +403,7 @@ function simulate(off,def,seed=71){
     if(qb.routeIndex===path.length-1&&qb.y>=target.y-.7)target={x:target.x,y:qb.y+12};
     if(qb.y>-2)target={x:openFieldTarget(qb,d,t,1,o,target.x).x*.45+target.x*.55,y:target.y};
     move(qb,target,dt,speedOf(qb),18);
-  }else if(isRun&&!handoff&&state==='live'&&carrier===qb){move(qb,handoffPoint,dt,speedOf(qb)*.82,16);}
+  }else if(isRun&&!optionPass&&!handoff&&state==='live'&&carrier===qb){move(qb,handoffPoint,dt,speedOf(qb)*.82,16);}
   else if(isRun&&handoffMissed&&carrier===qb){const lane=openFieldTarget(qb,d,t,1,o,handoffPoint.x);move(qb,lane,dt,speedOf(qb),18);}
   // Match-zone defenders share route ownership: one defender carries each
   // receiver in overlapping zones, selected by proximity and rated awareness.
@@ -459,9 +468,9 @@ function simulate(off,def,seed=71){
       continue;
     }
     if(p.job==='rush'||p.job==='blitz'){
-      const engageRun=isRun&&t>.22;const attack=engageRun?(handoff?carrier:{x:playDir,y:-.7}):qb;
+      const engageRun=isRun&&!optionPass&&t>.22;const attack=engageRun?(handoff?carrier:{x:playDir,y:-.7}):qb;
       let target=attack,pace=p.job==='blitz'?1.03:.85;
-      if(!isRun&&p.stunt&&t>=p.stunt.delay){
+      if(isPass()&&p.stunt&&t>=p.stunt.delay){
         const partner=defenders(p.stunt.partnerId);
         if(p.stunt.role==='penetrate'&&Math.abs(p.x-p.stunt.aimX)>.7){target={x:p.stunt.aimX,y:qb.y+.4};pace*=.96;}
         else if(p.stunt.role==='loop'&&partner){
@@ -559,7 +568,7 @@ function simulate(off,def,seed=71){
       const comboHelp=blocker.comboTargetId===enemy.id&&blocker.comboWithId?1.12:1;
       const power=(blocker.power??.72)*(.55+block.blocking/155)*(.7+block.strength/300)*(1-blocker.fatigue*.24)*(isRun?leverage:1)*comboHelp;
       const defense=(enemy.power??.66)*(.48+rush.strength/260+rush.passRush/310)*(1-enemy.fatigue*.22);
-      if(!isRun&&['rush','blitz'].includes(enemy.job)&&duel.time>=.2&&!duel.passMoveResolved){
+      if(isPass()&&['rush','blitz'].includes(enemy.job)&&duel.time>=.2&&!duel.passMoveResolved){
         duel.passMoveResolved=true;
         const moveName=rush.strength>rush.passRush+12?'bull rush':rush.agility>rush.strength+8?'swim':'rip';
         const technique=moveName==='bull rush'?rush.strength:moveName==='swim'?rush.passRush*.65+rush.agility*.35:rush.passRush*.58+rush.strength*.42;
@@ -581,24 +590,39 @@ function simulate(off,def,seed=71){
       enemy.y+=dt*advantage*(isRun?4.8:3.0);
       enemy.vx*=1-advantage*.30;enemy.vy*=1-advantage*.52;
       blocker.vy-=dt*(1-advantage)*rush.passRush/65;
-      if(!isRun && enemy.y<-.25)enemy.y=-.25;
+      if(isPass() && enemy.y<-.25)enemy.y=-.25;
     }
   }
-  // Handoff after QB meets RB; option currently uses preselected runner (not adaptive read).
+  // Resolve the option at the QB/RB mesh by reading the designated conflict defender.
   if(isRun && !handoff && state==='live'&&carrier===qb&&dist(qb,runner)<=1.25){
-   handoff=true;
-   const exchangePoint={x:(qb.x+runner.x)/2,y:(qb.y+runner.y)/2};
-   const muff=clamp(.003+(82-statsOf(qb).hands)*.00025+(82-statsOf(runner).hands)*.0003,.002,.035);
-   decisions.push({t:+t.toFixed(2),action:'handoff',fromId:qb.id,toId:runner.id,runner:runner.label,exchangeDistance:+dist(qb,runner).toFixed(2)});
-   if(allowLoose&&looseRand()<muff)releaseLoose('fumble',t,exchangePoint,runner,runner);
-   else{carrier=runner;ball={x:runner.x,y:runner.y,kind:'held'};catchTime=t;log(t,'Handoff exchange secured — '+runner.label+' controls the ball');}
+   let give=!optionPass;
+   if(off.type==='option'&&!optionResolved){
+    optionResolved=true;
+    const key=defenders(off.rpoReadId||'dW'),target=byId(off.rpoReceiverId||'oX');
+    const runPoint={x:off.runGapX??runner.route?.[1]?.x??runner.x,y:Math.max(3,runner.route?.[1]?.y??4)};
+    const start=key?{x:key.homeX??key.x,y:key.homeY??key.y}:runPoint;
+    const initialGap=dist(start,runPoint),liveGap=key?dist(key,runPoint):Infinity;
+    const runCommit=key&&liveGap<5.8&&(['runfit','blitz','rush'].includes(key.job)||initialGap-liveGap>1.2);
+    give=!runCommit;
+    decisions.push({t:+t.toFixed(2),action:'rpo-read',readDefender:key?.label||'missing',receiver:target?.label||'glance',choice:give?'give':'pull-pass',runGap:+liveGap.toFixed(1),initialGap:+initialGap.toFixed(1),reason:give?'read defender stays outside the run fit':'read defender commits to the run fit'});
+    log(t,(key?.label||'Read defender')+(give?' stays outside; QB gives to '+runner.label:' attacks the run; QB pulls for '+(target?.label||'the glance route')));
+    if(!give)optionPass=true;
+   }
+   if(give){
+    handoff=true;
+    const exchangePoint={x:(qb.x+runner.x)/2,y:(qb.y+runner.y)/2};
+    const muff=clamp(.003+(82-statsOf(qb).hands)*.00025+(82-statsOf(runner).hands)*.0003,.002,.035);
+    decisions.push({t:+t.toFixed(2),action:'handoff',fromId:qb.id,toId:runner.id,runner:runner.label,exchangeDistance:+dist(qb,runner).toFixed(2)});
+    if(allowLoose&&looseRand()<muff)releaseLoose('fumble',t,exchangePoint,runner,runner);
+    else{carrier=runner;ball={x:runner.x,y:runner.y,kind:'held'};catchTime=t;log(t,'Handoff exchange secured — '+runner.label+' controls the ball');}
+   }
   }
-  if(isRun&&!handoff&&!handoffMissed&&state==='live'&&carrier===qb&&t>=1.8){
+  if(isRun&&!optionPass&&!handoff&&!handoffMissed&&state==='live'&&carrier===qb&&t>=1.8){
    handoffMissed=true;handoff=true;state='runafter';catchTime=t;
    decisions.push({t:+t.toFixed(2),action:'handoff-missed',carrierId:qb.id,reason:'QB and runner did not reach the mesh'});
    log(t,'Handoff mesh missed — QB keeps the ball and scrambles');
   }
-  if(!isRun&&!thrown&&state==='live'&&carrier===qb){
+  if(isPass()&&!thrown&&state==='live'&&carrier===qb){
     // A defensive rusher close to QB before release gets a sack.
     const rush=nearest(qb,d,a=>['rush','blitz','contain','spy'].includes(a.job));
     if(t>.35 && rush.d<.94 && !(rush.agent?.engaged&&rand()<.78)){
@@ -617,7 +641,8 @@ function simulate(off,def,seed=71){
       const maxWait=off.throwAt??3.2;
       const clockPressure=clamp((t-maxWait+.6)/.8,0,1);
       const firstDown=Number.isFinite(off.toGain)?off.toGain:10;
-      const graded=receivers.map(r=>{
+      const passTargets=optionPass?receivers.filter(r=>r.id===(off.rpoReceiverId||'oX')):receivers;
+      const graded=passTargets.map(r=>{
         const ballSpeed=20+statsOf(qb).throwPower*.1;
         let travel=Math.max(.25,dist(qb,r)/ballSpeed);
         let predict={x:r.x,y:r.y};

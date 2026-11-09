@@ -223,6 +223,21 @@ test('a live snap travels from the center to the quarterback before possession',
  assert.ok(Math.hypot(received.ball.x-receiver.x,received.ball.y-receiver.y)<.01);
 });
 
+test('RPO reads the conflict defender and selects the run give or glance pull',()=>{
+ const off=P.createOffensePresets()[10],base=P.createDefensePresets()[0],crash=C.clone(base);
+ const key=crash.players.find(p=>p.id==='dW');key.job='runfit';key.x=3;key.y=2;key.fitX=3;delete key.zone;
+ const give=C.simulate(off,base,87),pull=C.simulate(off,crash,87);
+ assert.ok(give.valid&&pull.valid);
+ assert.equal(give.decisions.find(d=>d.action==='rpo-read')?.choice,'give');
+ assert.ok(give.decisions.some(d=>d.action==='handoff'));
+ assert.equal(pull.decisions.find(d=>d.action==='rpo-read')?.choice,'pull-pass');
+ assert.ok(pull.decisions.some(d=>d.action==='pass'&&d.target==='X'),'pull must use the designed glance receiver');
+ assert.ok(pull.events.some(e=>e.text.includes('pulls for X')));
+ assert.deepEqual(C.simulate(off,crash,87),pull,'RPO read and throw remain deterministic');
+ const invalid=C.clone(off);invalid.rpoReceiverId='oRB';
+ assert.ok(C.validate(invalid,base).errors.some(e=>e.includes('routed glance receiver')));
+});
+
 test('the QB and runner exchange only when they meet at the designed mesh',()=>{
  const {off,def}=isolatedRun(),sim=C.simulate(off,def,803);
  const mesh=sim.decisions.find(d=>d.action==='handoff');

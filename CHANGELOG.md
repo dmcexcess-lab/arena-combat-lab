@@ -485,3 +485,8 @@ Current truth: `PROJECT_CONTEXT.md` · Future: `ROADMAP.md`
 - Pre-snap flags stage fresh CPU O/X calls at the penalty spot after the reset, without running a live play. Invalid editor alignment now leaves the game spot and clock untouched.
 - The play selector identifies backed-up, open-field, red-zone, goal-to-go and goal-line situations. CPU calls now include a dedicated Goal Line Power run and goal-line defense as the offense closes on the end zone.
 
+## 2026-11-08 — Route Lab RPO conflict read slice
+- RPO Glance now resolves a post-snap give/pull read at the QB/RB mesh from the called conflict defender's run-fit assignment and live position.
+- A defender who commits to the run fit triggers the QB pull and the designed X glance throw; a defender who stays outside the fit produces the handoff. The decision report exposes the key, answer and fit spacing.
+- Added deterministic counterfactual coverage for give versus pull and documented the bounded one-defender read in the position and rules audits.
+

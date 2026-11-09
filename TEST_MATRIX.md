@@ -238,3 +238,9 @@ Operational checklist for humans + AIs. Keep compact; add only behaviors whose r
 - Higher defensive awareness breaks toward the same projected pass earlier; same seed reproduces the same flight, defender paths, and result.
 - With the same close-pass contest, changing only defender hands from poor to strong can turn a breakup into a seeded interception; the interception is live and returned through existing rules.
 - Inspector and encyclopedia explain awareness, coverage, and hands roles; standalone HTML embeds the maintained modules exactly.
+
+## Route Lab RPO conflict read
+- The RPO Glance QB resolves the give/pull decision at the reachable mesh, based on the designated conflict defender's run-fit assignment and actual position change toward the called fit.
+- A defender holding outside the run fit produces a handoff; a defender committed into the fit produces a QB pull and a pass only to the designed glance receiver.
+- RPO read choice, report fields, player movement, and throw remain deterministic for a repeated seed; invalid key/route assignments are rejected.
+- The hosted play report describes the read and chosen answer, and `index.html` embeds the maintained simulator modules exactly.
