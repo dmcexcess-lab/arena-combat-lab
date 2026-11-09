@@ -182,7 +182,7 @@ function simulate(off,def,seed=71){
  let carrier=qb, state=usesSnap?'snap':'live', ball=usesSnap?{...snapFrom,kind:'snap'}:{x:qb.x,y:qb.y,kind:'held'}, targetPass=null,flight=null, thrown=false, handoff=false, playOver=false, verdict='', yards=0, time=0, sack=false,returnStartY=null,catchTime=-1;
  let snapProgress=0,handoffMissed=false,watchdog=null;
  let loose=null,looseResult=null,looseCount=0,lateralUsed=false,possessionChanged=false,interceptionY=null;
- const frames=[],events=[],decisions=[],specialMoves=[],rushMoves=[],stuntActions=[],catchContests=[],blockingActions=[],contacts=[],blockContacts=new Set(),blockDuels=new Map(),comboPairs=new Set(); const log=(t,text)=>events.push({t:+t.toFixed(2),text});
+ const frames=[],events=[],decisions=[],qbReads=[],specialMoves=[],rushMoves=[],stuntActions=[],catchContests=[],blockingActions=[],contacts=[],blockContacts=new Set(),blockDuels=new Map(),comboPairs=new Set(); const log=(t,text)=>events.push({t:+t.toFixed(2),text});
  const isRun=['run','option'].includes(off.type),directRun=isRun&&runner===qb,allowLoose=off.enableLooseBall===true&&!off.training&&!off.trainingVirtualSnap;
  const eligible=new Set(off.training?o.filter(p=>p.job==='route'||p.chipRelease).map(p=>p.id):v.eligible);
  const receivers=o.filter(p=>(p.job==='route'||p.job==='chiprelease')&&eligible.has(p.id));
@@ -663,23 +663,31 @@ function simulate(off,def,seed=71){
       if(qb.progressionSlot!==slot){
         if(Number.isInteger(qb.progressionSlot)&&!qb.progressionOpened){
           const prior=progression[Math.min(qb.progressionSlot,progression.length-1)];
-          if(prior){decisions.push({t:+t.toFixed(2),action:'qb-read',status:'covered',read:qb.progressionSlot+1,target:prior.r.label});log(t,'QB moves on from covered read '+(qb.progressionSlot+1)+' ('+prior.r.label+')');}
+          if(prior){qbReads.push({t:+t.toFixed(2),status:qb.progressionOpened?'passed':'covered',read:qb.progressionSlot+1,target:prior.r.label});log(t,'QB moves on from '+(qb.progressionOpened?'available':'covered')+' read '+(qb.progressionSlot+1)+' ('+prior.r.label+')');}
         }
         qb.progressionSlot=slot;qb.progressionOpened=false;
-        if(scheduled){decisions.push({t:+t.toFixed(2),action:'qb-read',status:'check',read:slot+1,target:scheduled.r.label});log(t,'QB checks read '+(slot+1)+': '+scheduled.r.label);}
+        if(scheduled){qbReads.push({t:+t.toFixed(2),status:'check',read:slot+1,target:scheduled.r.label});log(t,'QB checks read '+(slot+1)+': '+scheduled.r.label);}
       }
       const immediateHot=desperate?progression.filter(a=>a.r.hot&&a.risk<.82).sort((a,b)=>b.score-a.score)[0]:null;
       const pressureAnswer=desperate?graded.filter(a=>a.risk<.82).sort((a,b)=>b.score-a.score)[0]:null;
-      const currentOpen=scheduled&&scheduled.separation>.33&&scheduled.risk<.82;
-      if(currentOpen&&!qb.progressionOpened){qb.progressionOpened=true;decisions.push({t:+t.toFixed(2),action:'qb-read',status:'open',read:slot+1,target:scheduled.r.label});}
-      // Work the called progression one read at a time; only a hot answer can
-      // bypass it when pressure is already immediate. Late fallback uses the
-      // best remaining safe window rather than holding the ball forever.
-      let best=immediateHot|| (desperate?pressureAnswer:(currentOpen?scheduled:null));
+      const currentOpen=scheduled&&scheduled.separation>.24&&scheduled.risk<.88;
+      if(currentOpen&&!qb.progressionOpened){qb.progressionOpened=true;qbReads.push({t:+t.toFixed(2),status:'open',read:slot+1,target:scheduled.r.label});}
+      // The active read is favored, the next read is anticipated, and reads
+      // already passed lose priority. Seeded matchup scoring still decides
+      // close windows, so the QB does not force a covered route by ordinal.
+      const indexed=progression.map((a,i)=>({...a,progressionIndex:i,score:a.score+(i===slot ? .42 : i===slot+1 ? .05 : i<slot ? -.92 : -1.45)}));
+      const viable=indexed.filter(a=>a.score>=Math.max(...indexed.map(x=>x.score)) -1.45&&a.risk<.82);
+      const weights=viable.map(a=>Math.exp((a.score-Math.max(...indexed.map(x=>x.score)))*1.15));
+      let roll=rand()*weights.reduce((a,b)=>a+b,0),best=viable[0]||indexed[0];
+      for(let j=0;j<viable.length;j++){roll-=weights[j];if(roll<=0){best=viable[j];break;}}
+      if(best)best=progression[best.progressionIndex];
+      // Immediate pressure can jump to a safe hot route. Late fallback uses
+      // the safest remaining window rather than holding the ball indefinitely.
+      best=immediateHot|| (desperate?pressureAnswer:(currentOpen?best:null));
       if(!best&&t>=maxWait){best=graded.filter(a=>a.risk<.82).sort((a,b)=>b.score-a.score)[0]||graded[0];}
       const pressureChoice=best&&best!==scheduled&&desperate&&!immediateHot;
       const isLateFallback=best&&best!==scheduled&&!immediateHot&&!pressureChoice;
-      if(best&&(best.separation>.33||desperate||t>=maxWait)){
+      if(best&&(best.separation>.24&&best.risk<.88||desperate||t>=maxWait)){
         // A high-risk throw is sometimes worse than throwing away or scrambling.
         const unsafe=best.risk>.72;
         if(unsafe && (desperate||t>=maxWait) && rand()<.44){
@@ -687,7 +695,7 @@ function simulate(off,def,seed=71){
             log(t,'QB rejects covered reads and extends the play');
           }else{
             thrown=true;carrier=null;state='dead';
-          decisions.push({t:+t.toFixed(2),action:'throwaway',reason:'No acceptable window; pressure and interception risk',candidates:progression.map(a=>({target:a.r.label,score:+a.score.toFixed(2),separation:+a.separation.toFixed(2),risk:+a.risk.toFixed(2)}))});
+          decisions.push({t:+t.toFixed(2),action:'throwaway',reason:'No acceptable window; pressure and interception risk',candidates:graded.map(a=>({target:a.r.label,score:+a.score.toFixed(2),separation:+a.separation.toFixed(2),risk:+a.risk.toFixed(2)}))});
             finish('Throwaway — incomplete pass',t,point(0,0));
           }
         }else{
@@ -699,7 +707,7 @@ function simulate(off,def,seed=71){
           targetPass=r;flight={from:{x:qb.x,y:qb.y},to:aim,t0:t,duration};
           thrown=true;carrier=null;state='air';
           const why=desperate?'pressure/hot answer':pick.separation>.65?'separation':'timing/window';
-          decisions.push({t:+t.toFixed(2),action:'pass',targetId:r.id,target:r.label,reason:immediateHot?'immediate-pressure hot answer':pressureChoice?'best safe answer under immediate pressure':isLateFallback?'late progression fallback':why,pressure:+rushDistance.toFixed(1),candidates:progression.map(a=>({target:a.r.label,score:+a.score.toFixed(2),separation:+a.separation.toFixed(2),risk:+a.risk.toFixed(2),depth:+a.depth.toFixed(1)}))});
+          decisions.push({t:+t.toFixed(2),action:'pass',targetId:r.id,target:r.label,reason:immediateHot?'immediate-pressure hot answer':pressureChoice?'best safe answer under immediate pressure':isLateFallback?'late progression fallback':why,pressure:+rushDistance.toFixed(1),candidates:graded.map(a=>({target:a.r.label,score:+a.score.toFixed(2),separation:+a.separation.toFixed(2),risk:+a.risk.toFixed(2),depth:+a.depth.toFixed(1)}))});
           log(t,'QB progression: '+progression.map((a,i)=>(i+1)+'. '+a.r.label).join(' → '));
           log(t,'Pass aimed at '+r.label+' — '+why+(r.hot?' (hot)':''));
         }
@@ -847,7 +855,7 @@ function simulate(off,def,seed=71){
   return {id:p.id,label:p.label,side:p.side,assignment:p.job,
    yardsMoved:+travelled.toFixed(1),contactSeconds:+engaged.toFixed(2),fatigue:+p.fatigue.toFixed(4)};
  });
- return {valid:!watchdog,validation:v,diagnostic:watchdog,frames,events,decisions,specialMoves,rushMoves,stuntActions,catchContests,blockingActions,contacts,participation,result:{verdict,yards,seconds:+time.toFixed(2),seed,offense:off.name,defense:def.name,sack,completed:!watchdog,
+ return {valid:!watchdog,validation:v,diagnostic:watchdog,frames,events,decisions,qbReads,specialMoves,rushMoves,stuntActions,catchContests,blockingActions,contacts,participation,result:{verdict,yards,seconds:+time.toFixed(2),seed,offense:off.name,defense:def.name,sack,completed:!watchdog,
   possession:carrier?.side==='d'||!carrier&&looseResult?.sourceSide==='d'?'defense':'offense',
   possessionChanged,interceptionY,deadBallY:+(ball?.y??carrier?.y??0).toFixed(2),loose:looseResult,
   returnYards:returnStartY===null?0:+(returnStartY-(carrier?.y??returnStartY)).toFixed(1)}};

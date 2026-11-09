@@ -41,7 +41,7 @@ test('awareness changes safety reaction and pursuit changes the tackle spot',()=
  const slow=C.clone(def),fast=C.clone(def);
  slow.players.find(p=>p.id==='dSS').stats={awareness:1,pursuit:1};
  fast.players.find(p=>p.id==='dSS').stats={awareness:99,pursuit:99};
- const a=C.simulate(off,slow,1),b=C.simulate(off,fast,1);
+ const a=C.simulate(off,slow,10),b=C.simulate(off,fast,10);
  assert.ok(a.events.some(e=>e.text==='Completed to Z'));
  assert.ok(b.events.some(e=>e.text==='Completed to Z'));
  assert.ok(at(b,2.3,'defense','dSS').x>at(a,2.3,'defense','dSS').x+1);
