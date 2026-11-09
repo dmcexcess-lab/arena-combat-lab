@@ -31,11 +31,13 @@ test('late offensive injury uses the available timeout, then an excess injury ca
  state.timeouts.home=0;result=G.finishScrimmage(state,sim,0,{offense,defense});assert.equal(result.state.clock,66);assert.ok(result.state.log.some(v=>v.includes('10-second injury runoff')));
 });
 
-test('overtime grants both possessions, then ends on a decisive second possession',()=>{
+test('overtime grants both possessions, resolves tries, then ends on the next score',()=>{
  const state=G.createGame();state.quarter=5;state.clock=600;state.score={home:20,away:20};G.setSpot(state,'home',95);
- let first=G.finishScrimmage(state,play('Touchdown',6),0);assert.equal(first.state.phase,'kickoff');assert.equal(first.state.score.home,26);
- G.setSpot(first.state,'away',95);let second=G.finishScrimmage(first.state,play('Touchdown',6),0);assert.equal(second.state.score.away,26);assert.notEqual(second.state.phase,'final');
- G.setSpot(second.state,'home',95);let third=G.finishScrimmage(second.state,play('Touchdown',6),0);assert.equal(third.state.phase,'final');
+ let first=G.finishScrimmage(state,play('Touchdown',6),0);assert.equal(first.state.phase,'try');assert.equal(first.state.ball,98);assert.equal(first.state.score.home,26);
+ first=G.finishScrimmage(first.state,play('Incomplete pass',0),0);assert.equal(first.state.phase,'kickoff');
+ G.setSpot(first.state,'away',5);let second=G.finishScrimmage(first.state,play('Touchdown',5),0);assert.equal(second.state.score.away,26);assert.equal(second.state.phase,'try');assert.notEqual(second.state.phase,'final');
+ second=G.finishScrimmage(second.state,play('Incomplete pass',0),0);assert.equal(second.state.phase,'kickoff');assert.equal(second.state.score.home,second.state.score.away);
+ G.setSpot(second.state,'home',95);let third=G.finishScrimmage(second.state,play('Touchdown',5),0);assert.equal(third.state.phase,'final');
 });
 
 test('out-of-bounds clock resumes on the ready early, and on the snap late',()=>{

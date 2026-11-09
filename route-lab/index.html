@@ -1609,6 +1609,22 @@ function otCheck(s,endedTeam){if(s.quarter!==5||!s.ot||s.phase==='final'||s.phas
  const firstPoints=ot.first?s.score[ot.first]-ot.initial[ot.first]:0,secondPoints=ot.first?s.score[other(ot.first)]-ot.initial[other(ot.first)]:0;
  const decisive=ot.firstEnded&&((firstPoints===0&&secondPoints>0)||(ot.secondEnded&&s.score.home!==s.score.away));
  if(decisive){s.phase='final';s.clockRunning=false;s.log.push('Referee: overtime possession opportunities resolved; final score.');}}
+function overtimeTouchdownDecision(s,team,prior){
+ if(s.quarter!==5||!prior?.first)return 'try';
+ const first=prior.first,initial=prior.initial||{home:0,away:0};
+ if(prior.firstEnded&&prior.secondEnded)return 'final';
+ if(prior.firstEnded&&!prior.secondEnded&&team!==first){
+  const firstPoints=s.score[first]-(initial[first]||0);
+  if(firstPoints===0||s.score[team]>s.score[other(team)])return 'final';
+ }
+ return 'try';
+}
+function stageTouchdown(s,team,prior){
+ const phase=overtimeTouchdownDecision(s,team,prior);
+ s.phase=phase;s.kicking=team;s.ball=phase==='try'?(team==='home'?98:2):(team==='home'?35:65);s.clockRunning=false;
+ if(phase==='final')s.log.push('Referee: overtime touchdown ends the game.');
+ return phase;
+}
 function score(s,team,points,reason){s.score[team]+=points;if(s.quarter===5){s.ot??={first:null,firstEnded:false,firstScored:false,second:null,initial:{home:s.score.home-(team==='home'?points:0),away:s.score.away-(team==='away'?points:0)}};if(!s.ot.first)s.ot.first=team;if(team!==s.ot.first){s.ot.firstEnded=true;s.ot.second=team;s.ot.secondEnded=true;}}s.log.push(`Referee: ${reason}. ${team.toUpperCase()} +${points}. Score ${s.score.home}–${s.score.away}.`);}
 function settleLoose(state,s,r,wasTry,expired,twoMinute){
  const l=r.loose,off=state.possession,def=other(off),yardsFromOwn=off==='home'?state.ball:100-state.ball,localGoal=-yardsFromOwn,farGoal=100-yardsFromOwn;
@@ -1627,7 +1643,7 @@ function settleLoose(state,s,r,wasTry,expired,twoMinute){
  }else if(owner){
   const source=sideTeam(l.sourceSide),receiver=l.dead==='recovered'?sideTeam(l.recoverySide):null;
   if(receiver&&receiver!==owner){
-   score(s,receiver,6,'Loose-ball recovery touchdown');s.possession=receiver;s.phase=s.quarter===5&&receiver!==off?'kickoff':'try';s.kicking=receiver;s.ball=s.quarter===5?(receiver==='home'?35:65):(receiver==='home'?98:2);s.clockRunning=false;endedTeam=other(receiver);
+   const priorOt=s.ot?{...s.ot,initial:{...s.ot.initial}}:null;score(s,receiver,6,'Loose-ball recovery touchdown');s.possession=receiver;if(s.quarter===5&&receiver!==off){s.phase='kickoff';s.kicking=receiver;s.ball=receiver==='home'?35:65;s.clockRunning=false;}else stageTouchdown(s,receiver,priorOt);endedTeam=other(receiver);
    call=`${l.kind==='backwardPass'?'Backward pass':'Fumble'} recovered for ${receiver.toUpperCase()} touchdown`;
   }else if(source===owner){
    score(s,other(owner),2,'Loose ball dead in own end zone');s.phase='safetyKick';s.kicking=owner;s.clockRunning=false;
@@ -1700,7 +1716,7 @@ function finishScrimmage(state,sim,huddle=25,plays=null,options={}){const s=copy
   else{const at=Number.isFinite(finalLocal)?state.ball+dir(team)*finalLocal:state.ball+advance-dir(team)*(r.returnYards||0);newSeries(s,op,at);call=`Interception — ${op.toUpperCase()} ball at ${spotText(s)}`;}
   endedTeam=team;
  }
- else if(v.startsWith('Touchdown')||state.ball+advance>=100&&team==='home'||state.ball+advance<=0&&team==='away'){score(s,team,6,'Touchdown');s.phase='try';s.kicking=team;s.ball=s.quarter===5?(team==='home'?35:65):(team==='home'?98:2);s.clockRunning=false;call='Touchdown — choose extra point or two';endedTeam=team;}
+ else if(v.startsWith('Touchdown')||state.ball+advance>=100&&team==='home'||state.ball+advance<=0&&team==='away'){const priorOt=s.ot?{...s.ot,initial:{...s.ot.initial}}:null;score(s,team,6,'Touchdown');const phase=stageTouchdown(s,team,priorOt);call=phase==='final'?'Touchdown — overtime win':'Touchdown — choose extra point or two';endedTeam=team;}
  else {s.ball=clamp(state.ball+advance,1,99);s.toGain-=Number(r.yards)||0;if(s.toGain<=0){s.down=1;s.toGain=Math.min(10,Math.max(1,team==='home'?100-s.ball:s.ball));call=`First down at ${spotText(s)}`;}else if(s.down===4){newSeries(s,op,s.ball);endedTeam=team;call=`Turnover on downs — ${op.toUpperCase()} ball at ${spotText(s)}`;}else{s.down++;call=`${s.down} & ${Math.ceil(s.toGain)} at ${spotText(s)}`;}const out=/Out of bounds|out of bounds/i.test(v),incomplete=/incomplete|broken up|throwaway/i.test(v),lateOut=(s.quarter===2&&s.clock<=120)||(s.quarter===4&&s.clock<=300)||(s.quarter===5&&s.clock<=300);s.clockRunning=s.possession===team&&!incomplete&&(!out||!lateOut);}
  s.log.push('Referee: '+call+'.');if(twoMinute&&!expired){s.clockRunning=false;s.log.push('Referee: two-minute warning.');}if(expired){if(s.phase==='try')s.pendingPeriodEnd=true;else periodEnd(s);}otCheck(s,endedTeam);return {state:s,call,accepted:true};}
 function kick(state,kind,seed=71,choice='auto'){
@@ -1763,7 +1779,7 @@ function kick(state,kind,seed=71,choice='auto'){
   }
  }
  function receiveAt(y,reason){newSeries(s,receive,clamp(y,1,99));call=reason+' — '+receive.toUpperCase()+' ball at '+spotText(s);endedTeam=team;}
- function touchdown(t,reason){const points=kind==='extraPoint'?2:6;score(s,t,points,reason);s.possession=t;s.phase=kind==='extraPoint'?'kickoff':'try';s.kicking=kind==='extraPoint'?team:t;s.ball=kind==='extraPoint'||s.quarter===5?(t==='home'?35:65):(t==='home'?98:2);s.clockRunning=false;call=reason+' — '+t.toUpperCase()+(points===2?' two-point try return':' touchdown');endedTeam=other(t);}
+ function touchdown(t,reason){const points=kind==='extraPoint'?2:6,priorOt=s.ot?{...s.ot,initial:{...s.ot.initial}}:null;score(s,t,points,reason);s.possession=t;if(kind==='extraPoint'){s.phase='kickoff';s.kicking=team;s.ball=team==='home'?35:65;s.clockRunning=false;}else stageTouchdown(s,t,priorOt);call=reason+' — '+t.toUpperCase()+(points===2?' two-point try return':' touchdown');endedTeam=other(t);}
  function returnBall(carrier,ownerTeam,start){
   const direction=dir(ownerTeam),end=goal(ownerTeam),enemies=()=>players.filter(p=>p.team!==ownerTeam),helpers=()=>players.filter(p=>p.team===ownerTeam&&p!==carrier),carrierRatings=ownerTeam===receive?recv.returner:{agility:squad.coverage,vision:squad.coverage};
   let contactCooldown=0,lastMove=-2;const returnStartTime=elapsed;ball={yard:start,lane:carrier.lane,phase:'return'};carrier.yard=start;event(ownerTeam.toUpperCase()+' return begins');
@@ -1963,7 +1979,7 @@ function kick(state,kind,seed=71,choice='auto'){
 }
 function autoPick(state,offenses,defenses){const s=state,d=s.toGain,own=s.possession==='home'?s.ball:100-s.ball,sequence=s.plays+(s.rosterSeed||0),short=d<=3,long=d>=8,goal=own>=97,red=own>=80;let wants=s.phase==='try'?['Inside Zone']:goal?['Goal Line Power','Inside Zone','Play Action Cross','Slant / Flat']:red?['Power Right','Inside Zone','Play Action Cross','Slant / Flat','RPO Glance']:s.down>=3&&long?['Shotgun Mesh','Trips Flood','Slant / Flat','Four Verticals']:short?['Inside Zone','Power Right','RPO Glance','Slant / Flat']:s.down===1?['Inside Zone','Outside Zone Left','Power Right','Slant / Flat','HB Screen','Play Action Cross','Shotgun Mesh','Trips Flood']:['Outside Zone Left','Inside Zone','Power Right','Slant / Flat','Shotgun Mesh','HB Screen','Play Action Cross'];const want=s.down<=2&&!red&&sequence%17===0?'Pitch Back':wants[sequence%wants.length],defWants=goal||red&&short?['Goal Line 6–2','3–4 Cover 3','Cover 1 Man']:s.down>=3&&long?['Nickel Cover 3','4–3 Cover 2','Quarters Match']:short?['4–3 Cover 2','3–4 Cover 3','Goal Line 6–2']:['4–3 Cover 2','Cover 1 Man','Nickel Cover 3'];const off=offenses.find(p=>p.name===want)||offenses[0],def=defenses.find(p=>p.name===defWants[(sequence+Math.round(d))%defWants.length])||defenses[0];return {offense:off?.id,defense:def?.id};}
 function cpuFourthDownKick(s,manualOverride=false){if(manualOverride||s.phase!=='scrimmage'||s.down!==4||s.toGain<=2)return null;const own=s.possession==='home'?s.ball:100-s.ball;return own>=65?'fieldGoal':'punt';}
-const api={createGame,createExhibition,roster,setStarter,dressPlay,syncSpecialists,flipCoin,jumpTo,huddleSeconds,resetToLine,passInterference,liveFouls,reviewSpot,spotText,timeout,flag,setSpot,preSnap,finishScrimmage,kick,autoPick,cpuFourthDownKick};root.RouteGame=api;if(typeof module!=='undefined'&&module.exports)module.exports=api;
+const api={createGame,createExhibition,roster,setStarter,dressPlay,syncSpecialists,flipCoin,jumpTo,huddleSeconds,resetToLine,passInterference,liveFouls,reviewSpot,spotText,timeout,flag,setSpot,preSnap,finishScrimmage,kick,autoPick,cpuFourthDownKick,overtimeTouchdownDecision};root.RouteGame=api;if(typeof module!=='undefined'&&module.exports)module.exports=api;
 })(typeof window!=='undefined'?window:globalThis);
 </script>
 <script>

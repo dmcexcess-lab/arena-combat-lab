@@ -58,11 +58,14 @@ test('overtime touchdowns complete the try before finalizing the game',()=>{
  const loose=G.createGame();loose.quarter=5;loose.clock=300;loose.ot={first:'home',firstEnded:false,firstScored:false,second:null,secondEnded:false,initial:{home:0,away:0}};
  G.setSpot(loose,'home',95);const fumble=fake('Fumble recovered',6,3,'offense',6);fumble.result.deadBallY=6;fumble.result.loose={kind:'fumble',dead:'recovered',sourceSide:'o',sourceId:'runner',recoverySide:'o',recoveryId:'runner',originY:0,recoveryY:6};
  const looseTd=G.finishScrimmage(loose,fumble,0);assert.equal(looseTd.state.score.home,6);assert.equal(looseTd.state.phase,'try');assert.notEqual(looseTd.state.phase,'final');
- const returnKick=G.createGame();returnKick.quarter=5;returnKick.clock=300;returnKick.kicking='home';returnKick.ot={first:null,firstEnded:false,firstScored:false,second:null,secondEnded:false,initial:{home:0,away:0}};
- returnKick.specialists.home.coverage=1;returnKick.specialists.away.returner={speed:99,vision:99,agility:99};returnKick.specialists.away.returnBlocking=99;
- let returnTd=null;for(let seed=1;seed<=256&&!returnTd;seed++){const attempt=G.kick(returnKick,'kickoff',seed);if(attempt.call.toLowerCase().includes('touchdown'))returnTd=attempt;}
- assert.ok(returnTd,'boosted return unit should produce a kickoff touchdown in the deterministic seed range');
- assert.equal(returnTd.state.phase,'try');
+ const kickoff=G.createGame();kickoff.quarter=5;kickoff.score={home:0,away:6};
+ assert.equal(G.overtimeTouchdownDecision(kickoff,'away',{first:null,firstEnded:false,secondEnded:false,initial:{home:0,away:0}}),'try','opening kickoff return touchdown still needs a try');
+ const firstDidNotScore=G.createGame();firstDidNotScore.quarter=5;firstDidNotScore.score={home:0,away:6};
+ assert.equal(G.overtimeTouchdownDecision(firstDidNotScore,'away',{first:'home',firstEnded:true,secondEnded:false,initial:{home:0,away:0}}),'final','second team wins after first team failed to score');
+ const firstLeads=G.createGame();firstLeads.quarter=5;firstLeads.score={home:7,away:6};
+ assert.equal(G.overtimeTouchdownDecision(firstLeads,'away',{first:'home',firstEnded:true,secondEnded:false,initial:{home:0,away:0}}),'try','trailing second team can still tie or win with its try');
+ const suddenDeath=G.createGame();suddenDeath.quarter=5;suddenDeath.score={home:20,away:20};
+ assert.equal(G.overtimeTouchdownDecision(suddenDeath,'home',{first:'home',firstEnded:true,secondEnded:true,initial:{home:20,away:20}}),'final','the first score after tied initial possessions wins');
 });
 test('specialist ratings change field goal and return outcomes with same seed',()=>{
  const s=G.createGame();G.setSpot(s,'home',58);const low=C.clone(s),high=C.clone(s);low.specialists.home.kicker.accuracy=1;high.specialists.home.kicker.accuracy=99;
