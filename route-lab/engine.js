@@ -468,7 +468,7 @@ function simulate(off,def,seed=71){
     const pa=off.playActionFake,paEnd=pa?.endAt??1.12;
     const safety=['FS','SS','S'].includes(p.label)||(p.homeY??0)>14;
     const linebacker=['LB','MLB','OLB','ILB','W','M'].includes(p.label);
-    const keyer=!!pa&&(p.job==='runfit'||linebacker&&p.job==='zone'||safety&&(p.job==='zone'||p.job==='deep'));
+    const keyer=!!pa&&(p.job==='runfit'||linebacker&&['zone','man'].includes(p.job)||safety&&['zone','deep','spy'].includes(p.job));
     if(keyer&&state==='live'&&!handoff&&t<=paEnd+.28){
       const rating=statsOf(p),readAt=clamp(.55+(78-rating.awareness)*.005,.45,1.08);
       if(!p.playActionResolved&&t>=readAt){
