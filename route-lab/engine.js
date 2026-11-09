@@ -655,10 +655,30 @@ function simulate(off,def,seed=71){
       }).filter(a=>a.predict.y>-.2).sort((a,b)=>b.score-a.score);
       // Softmax within a credible read window. A different seed can produce a
       // different defensible choice while clear, low-risk winners stay favored.
-      const viable=graded.filter(a=>a.score>=graded[0]?.score-1.25&&a.risk<.82);
-      const weights=viable.map(a=>Math.exp((a.score-graded[0].score)*1.15));
-      let roll=rand()*weights.reduce((a,b)=>a+b,0),best=viable[0]||graded[0];
-      for(let j=0;j<viable.length;j++){roll-=weights[j];if(roll<=0){best=viable[j];break;}}
+      const progression=graded.slice().sort((a,b)=>(Number(a.r.read)||3)-(Number(b.r.read)||3)||Number(b.r.hot)-Number(a.r.hot));
+      const readInterval=clamp(.48-(statsOf(qb).awareness-70)*.0025,.34,.62);
+      const firstReadAt=Math.max(1.15,off.qbDropTime??1.15)+playActionHold;
+      const slot=Math.min(progression.length-1,Math.max(0,Math.floor((t-firstReadAt)/readInterval)));
+      const scheduled=progression[slot];
+      if(qb.progressionSlot!==slot){
+        if(Number.isInteger(qb.progressionSlot)&&!qb.progressionOpened){
+          const prior=progression[Math.min(qb.progressionSlot,progression.length-1)];
+          if(prior){decisions.push({t:+t.toFixed(2),action:'qb-read',status:'covered',read:qb.progressionSlot+1,target:prior.r.label});log(t,'QB moves on from covered read '+(qb.progressionSlot+1)+' ('+prior.r.label+')');}
+        }
+        qb.progressionSlot=slot;qb.progressionOpened=false;
+        if(scheduled){decisions.push({t:+t.toFixed(2),action:'qb-read',status:'check',read:slot+1,target:scheduled.r.label});log(t,'QB checks read '+(slot+1)+': '+scheduled.r.label);}
+      }
+      const immediateHot=desperate?progression.filter(a=>a.r.hot&&a.risk<.82).sort((a,b)=>b.score-a.score)[0]:null;
+      const pressureAnswer=desperate?graded.filter(a=>a.risk<.82).sort((a,b)=>b.score-a.score)[0]:null;
+      const currentOpen=scheduled&&scheduled.separation>.33&&scheduled.risk<.82;
+      if(currentOpen&&!qb.progressionOpened){qb.progressionOpened=true;decisions.push({t:+t.toFixed(2),action:'qb-read',status:'open',read:slot+1,target:scheduled.r.label});}
+      // Work the called progression one read at a time; only a hot answer can
+      // bypass it when pressure is already immediate. Late fallback uses the
+      // best remaining safe window rather than holding the ball forever.
+      let best=immediateHot|| (desperate?pressureAnswer:(currentOpen?scheduled:null));
+      if(!best&&t>=maxWait){best=graded.filter(a=>a.risk<.82).sort((a,b)=>b.score-a.score)[0]||graded[0];}
+      const pressureChoice=best&&best!==scheduled&&desperate&&!immediateHot;
+      const isLateFallback=best&&best!==scheduled&&!immediateHot&&!pressureChoice;
       if(best&&(best.separation>.33||desperate||t>=maxWait)){
         // A high-risk throw is sometimes worse than throwing away or scrambling.
         const unsafe=best.risk>.72;
@@ -667,7 +687,7 @@ function simulate(off,def,seed=71){
             log(t,'QB rejects covered reads and extends the play');
           }else{
             thrown=true;carrier=null;state='dead';
-            decisions.push({t:+t.toFixed(2),action:'throwaway',reason:'No acceptable window; pressure and interception risk',candidates:graded.map(a=>({target:a.r.label,score:+a.score.toFixed(2),separation:+a.separation.toFixed(2),risk:+a.risk.toFixed(2)}))});
+          decisions.push({t:+t.toFixed(2),action:'throwaway',reason:'No acceptable window; pressure and interception risk',candidates:progression.map(a=>({target:a.r.label,score:+a.score.toFixed(2),separation:+a.separation.toFixed(2),risk:+a.risk.toFixed(2)}))});
             finish('Throwaway — incomplete pass',t,point(0,0));
           }
         }else{
@@ -679,8 +699,8 @@ function simulate(off,def,seed=71){
           targetPass=r;flight={from:{x:qb.x,y:qb.y},to:aim,t0:t,duration};
           thrown=true;carrier=null;state='air';
           const why=desperate?'pressure/hot answer':pick.separation>.65?'separation':'timing/window';
-          decisions.push({t:+t.toFixed(2),action:'pass',targetId:r.id,target:r.label,reason:why,pressure:+rushDistance.toFixed(1),candidates:graded.map(a=>({target:a.r.label,score:+a.score.toFixed(2),separation:+a.separation.toFixed(2),risk:+a.risk.toFixed(2),depth:+a.depth.toFixed(1)}))});
-          log(t,'QB reads '+graded.slice(0,3).map(a=>a.r.label+' '+a.score.toFixed(1)).join(' / '));
+          decisions.push({t:+t.toFixed(2),action:'pass',targetId:r.id,target:r.label,reason:immediateHot?'immediate-pressure hot answer':pressureChoice?'best safe answer under immediate pressure':isLateFallback?'late progression fallback':why,pressure:+rushDistance.toFixed(1),candidates:progression.map(a=>({target:a.r.label,score:+a.score.toFixed(2),separation:+a.separation.toFixed(2),risk:+a.risk.toFixed(2),depth:+a.depth.toFixed(1)}))});
+          log(t,'QB progression: '+progression.map((a,i)=>(i+1)+'. '+a.r.label).join(' → '));
           log(t,'Pass aimed at '+r.label+' — '+why+(r.hot?' (hot)':''));
         }
       }
