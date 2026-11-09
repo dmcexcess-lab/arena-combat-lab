@@ -233,7 +233,7 @@ function speedOf(p){let ratings=statsOf(p);let mult=clamp(p.speed??1,.5,1.5)*(.7
   if(linemen.has(p.label))return 5.0*mult;
   if(p.label==='TE')return 6.5*mult;
   return 7.0*mult;}
-function pickupCoverage(pos,defenders){return clamp((2.5-nearest(pos,defenders,a=>a.y>=-.5).d)/2.5,0,1);}
+function pickupCoverage(pos,defenders){return clamp((2.5-nearest(pos,defenders).d)/2.5,0,1);}
 function openFieldTarget(runner,defenders,t,forward=1,blockers=[],plannedX=runner.x){
  const skill=statsOf(runner),look=3.4+skill.vision/16;
  if(t>=(runner.nextLaneAt??0)||runner.laneX===undefined){
@@ -885,7 +885,7 @@ function simulate(off,def,seed=71){
     const pct=clamp((t-flight.t0)/flight.duration,0,1);
     ball={x:flight.from.x+(flight.to.x-flight.from.x)*pct,y:flight.from.y+(flight.to.y-flight.from.y)*pct,kind:'air'};
     if(pct>=1){
-      const closeD=nearest(ball,d,a=>a.y>=-.5), receiverDist=dist(ball,targetPass);
+      const closeD=nearest(ball,d), receiverDist=dist(ball,targetPass);
       const contest=clamp((3.3-closeD.d)/2.3,0,1);
       const defenderSkill=closeD.agent?statsOf(closeD.agent):null;
       const receiverSkill=statsOf(targetPass),catchRating=receiverSkill.hands*.55+receiverSkill.awareness*.25+receiverSkill.routeRunning*.12+receiverSkill.vision*.08;
