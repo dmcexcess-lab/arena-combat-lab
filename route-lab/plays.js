@@ -136,7 +136,11 @@ function createDefensePresets(){
  d=defense('Quarters Match');
  zone(d.players[4],-10,8,8);zone(d.players[5],0,10,9);zone(d.players[6],10,8,8);
  zone(d.players[7],-19,19,8,13);zone(d.players[8],19,19,8,13);
- zone(d.players[9],-7,21,10,13);zone(d.players[10],7,21,10,13);a.push(d);
+ zone(d.players[9],-7,21,10,13);zone(d.players[10],7,21,10,13);
+ // Quarters Match is a pattern-match call: defenders carry eligible routes
+ // through their quarters and exchange ownership at overlapping boundaries.
+ for(const p of d.players)if(p.job==='zone')p.zoneTechnique='match';
+ a.push(d);
  d=defense('3–4 Cover 3');
  d.players[3].job='zone';d.players[3].label='OLB';d.players[3].y=5;
  d.players[2].label='NT';d.players[2].x=0;d.players[1].x=-3;
