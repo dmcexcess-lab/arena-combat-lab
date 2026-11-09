@@ -90,9 +90,9 @@ NFL rule checks: [2026 Official Playing Rules](https://media.nfl.com/content/dam
 1. **Incomplete-pass spotting — implemented in this update:** exclude incomplete, broken-up, and thrown-away passes from chain measurement; test that the ball stays at the prior spot and no first down is awarded.
 2. **Possession-change clock — implemented in this update:** preserve the stopped clock after an interception, turnover on downs, or other new series until the receiving offense's next snap; verify that huddle time does not run off and the next live play does.
 3. **Overtime touchdown progression — implemented in this update:** stage tries when the score can still change the winner; end on a decisive touchdown when both initial opportunities are complete or the second team is already ahead. Defensive return touchdowns end immediately after both teams have possessed. Regression coverage includes both initial possessions, loose-ball scores, kickoff-return decision cases, ties, and sudden death.
-4. **Stable roster identity:** retain exact depth-chart person and slot identity through role changes, then apply fatigue, injury, availability and substitution to that player.
+4. **Stable roster identity — implemented in this update:** carry the selected depth-chart slot and person index with each dressed player; use that stable identity when applying fatigue and medical availability, even if a role label changes or names collide.
 5. **Backward-pass advancement:** apply fourth-down/two-minute teammate recovery restrictions to fumbles only; preserve legal backward-pass advances.
 6. **Behind-line pass contests:** include defenders at the actual catch point on screens and other legal passes, independent of their downfield coordinate.
 7. **QB outlet and dead-ball fallback:** allow legal ordinary checkdowns behind the line and resolve the play with a QB run or throwaway if no target is eligible.
 
-The repairs remain separate so each behavioral change has its own regression and reviewable result. The remaining slices have not been implemented.
+The repairs remain separate so each behavioral change has its own regression and reviewable result. Slices 1–4 are implemented; slices 5–7 remain.
