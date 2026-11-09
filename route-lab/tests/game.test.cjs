@@ -112,6 +112,15 @@ test('player fatigue persists across snaps, affects replay state, and recovers d
  assert.notDeepEqual(sim.frames,fresh.frames,'incoming fatigue should affect movement');
  assert.ok(qbLoad&&used.rosterIndex===0);
 });
+test('fatigue follows the dressed depth-chart slot when the player role label changes',()=>{
+ const s=G.createExhibition(482),rows=s.teams.home.depth.offense,qb=rows.find(v=>v.slot==='oQB'),rb=rows.find(v=>v.slot==='oRB');
+ G.setSpot(s,'home',50);rb.players[0].name=qb.players[0].name;
+ const actor={id:'oQB',label:'RB',rosterName:qb.players[0].name,rosterSlot:'oQB',rosterIndex:0};
+ const offense={players:[actor]},sim=fake('Tackle',1,4);sim.participation=[{side:'o',id:'oQB',fatigue:.47}];
+ const result=G.finishScrimmage(s,sim,0,{offense,defense:{players:[]}}).state;
+ assert.equal(result.teams.home.depth.offense.find(v=>v.slot==='oQB').players[0].fatigue,.47);
+ assert.equal(result.teams.home.depth.offense.find(v=>v.slot==='oRB').players[0].fatigue,0,'same-name player in another slot must not receive this player’s load');
+});
 test('a heavily fatigued starter yields to an available depth-chart teammate',()=>{
  const s=G.createExhibition(482),row=s.teams.home.depth.offense.find(v=>v.label==='RB');row.players[0].fatigue=.72;row.players[1].fatigue=.08;row.players[2].fatigue=.35;
  const play=P.createOffensePresets()[0],rb=G.dressPlay(s,play,'home','offense').players.find(p=>p.label==='RB');

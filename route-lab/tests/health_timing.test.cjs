@@ -22,6 +22,19 @@ test('contact exposure produces a reproducible medical event and substitutes the
  assert.ok(first.state.log.some(v=>v.includes('Medical timeout')));
 });
 
+test('medical availability follows the original roster slot through a role change and duplicate name',()=>{
+ const state=G.createExhibition(492);G.setSpot(state,'home',50);
+ const qb=state.teams.home.depth.offense.find(v=>v.slot==='oQB'),rb=state.teams.home.depth.offense.find(v=>v.slot==='oRB');
+ rb.players[0].name=qb.players[0].name;
+ const actor={id:'oRB',label:'RB',rosterName:qb.players[0].name,rosterSlot:'oQB',rosterIndex:0,stats:qb.players[0].stats};
+ const offense={players:[actor]},defense={players:[]},sim=play('Tackle',3,4,917);
+ sim.participation=[{id:'oRB',label:'RB',side:'o',yardsMoved:12,contactSeconds:0}];
+ sim.contacts=Array.from({length:400},(_,i)=>({t:i*.01,kind:'tackle',offenseId:'oRB',defenseId:'none',relativeSpeed:25}));
+ const result=G.finishScrimmage(state,sim,0,{offense,defense});
+ assert.ok(result.injuries.length>0);
+ assert.notEqual(result.state.teams.home.depth.offense.find(v=>v.slot==='oQB').players[0].unavailableUntilPlay,undefined);
+ assert.equal(result.state.teams.home.depth.offense.find(v=>v.slot==='oRB').players[0].unavailableUntilPlay,undefined);
+});
 test('late offensive injury uses the available timeout, then an excess injury can run off ten seconds',()=>{
  const state=G.createExhibition(492);G.setSpot(state,'home',50);state.quarter=4;state.clock=80;state.clockRunning=true;state.timeouts.home=1;
  const row=state.teams.home.depth.offense.find(v=>v.label==='QB');
