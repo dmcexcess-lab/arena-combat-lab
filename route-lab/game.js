@@ -195,7 +195,7 @@ function overtimeTouchdownDecision(s,team,prior){
  if(prior.firstEnded&&prior.secondEnded)return 'final';
  if(prior.firstEnded&&!prior.secondEnded&&team!==first){
   const firstPoints=s.score[first]-(initial[first]||0);
-  if(firstPoints===0||s.score[team]>s.score[other(team)])return 'final';
+  if(firstPoints===0||s.score[team]>s.score[first===team?'away':'home'])return 'final';
  }
  return 'try';
 }
