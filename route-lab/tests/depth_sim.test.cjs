@@ -119,6 +119,7 @@ test('a defender covering the back behind the line contests the screen catch poi
  assert.ok(contest.disruptionChance>0,'a physically close defender behind the line must affect the catch contest');
  assert.deepEqual(C.simulate(off,def,3),sim,'behind-line coverage contests remain seeded and reproducible');
 });
+
 test('match coverage hands a route to the next zone defender and reports the exchange',()=>{
  const base=P.createOffensePresets()[0];base.training=true;base.trainingVirtualSnap=true;base.type='pass';
  base.players=base.players.filter(p=>['oQB','oX'].includes(p.id));
@@ -297,6 +298,22 @@ test('the engine watchdog returns a diagnostic instead of inventing a dead-ball 
  const sim=C.simulate(off,def,809);assert.equal(sim.valid,false);assert.equal(sim.result.completed,false);
  assert.match(sim.diagnostic.message,/before a football dead-ball event/);
  assert.equal(sim.result.verdict,'');
+});
+
+test('ordinary pass progressions may throw to a legal checkdown behind the line',()=>{
+ const off=P.createOffensePresets()[0],def=P.createDefensePresets()[0];off.training=true;off.trainingVirtualSnap=true;off.type='pass';
+ off.players=off.players.filter(p=>['oQB','oRB'].includes(p.id));const qb=off.players.find(p=>p.id==='oQB'),rb=off.players.find(p=>p.id==='oRB');
+ qb.x=0;qb.y=-5;qb.throwAt=1.3;qb.qbDropTime=1.15;rb.x=4;rb.y=-1;rb.job='route';rb.route=[{x:5,y:-2},{x:7,y:-1}];
+ def.players=def.players.filter(p=>p.id==='dS');def.players[0].job='deep';def.players[0].x=22;def.players[0].y=22;
+ const sim=C.simulate(off,def,71);assert.ok(sim.valid);assert.ok(sim.decisions.some(d=>d.action==='pass'&&d.targetId==='oRB'));
+});
+
+test('a pass with no eligible receivers ends in a throwaway, while long-deadline diagnostics remain intact',()=>{
+ const off=P.createOffensePresets()[0],def=P.createDefensePresets()[0];off.training=true;off.trainingVirtualSnap=true;off.type='pass';
+ off.players=off.players.filter(p=>['oQB','oRB'].includes(p.id));const qb=off.players.find(p=>p.id==='oQB');qb.y=-5;qb.throwAt=1.3;qb.qbDropTime=1.15;off.allowScramble=false;
+ off.players.find(p=>p.id==='oRB').job='passblock';off.players.find(p=>p.id==='oRB').route=[];
+ def.players=def.players.filter(p=>p.id==='dS');def.players[0].job='deep';def.players[0].x=22;def.players[0].y=22;
+ const sim=C.simulate(off,def,809);assert.ok(sim.valid);assert.ok(sim.decisions.some(d=>d.action==='throwaway'));assert.match(sim.result.verdict,/Throwaway/);
 });
 
 test('the play result displays executed special moves',()=>{
