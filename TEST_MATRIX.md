@@ -254,3 +254,7 @@ Operational checklist for humans + AIs. Keep compact; add only behaviors whose r
 - The QB keeps the ball through the back's mesh fake; second-level defenders record a seeded bite or pass diagnosis from awareness and pass-set cues.
 - Deep safeties key the play while limiting any false step to protect top coverage; their read appears in replay events and player decision review.
 - A fooled second-level defender shifts the QB throw window, while disciplined reactions leave it shorter; repeated seed and ratings reproduce defender reads, movement and timing.
+
+## Route Lab Quarters Match defense
+- The Quarters Match preset assigns match response to all its zone defenders.
+- Against Four Verticals, an 80-seed paired comparison produces lower average gains than the same defense in spot-drop mode; repeated seeds reproduce the same play results. This is a relative mechanics check, not NFL statistical calibration.

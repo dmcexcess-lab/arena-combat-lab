@@ -1,3 +1,7 @@
+# 2026-11-08 — Route Lab Quarters Match coverage
+- The Quarters Match defense now uses match-zone assignments, carrying routes through each quarter and handing them to overlapping defenders at zone boundaries instead of spot-dropping.
+- A fixed 80-seed Four Verticals sample checks the matchup effect and repeatability. It measures a relative mechanics change, not NFL-calibrated passing rates.
+
 # 2026-11-08 — Route Lab Play Action Cross keyed fake
 - Linebackers now read the back crossing the mesh against the pass-set line. Awareness influences how early they diagnose and whether a defender bites; deep safeties key the action with a smaller, top-leverage-preserving response.
 - False steps move defenders toward the fake and can extend the QB's read window. Replay events and player decision review show each defender's cue and reaction; fixed-seed tests compare fooled and disciplined defenders and verify safety behavior.
