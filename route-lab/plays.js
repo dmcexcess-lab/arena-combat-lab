@@ -39,6 +39,7 @@ function routeFrom(player,kind){
  return COPY(r[kind]||r.go);
 }
 function setRoute(o,id,pattern,read=3,hot=false){let pl=o.players.find(p=>p.id===id);if(!pl)return;pl.job='route';pl.route=routeFrom(pl,pattern);pl.pattern=pattern;pl.read=read;pl.hot=hot;}
+function setChipRelease(o,id){const pl=o.players.find(p=>p.id===id);if(pl)pl.chipRelease=true;}
 function setBlock(o,id,target='',gap=0,job='runblock'){let pl=o.players.find(p=>p.id===id);if(!pl)return;pl.job=job;pl.blockTarget=target;pl.blockGapX=gap;pl.route=[];pl.pattern='';}
 function runRoute(o,id,coords){const pl=o.players.find(p=>p.id===id); pl.job='carry';pl.route=coords.map(([x,y])=>({x,y}));}
 function createOffensePresets(){
@@ -48,6 +49,7 @@ function createOffensePresets(){
  setRoute(o,'oZ','corner',3);setRoute(o,'oRB','swing',5);o.primaryTarget='oSL';a.push(o);
  o=offense('Four Verticals');
  setRoute(o,'oX','fade',4);setRoute(o,'oSL','seam',1);setRoute(o,'oTE','seam',2);
+ setChipRelease(o,'oTE');
  setRoute(o,'oZ','go',3);setBlock(o,'oRB','',3,'passblock');o.primaryTarget='oSL';a.push(o);
  o=offense('Slant / Flat');
  setRoute(o,'oX','slant',1,true);setRoute(o,'oSL','flat',2);
@@ -59,10 +61,12 @@ function createOffensePresets(){
  setRoute(o,'oZ','corner',3);setRoute(o,'oRB','angle',5);o.primaryTarget='oSL';a.push(o);
  o=offense('HB Screen','screen');
  setRoute(o,'oX','go',4);setRoute(o,'oSL','in',3);setRoute(o,'oTE','curl',2);
+ setChipRelease(o,'oTE');
  setRoute(o,'oZ','go',5);setRoute(o,'oRB','swing',1,true);
  o.primaryTarget='oRB';o.throwAt=1.8;setBlock(o,'oLG','',-5,'passblock');a.push(o);
  o=offense('Play Action Cross','playaction');
  setRoute(o,'oX','post',3);setRoute(o,'oSL','drag',1,true);setRoute(o,'oTE','corner',2);
+ setChipRelease(o,'oTE');
  setRoute(o,'oZ','go',4);setBlock(o,'oRB','',3,'passblock');o.playActionFake=true;o.throwAt=3.4;o.primaryTarget='oSL';a.push(o);
  o=offense('Power Right','run');
  for(const id of ['oLT','oLG','oC','oRG','oRT'])setBlock(o,id,'',4,'runblock');

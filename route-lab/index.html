@@ -267,7 +267,8 @@ function pursuitTarget(defender,runner){
 function simulate(off,def,seed=71){
  const v=validate(off,def); if(!v.valid)return {valid:false,validation:v,frames:[],events:[]};
  const rand=rng(seed), looseRand=rng(((Number(seed)||71)^0x8b21d5f3)>>>0), blockRand=rng(((Number(seed)||71)^0x52e9146b)>>>0), dt=.05, maxT=20;
- const o=clone(off.players).map(p=>({...p,side:'o',homeX:p.x,vx:0,vy:0,fatigue:clamp(Number(p.fatigue)||0,0,.8),tackleCooldown:0,routeIndex:0,pressResolved:false,pressSlowUntil:0,engaged:false,speed:(p.speed??1)*(.96+rand()*.08)}));
+ const o=clone(off.players).map(p=>({...p,side:'o',homeX:p.x,vx:0,vy:0,fatigue:clamp(Number(p.fatigue)||0,0,.8),tackleCooldown:0,routeIndex:0,pressResolved:false,pressSlowUntil:0,engaged:false,
+  chipRelease:!!p.chipRelease,chipStarted:0,chipEngagedAt:null,routeJob:p.job,job:p.chipRelease?'chiprelease':p.job,speed:(p.speed??1)*(.96+rand()*.08)}));
  const d=clone(def.players).map(p=>({...p,side:'d',homeY:p.y,vx:0,vy:0,fatigue:clamp(Number(p.fatigue)||0,0,.8),tackleCooldown:0,engaged:false,speed:(p.speed??1)*(.94+rand()*.12)}));
  const byId=(id)=>o.find(p=>p.id===id), defenders=(id)=>d.find(p=>p.id===id);
  const qb=byId(off.snapToId||'oQB')||o.find(p=>p.label==='QB'), runner=byId(off.runnerId)||qb;
@@ -361,6 +362,21 @@ function simulate(off,def,seed=71){
       move(p,{x:fake.x??qb.x+2,y:fake.y??-1.2},dt,speedOf(p)*.8,14);continue;
     }
     if(state==='runafter'&&p===carrier)continue;
+    if(p.chipRelease&&p.job==='chiprelease'){
+      const edgeThreat=nearest(p,d,a=>['rush','blitz','contain'].includes(a.job)&&a.y>-.5&&a.y<5&&Math.abs(a.x-p.x)<6);
+      if(t>=.35&&(p.chipEngagedAt!==null||t>=.8)){
+        p.job=p.routeJob||'route';p.chipRelease=false;
+        blockingActions.push({t:+t.toFixed(2),kind:'chip-release',blocker:p.label,defender:p.chipDefenderLabel||edgeThreat.agent?.label||'edge',phase:'release'});
+        log(t,p.label+' releases into '+(p.pattern||'route')+' after chip help');
+      }else if(edgeThreat.agent){
+        p.blockTarget=edgeThreat.agent.id;p.chipDefenderLabel=edgeThreat.agent.label;
+        move(p,{x:edgeThreat.agent.x,y:edgeThreat.agent.y-1.05},dt,speedOf(p)*.64,18);
+        continue;
+      }else{
+        // A quick shoulder check still costs time even when the edge is clear.
+        move(p,{x:p.x,y:p.y+.45},dt,speedOf(p)*.48,12);continue;
+      }
+    }
     if(state==='runafter'&&['route','release'].includes(p.job)&&dist(p,carrier)<8){
       const help=nearest(p,d,a=>dist(a,carrier)<7);
       if(help.agent&&help.d<5){p.supportBlock=true;p.supportTarget=help.agent.id;
@@ -619,13 +635,17 @@ function simulate(off,def,seed=71){
     else if(p.job==='deep')move(p,{x:p.zone?.x??p.x,y:p.zone?.y??18},dt,speedOf(p)*.7);
   }
   // Blocking contacts: delay / deflect rushers; the pressure model uses assignments and matchups.
-  for(const blocker of state==='loose'?[]:o.filter(p=>p.supportBlock||['passblock','runblock','block','pull'].includes(p.job))){
+  for(const blocker of state==='loose'?[]:o.filter(p=>p.supportBlock||['passblock','runblock','block','pull','chiprelease'].includes(p.job))){
     let enemy=defenders(blocker.supportBlock?blocker.supportTarget:blocker.blockTarget);
     if(enemy&&enemy.blockShedUntil>t)enemy=null;
     if(!enemy)enemy=nearest(blocker,d,a=>(a.blockShedUntil||0)<=t&&(blocker.supportBlock?dist(a,carrier)<7:
       ['rush','blitz','contain','runfit'].includes(a.job)&&!a.engaged)).agent;
     if(enemy&&dist(blocker,enemy)<2.15){
       blocker.engaged=enemy.engaged=true;
+      if(blocker.job==='chiprelease'&&blocker.chipEngagedAt===null){
+        blocker.chipEngagedAt=t;blockingActions.push({t:+t.toFixed(2),kind:'chip-release',blocker:blocker.label,defender:enemy.label,phase:'chip'});
+        log(t,blocker.label+' chips '+enemy.label+' at the edge');
+      }
       const pair=blocker.id+':'+enemy.id;
       if(!blockContacts.has(pair)){blockContacts.add(pair);contacts.push({t:+t.toFixed(2),kind:'block',offenseId:blocker.id,defenseId:enemy.id,relativeSpeed:+Math.hypot(blocker.vx-enemy.vx,blocker.vy-enemy.vy).toFixed(2),support:!!blocker.supportBlock,offenseY:+blocker.y.toFixed(2),defenseY:+enemy.y.toFixed(2),defenseVy:+enemy.vy.toFixed(2)});}
       const block=statsOf(blocker),rush=statsOf(enemy);
@@ -953,6 +973,7 @@ function routeFrom(player,kind){
  return COPY(r[kind]||r.go);
 }
 function setRoute(o,id,pattern,read=3,hot=false){let pl=o.players.find(p=>p.id===id);if(!pl)return;pl.job='route';pl.route=routeFrom(pl,pattern);pl.pattern=pattern;pl.read=read;pl.hot=hot;}
+function setChipRelease(o,id){const pl=o.players.find(p=>p.id===id);if(pl)pl.chipRelease=true;}
 function setBlock(o,id,target='',gap=0,job='runblock'){let pl=o.players.find(p=>p.id===id);if(!pl)return;pl.job=job;pl.blockTarget=target;pl.blockGapX=gap;pl.route=[];pl.pattern='';}
 function runRoute(o,id,coords){const pl=o.players.find(p=>p.id===id); pl.job='carry';pl.route=coords.map(([x,y])=>({x,y}));}
 function createOffensePresets(){
@@ -962,6 +983,7 @@ function createOffensePresets(){
  setRoute(o,'oZ','corner',3);setRoute(o,'oRB','swing',5);o.primaryTarget='oSL';a.push(o);
  o=offense('Four Verticals');
  setRoute(o,'oX','fade',4);setRoute(o,'oSL','seam',1);setRoute(o,'oTE','seam',2);
+ setChipRelease(o,'oTE');
  setRoute(o,'oZ','go',3);setBlock(o,'oRB','',3,'passblock');o.primaryTarget='oSL';a.push(o);
  o=offense('Slant / Flat');
  setRoute(o,'oX','slant',1,true);setRoute(o,'oSL','flat',2);
@@ -973,10 +995,12 @@ function createOffensePresets(){
  setRoute(o,'oZ','corner',3);setRoute(o,'oRB','angle',5);o.primaryTarget='oSL';a.push(o);
  o=offense('HB Screen','screen');
  setRoute(o,'oX','go',4);setRoute(o,'oSL','in',3);setRoute(o,'oTE','curl',2);
+ setChipRelease(o,'oTE');
  setRoute(o,'oZ','go',5);setRoute(o,'oRB','swing',1,true);
  o.primaryTarget='oRB';o.throwAt=1.8;setBlock(o,'oLG','',-5,'passblock');a.push(o);
  o=offense('Play Action Cross','playaction');
  setRoute(o,'oX','post',3);setRoute(o,'oSL','drag',1,true);setRoute(o,'oTE','corner',2);
+ setChipRelease(o,'oTE');
  setRoute(o,'oZ','go',4);setBlock(o,'oRB','',3,'passblock');o.playActionFake=true;o.throwAt=3.4;o.primaryTarget='oSL';a.push(o);
  o=offense('Power Right','run');
  for(const id of ['oLT','oLG','oC','oRG','oRT'])setBlock(o,id,'',4,'runblock');
@@ -2324,7 +2348,8 @@ function run(){if(running)return;if(!campaign&&!pendingState&&stagedCpuKick&&!ma
   (sim.rushMoves?.length?'<div><b>PASS RUSH TECHNIQUE</b> · '+sim.rushMoves.map(m=>esc(`${m.t.toFixed(2)}s ${m.defender} ${m.move} vs ${m.blocker} — ${m.result} (${Math.round(m.chance*100)}% matchup estimate)`)).join('<br>')+'</div>':'')+
   (sim.stuntActions?.length?'<div><b>FRONT EXCHANGE</b> · '+sim.stuntActions.map(s=>esc(`${s.t.toFixed(2)}s ${s.penetrator} penetrates; ${s.looper} loops`)).join('<br>')+'</div>':'')+
   (sim.catchContests?.length?'<div><b>CATCH-POINT CONTEST</b> · '+sim.catchContests.map(c=>esc(`${c.t.toFixed(2)}s ${c.receiver} vs ${c.defender} — ${c.outcome}; receiver ${c.receiverDistance} yd, defender ${c.defenderDistance} yd; catch estimate ${Math.round(c.catchChance*100)}%, disruption ${Math.round(c.disruptionChance*100)}%`)).join('<br>')+'</div>':'')+
-  (sim.blockingActions?.length?'<div><b>OFFENSIVE LINE COMBOS</b> · '+sim.blockingActions.map(a=>esc(`${a.t.toFixed(2)}s ${a.blockers.join(' + ')} help on ${a.defender}`)).join('<br>')+'</div>':'')+
+  (sim.blockingActions?.some(a=>a.kind==='combo')?'<div><b>OFFENSIVE LINE COMBOS</b> · '+sim.blockingActions.filter(a=>a.kind==='combo').map(a=>esc(`${a.t.toFixed(2)}s ${a.blockers.join(' + ')} help on ${a.defender}`)).join('<br>')+'</div>':'')+
+  (sim.blockingActions?.some(a=>a.kind==='chip-release')?'<div><b>TIGHT END CHIP / RELEASE</b> · '+sim.blockingActions.filter(a=>a.kind==='chip-release').map(a=>esc(`${a.t.toFixed(2)}s ${a.blocker} ${a.phase==='chip'?'chips':'releases from'} ${a.defender}`)).join('<br>')+'</div>':'')+
   (sim.result.loose?'<div><b>LOOSE BALL</b> · '+esc(sim.result.loose.kind==='backwardPass'?'Backward pass':'Fumble')+'; '+esc(gameRuling?.call||sim.result.verdict)+'</div>':'')+
   (gameRuling?.fouls?.length?'<div><b>OFFICIALS</b> · '+gameRuling.fouls.map(f=>esc(`${f.code} ${f.player} at ${f.time.toFixed(2)}s, +${f.spotY.toFixed(1)} yd — ${f.evidence}`)).join('<br>')+'</div>':'')+
   (gameRuling?.injuries?.length?'<div><b>MEDICAL / SUBSTITUTIONS</b> · '+gameRuling.injuries.map(i=>esc(`${i.at.toFixed(2)}s ${i.name} (${i.team.toUpperCase()} ${i.label}) — ${i.mechanism}; ${i.status==='out'?'out for game':i.status==='limited'?'at least five downs':'at least one down'}`)).join('<br>')+'</div>':'');

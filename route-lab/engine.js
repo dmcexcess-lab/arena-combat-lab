@@ -171,7 +171,8 @@ function pursuitTarget(defender,runner){
 function simulate(off,def,seed=71){
  const v=validate(off,def); if(!v.valid)return {valid:false,validation:v,frames:[],events:[]};
  const rand=rng(seed), looseRand=rng(((Number(seed)||71)^0x8b21d5f3)>>>0), blockRand=rng(((Number(seed)||71)^0x52e9146b)>>>0), dt=.05, maxT=20;
- const o=clone(off.players).map(p=>({...p,side:'o',homeX:p.x,vx:0,vy:0,fatigue:clamp(Number(p.fatigue)||0,0,.8),tackleCooldown:0,routeIndex:0,pressResolved:false,pressSlowUntil:0,engaged:false,speed:(p.speed??1)*(.96+rand()*.08)}));
+ const o=clone(off.players).map(p=>({...p,side:'o',homeX:p.x,vx:0,vy:0,fatigue:clamp(Number(p.fatigue)||0,0,.8),tackleCooldown:0,routeIndex:0,pressResolved:false,pressSlowUntil:0,engaged:false,
+  chipRelease:!!p.chipRelease,chipStarted:0,chipEngagedAt:null,routeJob:p.job,job:p.chipRelease?'chiprelease':p.job,speed:(p.speed??1)*(.96+rand()*.08)}));
  const d=clone(def.players).map(p=>({...p,side:'d',homeY:p.y,vx:0,vy:0,fatigue:clamp(Number(p.fatigue)||0,0,.8),tackleCooldown:0,engaged:false,speed:(p.speed??1)*(.94+rand()*.12)}));
  const byId=(id)=>o.find(p=>p.id===id), defenders=(id)=>d.find(p=>p.id===id);
  const qb=byId(off.snapToId||'oQB')||o.find(p=>p.label==='QB'), runner=byId(off.runnerId)||qb;
@@ -265,6 +266,21 @@ function simulate(off,def,seed=71){
       move(p,{x:fake.x??qb.x+2,y:fake.y??-1.2},dt,speedOf(p)*.8,14);continue;
     }
     if(state==='runafter'&&p===carrier)continue;
+    if(p.chipRelease&&p.job==='chiprelease'){
+      const edgeThreat=nearest(p,d,a=>['rush','blitz','contain'].includes(a.job)&&a.y>-.5&&a.y<5&&Math.abs(a.x-p.x)<6);
+      if(t>=.35&&(p.chipEngagedAt!==null||t>=.8)){
+        p.job=p.routeJob||'route';p.chipRelease=false;
+        blockingActions.push({t:+t.toFixed(2),kind:'chip-release',blocker:p.label,defender:p.chipDefenderLabel||edgeThreat.agent?.label||'edge',phase:'release'});
+        log(t,p.label+' releases into '+(p.pattern||'route')+' after chip help');
+      }else if(edgeThreat.agent){
+        p.blockTarget=edgeThreat.agent.id;p.chipDefenderLabel=edgeThreat.agent.label;
+        move(p,{x:edgeThreat.agent.x,y:edgeThreat.agent.y-1.05},dt,speedOf(p)*.64,18);
+        continue;
+      }else{
+        // A quick shoulder check still costs time even when the edge is clear.
+        move(p,{x:p.x,y:p.y+.45},dt,speedOf(p)*.48,12);continue;
+      }
+    }
     if(state==='runafter'&&['route','release'].includes(p.job)&&dist(p,carrier)<8){
       const help=nearest(p,d,a=>dist(a,carrier)<7);
       if(help.agent&&help.d<5){p.supportBlock=true;p.supportTarget=help.agent.id;
@@ -523,13 +539,17 @@ function simulate(off,def,seed=71){
     else if(p.job==='deep')move(p,{x:p.zone?.x??p.x,y:p.zone?.y??18},dt,speedOf(p)*.7);
   }
   // Blocking contacts: delay / deflect rushers; the pressure model uses assignments and matchups.
-  for(const blocker of state==='loose'?[]:o.filter(p=>p.supportBlock||['passblock','runblock','block','pull'].includes(p.job))){
+  for(const blocker of state==='loose'?[]:o.filter(p=>p.supportBlock||['passblock','runblock','block','pull','chiprelease'].includes(p.job))){
     let enemy=defenders(blocker.supportBlock?blocker.supportTarget:blocker.blockTarget);
     if(enemy&&enemy.blockShedUntil>t)enemy=null;
     if(!enemy)enemy=nearest(blocker,d,a=>(a.blockShedUntil||0)<=t&&(blocker.supportBlock?dist(a,carrier)<7:
       ['rush','blitz','contain','runfit'].includes(a.job)&&!a.engaged)).agent;
     if(enemy&&dist(blocker,enemy)<2.15){
       blocker.engaged=enemy.engaged=true;
+      if(blocker.job==='chiprelease'&&blocker.chipEngagedAt===null){
+        blocker.chipEngagedAt=t;blockingActions.push({t:+t.toFixed(2),kind:'chip-release',blocker:blocker.label,defender:enemy.label,phase:'chip'});
+        log(t,blocker.label+' chips '+enemy.label+' at the edge');
+      }
       const pair=blocker.id+':'+enemy.id;
       if(!blockContacts.has(pair)){blockContacts.add(pair);contacts.push({t:+t.toFixed(2),kind:'block',offenseId:blocker.id,defenseId:enemy.id,relativeSpeed:+Math.hypot(blocker.vx-enemy.vx,blocker.vy-enemy.vy).toFixed(2),support:!!blocker.supportBlock,offenseY:+blocker.y.toFixed(2),defenseY:+enemy.y.toFixed(2),defenseVy:+enemy.vy.toFixed(2)});}
       const block=statsOf(blocker),rush=statsOf(enemy);
