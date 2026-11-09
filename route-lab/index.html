@@ -360,6 +360,13 @@ function simulate(off,def,seed=71){
   // Route pursuit with waypoints. A hot route is a read priority, not a speed boost.
   for(const p of o){
     if(state==='loose'){move(p,ball,dt,speedOf(p)*(.76+statsOf(p).awareness/420),18);continue;}
+    const screen=off.screen;
+    const screenTarget=screen&&targetPass?.id===screen.receiverId&&flight&&flight.to.y<=.15;
+    if(screenTarget&&screen.blockerIds?.includes(p.id)&&!p.screenReleased){
+      p.screenReleased=true;p.job='screenblock';p.blockTarget=null;
+      blockingActions.push({t:+t.toFixed(2),kind:'screen-release',blocker:p.label,receiver:byId(screen.receiverId)?.label||'back'});
+      log(t,p.label+' releases downfield after the screen pass is thrown behind the line');
+    }
     if(state==='return'){
       move(p,pursuitTarget(p,carrier),dt,speedOf(p)*.9,15);
       continue;
@@ -448,6 +455,19 @@ function simulate(off,def,seed=71){
           goal={x:clamp(goal.x+(p.x<=ahead.agent.x?-avoid:avoid),-26.5,26.5),y:goal.y};}
         move(p,goal,dt,speedOf(p),18);
       } else if(isRun&&handoff&&carrier===qb){move(p,{x:qb.x,y:qb.y+1.4},dt,speedOf(p)*.48,12);}
+    }else if(p.job==='screenblock'){
+      const screenBack=byId(off.screen?.receiverId);
+      if(!screenBack){continue;}
+      // Read pursuit in the screen lane and lead the catch point. Linemen
+      // only release after the ball is committed to a target behind the LOS.
+      const lead={x:clamp(screenBack.x+(p.homeX??p.x)*.18,-25,25),y:screenBack.y+2.1};
+      const threat=nearest(lead,d,a=>a.y>=screenBack.y-.8&&a.y<screenBack.y+7&&Math.abs(a.x-lead.x)<6.5&&['runfit','blitz','rush','contain','man','zone'].includes(a.job));
+      if(threat.agent&&threat.d<7){
+        p.blockTarget=threat.agent.id;p.blockedDefenderId=threat.agent.id;
+        move(p,{x:threat.agent.x,y:threat.agent.y-1.05},dt,speedOf(p)*.68,18);
+      }else{
+        p.blockTarget=null;p.blockedDefenderId=null;move(p,lead,dt,speedOf(p)*.72,18);
+      }
     }else if(p.job==='passblock'||p.job==='runblock'||p.job==='block'){
       let target=defenders(p.blockTarget);
       if(!target){
@@ -644,7 +664,7 @@ function simulate(off,def,seed=71){
     else if(p.job==='deep')move(p,{x:p.zone?.x??p.x,y:p.zone?.y??18},dt,speedOf(p)*.7);
   }
   // Blocking contacts: delay / deflect rushers; the pressure model uses assignments and matchups.
-  for(const blocker of state==='loose'?[]:o.filter(p=>p.supportBlock||['passblock','runblock','block','pull','chiprelease'].includes(p.job))){
+  for(const blocker of state==='loose'?[]:o.filter(p=>p.supportBlock||['passblock','runblock','block','pull','chiprelease','screenblock'].includes(p.job))){
     let enemy=defenders(blocker.supportBlock?blocker.supportTarget:blocker.blockTarget);
     if(enemy&&enemy.blockShedUntil>t)enemy=null;
     if(!enemy)enemy=nearest(blocker,d,a=>(a.blockShedUntil||0)<=t&&(blocker.supportBlock?dist(a,carrier)<7:
@@ -657,6 +677,7 @@ function simulate(off,def,seed=71){
       }
       const pair=blocker.id+':'+enemy.id;
       if(!blockContacts.has(pair)){blockContacts.add(pair);contacts.push({t:+t.toFixed(2),kind:'block',offenseId:blocker.id,defenseId:enemy.id,relativeSpeed:+Math.hypot(blocker.vx-enemy.vx,blocker.vy-enemy.vy).toFixed(2),support:!!blocker.supportBlock,offenseY:+blocker.y.toFixed(2),defenseY:+enemy.y.toFixed(2),defenseVy:+enemy.vy.toFixed(2)});}
+      if(blocker.job==='screenblock'&&!blocker.screenContactReported){blocker.screenContactReported=true;blockingActions.push({t:+t.toFixed(2),kind:'screen-contact',blocker:blocker.label,defender:enemy.label});log(t,blocker.label+' engages '+enemy.label+' in the screen lane');}
       const block=statsOf(blocker),rush=statsOf(enemy);
       const duel=blockDuels.get(pair)||{time:0,shedChecked:false};duel.time+=dt;blockDuels.set(pair,duel);
       const aimedGap=off.runGapX??0,gapSide=Math.sign(aimedGap-blocker.x),rushSide=Math.sign(enemy.x-blocker.x);
@@ -773,7 +794,7 @@ function simulate(off,def,seed=71){
           (urgency?Math.max(0,depth-12)*.055:0)+
           (rand()-.5)*(.9-statsOf(qb).awareness*.005);
         return {r,predict,risk,separation,lane,depth,score:value,open:cushion};
-      }).filter(a=>a.predict.y>-.2).sort((a,b)=>b.score-a.score);
+      }).filter(a=>a.predict.y>-.2||(off.screen&&a.r.id===off.screen.receiverId&&a.predict.y>-9)).sort((a,b)=>b.score-a.score);
       // Softmax within a credible read window. A different seed can produce a
       // different defensible choice while clear, low-risk winners stay favored.
       const progression=graded.slice().sort((a,b)=>(Number(a.r.read)||3)-(Number(b.r.read)||3)||Number(b.r.hot)-Number(a.r.hot));
@@ -1050,7 +1071,8 @@ function createOffensePresets(){
  setRoute(o,'oX','go',4);setRoute(o,'oSL','in',3);setRoute(o,'oTE','curl',2);
  setChipRelease(o,'oTE');
  setRoute(o,'oZ','go',5);setRoute(o,'oRB','swing',1,true);
- o.primaryTarget='oRB';o.throwAt=1.8;setBlock(o,'oLG','',-5,'passblock');a.push(o);
+ o.primaryTarget='oRB';o.throwAt=1.8;setBlock(o,'oLG','',-5,'passblock');
+ o.screen={receiverId:'oRB',blockerIds:['oLT','oLG','oC','oRG','oRT'],releaseAfterThrow:true};a.push(o);
  o=offense('Play Action Cross','playaction');
  setRoute(o,'oX','post',3);setRoute(o,'oSL','drag',1,true);setRoute(o,'oTE','corner',2);
  setChipRelease(o,'oTE');
@@ -2403,6 +2425,7 @@ function run(){if(running)return;if(!campaign&&!pendingState&&stagedCpuKick&&!ma
   (sim.catchContests?.length?'<div><b>CATCH-POINT CONTEST</b> · '+sim.catchContests.map(c=>esc(`${c.t.toFixed(2)}s ${c.receiver} vs ${c.defender} — ${c.outcome}; receiver ${c.receiverDistance} yd, defender ${c.defenderDistance} yd; catch estimate ${Math.round(c.catchChance*100)}%, disruption ${Math.round(c.disruptionChance*100)}%`)).join('<br>')+'</div>':'')+
   (sim.blockingActions?.some(a=>a.kind==='combo')?'<div><b>OFFENSIVE LINE COMBOS</b> · '+sim.blockingActions.filter(a=>a.kind==='combo').map(a=>esc(`${a.t.toFixed(2)}s ${a.blockers.join(' + ')} help on ${a.defender}`)).join('<br>')+'</div>':'')+
   (sim.blockingActions?.some(a=>a.kind==='chip-release')?'<div><b>TIGHT END CHIP / RELEASE</b> · '+sim.blockingActions.filter(a=>a.kind==='chip-release').map(a=>esc(`${a.t.toFixed(2)}s ${a.blocker} ${a.phase==='chip'?'chips':'releases from'} ${a.defender}`)).join('<br>')+'</div>':'')+
+  (sim.blockingActions?.some(a=>a.kind==='screen-release'||a.kind==='screen-contact')?'<div><b>SCREEN RELEASE / BLOCKS</b> · '+sim.blockingActions.filter(a=>a.kind==='screen-release'||a.kind==='screen-contact').map(a=>esc(`${a.t.toFixed(2)}s ${a.kind==='screen-release'?`${a.blocker} releases for ${a.receiver}`:`${a.blocker} engages ${a.defender}`}`)).join('<br>')+'</div>':'')+
   (sim.result.loose?'<div><b>LOOSE BALL</b> · '+esc(sim.result.loose.kind==='backwardPass'?'Backward pass':'Fumble')+'; '+esc(gameRuling?.call||sim.result.verdict)+'</div>':'')+
   (gameRuling?.fouls?.length?'<div><b>OFFICIALS</b> · '+gameRuling.fouls.map(f=>esc(`${f.code} ${f.player} at ${f.time.toFixed(2)}s, +${f.spotY.toFixed(1)} yd — ${f.evidence}`)).join('<br>')+'</div>':'')+
   (gameRuling?.injuries?.length?'<div><b>MEDICAL / SUBSTITUTIONS</b> · '+gameRuling.injuries.map(i=>esc(`${i.at.toFixed(2)}s ${i.name} (${i.team.toUpperCase()} ${i.label}) — ${i.mechanism}; ${i.status==='out'?'out for game':i.status==='limited'?'at least five downs':'at least one down'}`)).join('<br>')+'</div>':'');

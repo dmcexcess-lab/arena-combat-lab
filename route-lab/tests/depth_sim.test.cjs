@@ -96,6 +96,20 @@ test('overlapping match zones assign an in-zone route to only one defender',()=>
  assert.deepEqual(C.simulate(base,shell,55),sim,'route distribution remains deterministic');
 });
 
+test('HB screen linemen release only after a behind-line throw and pursue the catch lane deterministically',()=>{
+ const off=P.createOffensePresets().find(p=>p.name==='HB Screen'),def=P.createDefensePresets()[0];
+ off.training=true;off.trainingVirtualSnap=true;
+ off.players=off.players.filter(p=>['oQB','oRB','oLT','oLG','oC','oRG','oRT'].includes(p.id));
+ def.players=def.players.filter(p=>p.id==='dM');def.players[0].job='runfit';def.players[0].x=4;def.players[0].y=2;
+ const a=C.simulate(off,def,71),b=C.simulate(off,def,71);
+ assert.ok(a.valid&&a.decisions.some(d=>d.action==='pass'&&d.targetId==='oRB'));
+ const releases=a.blockingActions.filter(x=>x.kind==='screen-release');
+ assert.ok(releases.length>0,'screen report should show linemen releasing after the throw');
+ assert.ok(releases.every(x=>x.t>=a.decisions.find(d=>d.action==='pass'&&d.targetId==='oRB').t),'screen blocking must release after the QB throws');
+ assert.ok(a.blockingActions.some(x=>x.kind==='screen-contact'),'screen engagements should be reported when pursuit reaches a released blocker');
+ assert.deepEqual(b,a,'screen release and blocking remain seed-reproducible');
+});
+
 test('match coverage hands a route to the next zone defender and reports the exchange',()=>{
  const base=P.createOffensePresets()[0];base.training=true;base.trainingVirtualSnap=true;base.type='pass';
  base.players=base.players.filter(p=>['oQB','oX'].includes(p.id));

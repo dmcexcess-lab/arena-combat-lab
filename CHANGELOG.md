@@ -1,3 +1,7 @@
+# 2026-11-08 — Route Lab HB Screen release timing
+- HB Screen can target its back behind the line of scrimmage. The offensive line stays in pass protection until the screen throw, then releases toward pursuit in the catch lane and records actual engagements.
+- The play report now shows screen releases and contacts; a fixed-seed regression checks a thrown screen, post-throw release timing, pursuit contact and replay determinism.
+
 ## 2026-11-08 — Route Lab game correctness slice one
 - Rejected false starts and offside calls now advance a game-state attempt seed, so retrying the same snap cannot deterministically repeat the same pre-snap event.
 - Defensive fumble recoveries use the return tackle path without re-entering the offensive runner tackle code; the recovered defender can no longer be recorded as tackling itself.

@@ -63,7 +63,8 @@ function createOffensePresets(){
  setRoute(o,'oX','go',4);setRoute(o,'oSL','in',3);setRoute(o,'oTE','curl',2);
  setChipRelease(o,'oTE');
  setRoute(o,'oZ','go',5);setRoute(o,'oRB','swing',1,true);
- o.primaryTarget='oRB';o.throwAt=1.8;setBlock(o,'oLG','',-5,'passblock');a.push(o);
+ o.primaryTarget='oRB';o.throwAt=1.8;setBlock(o,'oLG','',-5,'passblock');
+ o.screen={receiverId:'oRB',blockerIds:['oLT','oLG','oC','oRG','oRT'],releaseAfterThrow:true};a.push(o);
  o=offense('Play Action Cross','playaction');
  setRoute(o,'oX','post',3);setRoute(o,'oSL','drag',1,true);setRoute(o,'oTE','corner',2);
  setChipRelease(o,'oTE');

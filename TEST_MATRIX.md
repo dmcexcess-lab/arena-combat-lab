@@ -244,3 +244,8 @@ Operational checklist for humans + AIs. Keep compact; add only behaviors whose r
 - A defender holding outside the run fit produces a handoff; a defender committed into the fit produces a QB pull and a pass only to the designed glance receiver.
 - RPO read choice, report fields, player movement, and throw remain deterministic for a repeated seed; invalid key/route assignments are rejected.
 - The hosted play report describes the read and chosen answer, and `index.html` embeds the maintained simulator modules exactly.
+
+## Route Lab HB Screen release timing
+- A behind-the-line throw to the HB triggers five OL releases only after the pass decision; actual contact in the catch lane appears in the blocking report.
+- The same screen, defender alignment, and seed reproduce the read, release timing, movement, and contact report.
+- The screen-specific target can be evaluated behind the LOS; the hosted report identifies releases and screen engagements.

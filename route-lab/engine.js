@@ -264,6 +264,13 @@ function simulate(off,def,seed=71){
   // Route pursuit with waypoints. A hot route is a read priority, not a speed boost.
   for(const p of o){
     if(state==='loose'){move(p,ball,dt,speedOf(p)*(.76+statsOf(p).awareness/420),18);continue;}
+    const screen=off.screen;
+    const screenTarget=screen&&targetPass?.id===screen.receiverId&&flight&&flight.to.y<=.15;
+    if(screenTarget&&screen.blockerIds?.includes(p.id)&&!p.screenReleased){
+      p.screenReleased=true;p.job='screenblock';p.blockTarget=null;
+      blockingActions.push({t:+t.toFixed(2),kind:'screen-release',blocker:p.label,receiver:byId(screen.receiverId)?.label||'back'});
+      log(t,p.label+' releases downfield after the screen pass is thrown behind the line');
+    }
     if(state==='return'){
       move(p,pursuitTarget(p,carrier),dt,speedOf(p)*.9,15);
       continue;
@@ -352,6 +359,19 @@ function simulate(off,def,seed=71){
           goal={x:clamp(goal.x+(p.x<=ahead.agent.x?-avoid:avoid),-26.5,26.5),y:goal.y};}
         move(p,goal,dt,speedOf(p),18);
       } else if(isRun&&handoff&&carrier===qb){move(p,{x:qb.x,y:qb.y+1.4},dt,speedOf(p)*.48,12);}
+    }else if(p.job==='screenblock'){
+      const screenBack=byId(off.screen?.receiverId);
+      if(!screenBack){continue;}
+      // Read pursuit in the screen lane and lead the catch point. Linemen
+      // only release after the ball is committed to a target behind the LOS.
+      const lead={x:clamp(screenBack.x+(p.homeX??p.x)*.18,-25,25),y:screenBack.y+2.1};
+      const threat=nearest(lead,d,a=>a.y>=screenBack.y-.8&&a.y<screenBack.y+7&&Math.abs(a.x-lead.x)<6.5&&['runfit','blitz','rush','contain','man','zone'].includes(a.job));
+      if(threat.agent&&threat.d<7){
+        p.blockTarget=threat.agent.id;p.blockedDefenderId=threat.agent.id;
+        move(p,{x:threat.agent.x,y:threat.agent.y-1.05},dt,speedOf(p)*.68,18);
+      }else{
+        p.blockTarget=null;p.blockedDefenderId=null;move(p,lead,dt,speedOf(p)*.72,18);
+      }
     }else if(p.job==='passblock'||p.job==='runblock'||p.job==='block'){
       let target=defenders(p.blockTarget);
       if(!target){
@@ -548,7 +568,7 @@ function simulate(off,def,seed=71){
     else if(p.job==='deep')move(p,{x:p.zone?.x??p.x,y:p.zone?.y??18},dt,speedOf(p)*.7);
   }
   // Blocking contacts: delay / deflect rushers; the pressure model uses assignments and matchups.
-  for(const blocker of state==='loose'?[]:o.filter(p=>p.supportBlock||['passblock','runblock','block','pull','chiprelease'].includes(p.job))){
+  for(const blocker of state==='loose'?[]:o.filter(p=>p.supportBlock||['passblock','runblock','block','pull','chiprelease','screenblock'].includes(p.job))){
     let enemy=defenders(blocker.supportBlock?blocker.supportTarget:blocker.blockTarget);
     if(enemy&&enemy.blockShedUntil>t)enemy=null;
     if(!enemy)enemy=nearest(blocker,d,a=>(a.blockShedUntil||0)<=t&&(blocker.supportBlock?dist(a,carrier)<7:
@@ -561,6 +581,7 @@ function simulate(off,def,seed=71){
       }
       const pair=blocker.id+':'+enemy.id;
       if(!blockContacts.has(pair)){blockContacts.add(pair);contacts.push({t:+t.toFixed(2),kind:'block',offenseId:blocker.id,defenseId:enemy.id,relativeSpeed:+Math.hypot(blocker.vx-enemy.vx,blocker.vy-enemy.vy).toFixed(2),support:!!blocker.supportBlock,offenseY:+blocker.y.toFixed(2),defenseY:+enemy.y.toFixed(2),defenseVy:+enemy.vy.toFixed(2)});}
+      if(blocker.job==='screenblock'&&!blocker.screenContactReported){blocker.screenContactReported=true;blockingActions.push({t:+t.toFixed(2),kind:'screen-contact',blocker:blocker.label,defender:enemy.label});log(t,blocker.label+' engages '+enemy.label+' in the screen lane');}
       const block=statsOf(blocker),rush=statsOf(enemy);
       const duel=blockDuels.get(pair)||{time:0,shedChecked:false};duel.time+=dt;blockDuels.set(pair,duel);
       const aimedGap=off.runGapX??0,gapSide=Math.sign(aimedGap-blocker.x),rushSide=Math.sign(enemy.x-blocker.x);
@@ -677,7 +698,7 @@ function simulate(off,def,seed=71){
           (urgency?Math.max(0,depth-12)*.055:0)+
           (rand()-.5)*(.9-statsOf(qb).awareness*.005);
         return {r,predict,risk,separation,lane,depth,score:value,open:cushion};
-      }).filter(a=>a.predict.y>-.2).sort((a,b)=>b.score-a.score);
+      }).filter(a=>a.predict.y>-.2||(off.screen&&a.r.id===off.screen.receiverId&&a.predict.y>-9)).sort((a,b)=>b.score-a.score);
       // Softmax within a credible read window. A different seed can produce a
       // different defensible choice while clear, low-risk winners stay favored.
       const progression=graded.slice().sort((a,b)=>(Number(a.r.read)||3)-(Number(b.r.read)||3)||Number(b.r.hot)-Number(a.r.hot));
