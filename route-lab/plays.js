@@ -120,7 +120,7 @@ function createDefensePresets(){
  d.players[6].label='NB';d.players[6].x=14;d.players[6].y=9;
  zone(d.players[4],-7,9,8,7);zone(d.players[5],1,10,8,8);zone(d.players[6],16,7,9,7);
  zone(d.players[7],-18,19,10,13);zone(d.players[8],18,19,10,13);
- zone(d.players[9],0,22,13,12);zone(d.players[10],-15,7,8,6);a.push(d);
+ zone(d.players[9],0,22,13,12);zone(d.players[10],-15,7,8,6);d.coverageScheme='cover3';a.push(d);
  d=defense('Cover 1 Man');
  man(d.players[4],'oRB');man(d.players[5],'oTE');man(d.players[6],'oSL');
  man(d.players[7],'oX');man(d.players[8],'oZ');zone(d.players[9],0,23,18,14);
@@ -147,7 +147,7 @@ function createDefensePresets(){
  d.players[4].job='blitz';d.players[4].x=-10;d.players[4].y=3;
  zone(d.players[5],-4,10,9);zone(d.players[6],7,10,9);zone(d.players[3],13,7,8);
  zone(d.players[7],-19,18,11,13);zone(d.players[8],19,18,11,13);
- zone(d.players[9],0,22,14,13);zone(d.players[10],-11,7,9);a.push(d);
+ zone(d.players[9],0,22,14,13);zone(d.players[10],-11,7,9);d.coverageScheme='cover3';a.push(d);
  d=defense('Goal Line 6–2');
  d.players[4].job='rush';d.players[4].x=-9;d.players[4].y=1.8;
  d.players[6].job='rush';d.players[6].x=9;d.players[6].y=1.8;

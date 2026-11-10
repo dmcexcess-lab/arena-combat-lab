@@ -585,6 +585,25 @@ function simulate(off,def,seed=71){
         }
         p.safetyHelpReceiverId=null;
       }
+      const cover3DeepThird=def.coverageScheme==='cover3'&&z.y>=16;
+      if(cover3DeepThird&&state==='live'&&!handoff){
+        const centerThird=['FS','S'].includes(p.label),reach=centerThird?(z.r||10):(z.r||8)*.75;
+        const vertical=receivers.filter(r=>r.y>3&&r.vy>.35&&Math.max(r.y,...(r.route||[]).map(pt=>pt.y))>=z.y-1&&Math.abs((r.homeX??r.x)-z.x)<=reach)
+          .sort((a,b)=>dist(a,z)-dist(b,z)||b.y-a.y);
+        const threat=vertical[0];
+        if(threat){
+          if(p.cover3ThirdReceiverId!==threat.id){
+            p.cover3ThirdReceiverId=threat.id;
+            const role=centerThird?'Cover 3 middle third':'Cover 3 outside third';
+            const read={t:+t.toFixed(2),defenderId:p.id,defender:p.label,receiverId:threat.id,receiver:threat.label,role,decision:'carries vertical in deep third',depth:+threat.y.toFixed(1)};
+            coverageReads.push(read);log(t,p.label+' carries '+threat.label+' through the deep third');
+          }
+          const target={x:clamp(threat.x+threat.vx*.3,z.x-(z.r||8),z.x+(z.r||8)),
+            y:clamp(Math.max(z.y-1,threat.y+2.1),z.y-4,z.y+9)};
+          move(p,target,dt,speedOf(p)*clamp(.85+statsOf(p).awareness/500+statsOf(p).coverage/520,.94,1.18));continue;
+        }
+        p.cover3ThirdReceiverId=null;
+      }
       const threats=receivers.filter(r=>dist(r,z)<(z.r||7)*1.6);
       const nearestThreat=nearest(z,threats);
       let lead=p.zoneTechnique==='match'?zoneMatchLeads.get(p.id)||null:
