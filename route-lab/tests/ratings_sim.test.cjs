@@ -54,6 +54,32 @@ test('pass protection assigns linemen by lane and honors an explicit blocker tar
   'the play caller target takes precedence over the automatic lane read');
 });
 
+test('the offensive line passes off the Cover 0 twist using awareness-based communication',()=>{
+ const off=C.clone(P.createOffensePresets().find(play=>play.name==='Shotgun Mesh'));
+ const def=C.clone(P.createDefensePresets().find(play=>play.name==='Cover 0 Blitz'));
+ const sample=C.simulate(off,def,71),repeat=C.simulate(off,def,71);
+ assert.ok(sample.valid);
+ const exchange=sample.blockingActions.find(a=>a.kind==='stunt-passoff');
+ assert.ok(exchange,'the called loop must trigger a protection exchange');
+ assert.deepEqual([exchange.outsideBlocker,exchange.insideBlocker,exchange.penetrator,exchange.looper],['LT','LG','DE','DT']);
+ assert.ok(exchange.t>sample.stuntActions[0].t,'blockers react after the defense declares the twist');
+ assert.deepEqual(sample.blockAssignments.filter(a=>a.assignment==='stunt-passoff').map(a=>[a.blocker,a.defender,a.fromDefender]),[
+  ['LT','DT','DE'],['LG','DE','DT']
+ ]);
+ assert.deepEqual(C.simulate(off,def,71),repeat,'the protection exchange remains deterministic');
+
+ const low=C.clone(off),high=C.clone(off);
+ for(const id of ['oLT','oLG']){low.players.find(p=>p.id===id).stats={awareness:1};high.players.find(p=>p.id===id).stats={awareness:99};}
+ const lowExchange=C.simulate(low,def,71).blockingActions.find(a=>a.kind==='stunt-passoff');
+ const highExchange=C.simulate(high,def,71).blockingActions.find(a=>a.kind==='stunt-passoff');
+ assert.ok(lowExchange&&highExchange&&lowExchange.t>highExchange.t,'higher line awareness shortens the exchange delay');
+
+ const called=C.clone(off);called.players.find(p=>p.id==='oLT').blockTarget='dLE';
+ const calledResult=C.simulate(called,def,71);
+ assert.ok(!calledResult.blockingActions.some(a=>a.kind==='stunt-passoff'),
+  'a called blocker assignment suppresses the automatic exchange');
+});
+
 test('runner speed and vision affect the run while defender pursuit and tackling counter it',()=>{
  const off=P.createOffensePresets()[8],def=P.createDefensePresets()[0];
  const slow=C.clone(off),fast=C.clone(off),weak=C.clone(def),strong=C.clone(def);

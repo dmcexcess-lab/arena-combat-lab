@@ -188,7 +188,7 @@ function simulate(off,def,seed=71){
  let carrier=qb, state=usesSnap?'snap':'live', ball=usesSnap?{...snapFrom,kind:'snap'}:{x:qb.x,y:qb.y,kind:'held'}, targetPass=null,flight=null, thrown=false, handoff=false, playOver=false, verdict='', yards=0, time=0, sack=false,returnStartY=null,catchTime=-1;
  let snapProgress=0,handoffMissed=false,watchdog=null;
  let loose=null,looseResult=null,looseCount=0,lateralUsed=false,possessionChanged=false,interceptionY=null;
- const frames=[],events=[],decisions=[],qbReads=[],playActionReads=[],coverageReads=[],specialMoves=[],rushMoves=[],stuntActions=[],catchContests=[],blockingActions=[],blockAssignments=[],blockAssignmentById=new Map(),contacts=[],blockContacts=new Set(),blockDuels=new Map(),comboPairs=new Set(); const log=(t,text)=>events.push({t:+t.toFixed(2),text});
+ const frames=[],events=[],decisions=[],qbReads=[],playActionReads=[],coverageReads=[],specialMoves=[],rushMoves=[],stuntActions=[],catchContests=[],blockingActions=[],blockAssignments=[],blockAssignmentById=new Map(),stuntExchangePairs=new Set(),contacts=[],blockContacts=new Set(),blockDuels=new Map(),comboPairs=new Set(); const log=(t,text)=>events.push({t:+t.toFixed(2),text});
  const isRun=['run','option'].includes(off.type),directRun=isRun&&runner===qb,allowLoose=off.enableLooseBall===true&&!off.training&&!off.trainingVirtualSnap;
  let optionPass=false,optionResolved=false;
  const isPass=()=>!isRun||optionPass;
@@ -386,6 +386,40 @@ function simulate(off,def,seed=71){
         const inLane=edgeThreat||nearest(zone,d,a=>rushEligible(a)&&Math.abs(a.x-zone.x)<=laneRadius).agent;
         target=inLane||nearest(zone,d,rushEligible).agent;
       }
+      // When a twist crosses into adjacent protection lanes, pass the
+      // penetrator to the inside blocker and take the looper outside.
+      if(isPass()&&!isRun&&!p.blockTarget&&!p.stuntExchangeTargetId){
+        const blockers=o.filter(q=>linemen.has(q.label)&&q.job==='passblock');
+        for(const looper of d.filter(a=>a.stunt?.role==='loop'&&a.stuntReported)){
+          const penetrator=defenders(looper.stunt.partnerId);
+          if(!penetrator||penetrator.stunt?.role!=='penetrate')continue;
+          const penOwner=blockers.find(q=>blockAssignmentById.get(q.id)===penetrator.id);
+          const loopOwner=blockers.find(q=>blockAssignmentById.get(q.id)===looper.id);
+          if(!penOwner||!loopOwner||penOwner===loopOwner||penOwner.blockTarget||loopOwner.blockTarget||
+            Math.abs((penOwner.homeX??penOwner.x)-(loopOwner.homeX??loopOwner.x))>2.1)continue;
+          const lineAwareness=(statsOf(penOwner).awareness+statsOf(loopOwner).awareness)/2;
+          const responseDelay=clamp((85-lineAwareness)/160,0,.35);
+          if(t<(looper.stuntReportedAt??t)+responseDelay)continue;
+          const exchangeKey=[penetrator.id,looper.id].sort().join(':');
+          if(stuntExchangePairs.has(exchangeKey))continue;
+          penOwner.stuntExchangeTargetId=looper.id;loopOwner.stuntExchangeTargetId=penetrator.id;
+          const stamp=+t.toFixed(2),gapA=penOwner.blockGapX??penOwner.homeX??penOwner.x,gapB=loopOwner.blockGapX??loopOwner.homeX??loopOwner.x;
+          for(const [blocker,from,to,gap] of [[penOwner,penetrator,looper,gapA],[loopOwner,looper,penetrator,gapB]]){
+            blockAssignmentById.set(blocker.id,to.id);
+            blockAssignments.push({t:stamp,blockerId:blocker.id,blocker:blocker.label,defenderId:to.id,defender:to.label,
+              laneX:+gap.toFixed(1),assignment:'stunt-passoff',fromDefender:from.label,responseDelay:+responseDelay.toFixed(2)});
+          }
+          blockingActions.push({t:stamp,kind:'stunt-passoff',outsideBlocker:penOwner.label,insideBlocker:loopOwner.label,
+            looper:looper.label,penetrator:penetrator.label,lineAwareness:+lineAwareness.toFixed(1),responseDelay:+responseDelay.toFixed(2)});
+          stuntExchangePairs.add(exchangeKey);
+          log(t,penOwner.label+' passes '+penetrator.label+' inside to '+loopOwner.label+' and takes looping '+looper.label);
+          if(p===penOwner)target=looper;else if(p===loopOwner)target=penetrator;
+        }
+      }
+      if(p.stuntExchangeTargetId&&!p.blockTarget){
+        const exchanged=defenders(p.stuntExchangeTargetId);
+        if(exchanged)target=exchanged;
+      }
       if(target){
         const laneX=p.blockGapX??p.homeX??p.x;
         const previous=blockAssignmentById.get(p.id);
@@ -541,7 +575,7 @@ function simulate(off,def,seed=71){
           const crossed=partner.y>p.y+.15||t>=p.stunt.delay+.55;
           target=crossed?{x:p.stunt.aimX,y:qb.y+.7}:{x:p.x+(p.stunt.aimX-p.x)*.3,y:p.y+.5};
           pace*=crossed?1.03:.78;
-          if(crossed&&!p.stuntReported){p.stuntReported=true;stuntActions.push({t:+t.toFixed(2),penetrator:partner.label,looper:p.label});
+          if(crossed&&!p.stuntReported){p.stuntReported=true;p.stuntReportedAt=t;stuntActions.push({t:+t.toFixed(2),penetrator:partner.label,looper:p.label});
             log(t,partner.label+' penetrates inside; '+p.label+' loops outside on the stunt');}
         }
       }
