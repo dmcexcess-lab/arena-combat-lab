@@ -2187,7 +2187,7 @@ if(typeof module!=='undefined'&&module.exports)module.exports=root.RouteEncyclop
 'use strict';
 const C=window.GridironCore,P=window.GridironPlays,K=window.RouteCampaign,E=window.RouteEncyclopedia,G=window.RouteGame;
 const $=id=>document.getElementById(id),esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
-const W=1080,H=900,OX=540,OY=450,XS=18,YS=22.5;
+const W=1080,H=900,OX=540,YS=900/35,OY=25*YS,XS=18;
 let cameraY=0;
 const pos=(p)=>({x:OX+p.x*XS,y:OY-(p.y-cameraY)*YS}), world=(x,y)=>({x:C.clamp((x-OX)/XS,-26.6,26.6),y:C.clamp((OY-y)/YS+cameraY,-110,110)});
 const offPresets=P.createOffensePresets(),pitchBack=P.createPitchBack(),goalLinePower=P.createGoalLinePower(),defPresets=P.createDefensePresets();
@@ -2324,7 +2324,7 @@ function renderGrid(){const gridState=replayInProgress()?playStartState:(pending
 <marker id="arrowD" markerWidth="7" markerHeight="7" refX="5" refY="3" orient="auto"><path d="M0 0L6 3L0 6" fill="none" stroke="#ff8772" stroke-width="1.45"/></marker></defs>`;
  s+=`<rect x="0" y="0" width="1080" height="900" fill="url(#grass)"/><rect x="0" y="0" width="1080" height="900" fill="url(#speckle)"/><rect x="59" y="0" width="962" height="900" stroke="#7aad9d" stroke-opacity=".50" stroke-width="3" fill="none"/>`;
  for(const [a,b,label] of [[-yard-10,-yard,'OWN END ZONE'],[100-yard,110-yard,'END ZONE']]){const ya=pos({x:0,y:a}).y,yb=pos({x:0,y:b}).y,top=Math.max(0,Math.min(ya,yb)),bottom=Math.min(900,Math.max(ya,yb));if(bottom>top){s+=`<rect x="61" y="${top}" width="958" height="${bottom-top}" fill="#174c43" opacity=".9"/><text x="540" y="${(top+bottom)/2+7}" text-anchor="middle" fill="#c6e4d8" font-family="ui-monospace" font-size="18" font-weight="800" letter-spacing="5" opacity=".55">${label}</text>`;}}
- const first=Math.floor((cameraY-20)/5)*5,last=Math.ceil((cameraY+20)/5)*5;
+ const first=Math.floor((cameraY-10)/5)*5,last=Math.ceil((cameraY+25)/5)*5;
  for(let y=first;y<=last;y+=5){const py=pos({x:0,y}).y;if(py<0||py>900)continue;
   const fieldY=yard+y;
   s+=`<path d="M60 ${py}H1020" stroke="${y===0?'#ffd187':'#9dbdb3'}" stroke-width="${y===0?4:1.65}" stroke-opacity="${y===0?.95:.35}" ${y===0?'stroke-dasharray="10 6"':''}/>`;
@@ -2393,7 +2393,7 @@ function renderField(){
  renderOverview();
  const svg=$('field'),live=playback?.frames[frameIndex];
  const ballY=live?.ball?.y;
- cameraY=replayInProgress()&&Number.isFinite(ballY)?(ballY>18?ballY-18:ballY< -18?ballY+18:0):0;
+ cameraY=replayInProgress()&&Number.isFinite(ballY)?(ballY>20?ballY-20:ballY< -5?ballY+5:0):0;
  let s=renderGrid();const offCoords=new Map((live?.offense||[]).map(a=>[a.id,a]));const defCoords=new Map((live?.defense||[]).map(a=>[a.id,a]));
  const drawRoutes=$('routesToggle').checked&&!live;
  if(drawRoutes){for(const p of offensive.players){
