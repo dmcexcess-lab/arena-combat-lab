@@ -156,6 +156,30 @@ test('Cover 3 outside third carries a vertical receiver and reduces a seeded dee
  assert.ok(carried/count<baseline/count-3,`Cover 3 outside-third carry should reduce this fixed sample (${carried/count} vs ${baseline/count})`);
 });
 
+test('Cover 3 MLB passes the seam to the FS at the hook-to-deep boundary',()=>{
+ const off=C.clone(P.createOffensePresets().find(play=>play.name==='Four Verticals'));
+ off.training=true;off.trainingVirtualSnap=true;off.players=off.players.filter(p=>['oQB','oTE'].includes(p.id));
+ off.qbDropTime=4;off.throwAt=5.5;off.players.find(p=>p.id==='oQB').y=-6;
+ const te=off.players.find(p=>p.id==='oTE');te.x=0;te.y=0;te.route=[{x:0,y:8},{x:0,y:22},{x:0,y:30}];
+ const cover3=C.clone(P.createDefensePresets().find(play=>play.name==='Nickel Cover 3'));
+ cover3.players=cover3.players.filter(p=>['dM','dFS'].includes(p.id));
+ const spotDrop=C.clone(cover3);spotDrop.name='Cover 3 spot-drop comparison';delete spotDrop.coverageScheme;
+ const sample=C.simulate(off,cover3,71),comparison=C.simulate(off,spotDrop,71);assert.ok(sample.valid&&comparison.valid);
+ const carry=sample.coverageReads.findIndex(r=>r.defenderId==='dM'&&r.receiverId==='oTE'&&r.role==='Cover 3 hook seam');
+ const handoff=sample.coverageReads.findIndex(r=>r.defenderId==='dM'&&r.receiverId==='oTE'&&r.role==='Cover 3 seam exchange');
+ const deep=sample.coverageReads.findIndex(r=>r.defenderId==='dFS'&&r.receiverId==='oTE'&&r.role==='Cover 3 middle third');
+ assert.ok(carry>=0&&handoff>carry&&deep>handoff,'MLB must carry, hand off, then FS must assume the seam');
+ assert.equal(sample.coverageReads[handoff].decision,'passes vertical to FS in the deep middle');
+ assert.ok(sample.events.some(e=>e.text==='MLB passes TE up to the FS in the deep middle'));
+ assert.deepEqual(C.simulate(off,cover3,71),sample,'the seam exchange remains deterministic');
+ const frame=sample.frames.find(f=>f.t===3.2),receiver=frame.offense.find(p=>p.id==='oTE');
+ const gap=id=>{const defender=frame.defense.find(p=>p.id===id);return Math.hypot(defender.x-receiver.x,defender.y-receiver.y);};
+ assert.ok(gap('dFS')<gap('dM'),'the FS closes on the seam after the MLB passes it up');
+ const control= comparison.frames.find(f=>f.t===3).defense.find(p=>p.id==='dM');
+ const carried=sample.frames.find(f=>f.t===3).defense.find(p=>p.id==='dM');
+ assert.ok(carried.y>control.y+1,'the MLB carries the seam farther through the hook area than spot drop');
+});
+
 
 test('Quarters Match uses route ownership and reduces the seeded vertical-route gain sample',()=>{
  const off=P.createOffensePresets().find(play=>play.name==='Four Verticals');
