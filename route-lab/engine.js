@@ -567,6 +567,30 @@ function simulate(off,def,seed=71){
         }
         p.tampaSeamReceiverId=null;
       }
+      const cover3HookMike=def.coverageScheme==='cover3'&&p.label==='MLB'&&z.y<16&&Math.abs(z.x)<5;
+      if(cover3HookMike&&state==='live'&&!handoff){
+        const released=p.cover3SeamReleasedReceiverId&&receivers.find(r=>r.id===p.cover3SeamReleasedReceiverId);
+        if(released&&released.y>=z.y+4){move(p,z,dt,speedOf(p)*.92);continue;}
+        if(released)p.cover3SeamReleasedReceiverId=null;
+        const seam=receivers.filter(r=>r.y>3&&r.vy>.35&&Math.max(r.y,...(r.route||[]).map(pt=>pt.y))>=18&&Math.abs((r.homeX??r.x)-z.x)<=5)
+          .sort((a,b)=>dist(a,z)-dist(b,z)||b.y-a.y)[0];
+        if(seam){
+          if(seam.y>=z.y+4){
+            p.cover3SeamReleasedReceiverId=seam.id;
+            const read={t:+t.toFixed(2),defenderId:p.id,defender:p.label,receiverId:seam.id,receiver:seam.label,role:'Cover 3 seam exchange',decision:'passes vertical to FS in the deep middle',depth:+seam.y.toFixed(1)};
+            coverageReads.push(read);log(t,p.label+' passes '+seam.label+' up to the FS in the deep middle');
+            move(p,z,dt,speedOf(p)*.92);continue;
+          }
+          if(p.cover3HookReceiverId!==seam.id){
+            p.cover3HookReceiverId=seam.id;
+            const read={t:+t.toFixed(2),defenderId:p.id,defender:p.label,receiverId:seam.id,receiver:seam.label,role:'Cover 3 hook seam',decision:'carries inside vertical through hook zone',depth:+seam.y.toFixed(1)};
+            coverageReads.push(read);log(t,p.label+' carries '+seam.label+' through the hook zone');
+          }
+          const target={x:clamp(seam.x+seam.vx*.25,z.x-4,z.x+4),y:clamp(seam.y+1.15,z.y-5,z.y+4)};
+          move(p,target,dt,speedOf(p)*clamp(.84+statsOf(p).awareness/480+statsOf(p).coverage/520,.92,1.16));continue;
+        }
+        p.cover3HookReceiverId=null;
+      }
       const splitSafetyCall=['cover2','tampa2'].includes(def.coverageScheme)&&safety&&z.y>=16;
       if(splitSafetyCall&&state==='live'&&!handoff){
         const half=(p.homeX??p.x)<0?-1:1;
@@ -588,7 +612,7 @@ function simulate(off,def,seed=71){
       const cover3DeepThird=def.coverageScheme==='cover3'&&z.y>=16;
       if(cover3DeepThird&&state==='live'&&!handoff){
         const centerThird=['FS','S'].includes(p.label),reach=centerThird?(z.r||10):(z.r||8)*.75;
-        const vertical=receivers.filter(r=>r.y>3&&r.vy>.35&&Math.max(r.y,...(r.route||[]).map(pt=>pt.y))>=z.y-1&&Math.abs((r.homeX??r.x)-z.x)<=reach)
+        const vertical=receivers.filter(r=>r.y>3&&r.vy>.35&&(!centerThird||r.y>=z.y-7)&&Math.max(r.y,...(r.route||[]).map(pt=>pt.y))>=z.y-1&&Math.abs((r.homeX??r.x)-z.x)<=reach)
           .sort((a,b)=>dist(a,z)-dist(b,z)||b.y-a.y);
         const threat=vertical[0];
         if(threat){
