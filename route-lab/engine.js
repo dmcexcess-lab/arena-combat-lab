@@ -188,7 +188,7 @@ function simulate(off,def,seed=71){
  let carrier=qb, state=usesSnap?'snap':'live', ball=usesSnap?{...snapFrom,kind:'snap'}:{x:qb.x,y:qb.y,kind:'held'}, targetPass=null,flight=null, thrown=false, handoff=false, playOver=false, verdict='', yards=0, time=0, sack=false,returnStartY=null,catchTime=-1;
  let snapProgress=0,handoffMissed=false,watchdog=null;
  let loose=null,looseResult=null,looseCount=0,lateralUsed=false,possessionChanged=false,interceptionY=null;
- const frames=[],events=[],decisions=[],qbReads=[],playActionReads=[],coverageReads=[],specialMoves=[],rushMoves=[],stuntActions=[],catchContests=[],blockingActions=[],contacts=[],blockContacts=new Set(),blockDuels=new Map(),comboPairs=new Set(); const log=(t,text)=>events.push({t:+t.toFixed(2),text});
+ const frames=[],events=[],decisions=[],qbReads=[],playActionReads=[],coverageReads=[],specialMoves=[],rushMoves=[],stuntActions=[],catchContests=[],blockingActions=[],blockAssignments=[],blockAssignmentById=new Map(),contacts=[],blockContacts=new Set(),blockDuels=new Map(),comboPairs=new Set(); const log=(t,text)=>events.push({t:+t.toFixed(2),text});
  const isRun=['run','option'].includes(off.type),directRun=isRun&&runner===qb,allowLoose=off.enableLooseBall===true&&!off.training&&!off.trainingVirtualSnap;
  let optionPass=false,optionResolved=false;
  const isPass=()=>!isRun||optionPass;
@@ -375,8 +375,26 @@ function simulate(off,def,seed=71){
     }else if(p.job==='passblock'||p.job==='runblock'||p.job==='block'){
       let target=defenders(p.blockTarget);
       if(!target){
-        const zone={x:p.blockGapX??p.x, y:isRun?2.7:1.5};
-        target=nearest(zone,d,a=>a.job==='rush'||a.job==='blitz'||a.job==='contain'||(isRun&&a.y<5)).agent;
+        const zone={x:p.blockGapX??p.homeX??p.x, y:isRun?2.7:1.5};
+        const rushEligible=a=>a.job==='rush'||a.job==='blitz'||a.job==='contain'||(isRun&&a.y<5);
+        const tackleEdge=p.label==='LT'||p.label==='RT';
+        const edge=p.label==='LT'?-1:1;
+        const edgeThreat=tackleEdge?nearest(zone,d,a=>rushEligible(a)&&((a.x-zone.x)*edge>1.1)&&Math.abs(a.x-zone.x)<=5.2).agent:null;
+        const laneRadius=linemen.has(p.label)?2.35:5.5;
+        // Linemen own their nearest protection lane first. If it is uncovered,
+        // they can still help on the closest threat anywhere across the front.
+        const inLane=edgeThreat||nearest(zone,d,a=>rushEligible(a)&&Math.abs(a.x-zone.x)<=laneRadius).agent;
+        target=inLane||nearest(zone,d,rushEligible).agent;
+      }
+      if(target){
+        const laneX=p.blockGapX??p.homeX??p.x;
+        const previous=blockAssignmentById.get(p.id);
+        if(previous!==target.id){
+          blockAssignments.push({t:+t.toFixed(2),blockerId:p.id,blocker:p.label,defenderId:target.id,defender:target.label,
+            laneX:+laneX.toFixed(1),assignment:p.blockTarget?'called':'auto-lane'});
+          blockAssignmentById.set(p.id,target.id);
+          log(t,p.label+' sets protection on '+target.label+(p.blockTarget?'':' in the nearest lane'));
+        }
       }
       if(target){
         p.blockedDefenderId=target.id;
@@ -1008,7 +1026,7 @@ function simulate(off,def,seed=71){
   return {id:p.id,label:p.label,side:p.side,assignment:p.job,
    yardsMoved:+travelled.toFixed(1),contactSeconds:+engaged.toFixed(2),fatigue:+p.fatigue.toFixed(4)};
  });
- return {valid:!watchdog,validation:v,diagnostic:watchdog,frames,events,decisions,qbReads,playActionReads,coverageReads,specialMoves,rushMoves,stuntActions,catchContests,blockingActions,contacts,participation,result:{verdict,yards,seconds:+time.toFixed(2),seed,offense:off.name,defense:def.name,sack,completed:!watchdog,
+ return {valid:!watchdog,validation:v,diagnostic:watchdog,frames,events,decisions,qbReads,playActionReads,coverageReads,specialMoves,rushMoves,stuntActions,catchContests,blockingActions,blockAssignments,contacts,participation,result:{verdict,yards,seconds:+time.toFixed(2),seed,offense:off.name,defense:def.name,sack,completed:!watchdog,
   possession:carrier?.side==='d'||!carrier&&looseResult?.sourceSide==='d'?'defense':'offense',
   possessionChanged,interceptionY,deadBallY:+(ball?.y??carrier?.y??0).toFixed(2),loose:looseResult,
   returnYards:returnStartY===null?0:+(returnStartY-(carrier?.y??returnStartY)).toFixed(1)}};

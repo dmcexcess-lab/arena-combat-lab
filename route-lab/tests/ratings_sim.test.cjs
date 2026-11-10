@@ -36,6 +36,24 @@ test('same seed reproduces movement, energy, decisions, and outcome',()=>{
  assert.ok(a.frames.some(frame=>frame.offense.some(player=>player.energy<1)));
 });
 
+test('pass protection assigns linemen by lane and honors an explicit blocker target',()=>{
+ const off=C.clone(P.createOffensePresets().find(play=>play.name==='Shotgun Mesh'));
+ const def=C.clone(P.createDefensePresets().find(play=>play.name==='4–3 Cover 2'));
+ const sample=C.simulate(off,def,71),repeat=C.simulate(off,def,71);
+ assert.ok(sample.valid);
+ const initial=sample.blockAssignments.filter(a=>a.t===.05);
+ assert.deepEqual(initial.map(a=>[a.blocker,a.defender]),[
+  ['LT','DE'],['LG','DT'],['C','DT'],['RG','DT'],['RT','DE']
+ ]);
+ assert.ok(initial.every(a=>a.assignment==='auto-lane'));
+ assert.deepEqual(sample.blockAssignments,repeat.blockAssignments,'protection choices stay deterministic');
+
+ const called=C.clone(off);called.players.find(p=>p.id==='oRT').blockTarget='dDT1';
+ const calledResult=C.simulate(called,def,71);
+ assert.ok(calledResult.blockAssignments.some(a=>a.t===.05&&a.blocker==='RT'&&a.defenderId==='dDT1'&&a.assignment==='called'),
+  'the play caller target takes precedence over the automatic lane read');
+});
+
 test('runner speed and vision affect the run while defender pursuit and tackling counter it',()=>{
  const off=P.createOffensePresets()[8],def=P.createDefensePresets()[0];
  const slow=C.clone(off),fast=C.clone(off),weak=C.clone(def),strong=C.clone(def);
