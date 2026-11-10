@@ -2,9 +2,17 @@
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
 const Core = require('../engine.js'), Plays = require('../plays.js'), Camp = require('../campaign.js');
-test('all 88 sandbox matchups remain valid 11v11', () => {
-  const off=Plays.createOffensePresets(),def=Plays.createDefensePresets();
-  assert.equal(off.length,11);assert.equal(def.length,8);
+test('playbook picker has offense and defense tabs, formation tabs, and searchable play cards',()=>{
+ const fs=require('node:fs'),path=require('node:path'),html=fs.readFileSync(path.join(__dirname,'..','index.html'),'utf8');
+ for(const id of ['offPlaybookBtn','defPlaybookBtn','playbookDialog','playbookSideTabs','playbookSearch','playbookFormationTabs','playbookList'])assert.ok(html.includes('id="'+id+'"'),id);
+ assert.match(html,/Shotgun Trips/);assert.match(html,/Dime Prevent/);assert.match(html,/Goal Line Power O/);
+});
+test('all 756 formation playbook matchups remain valid 11v11', () => {
+  const off=[...Plays.createOffensePresets(),Plays.createPitchBack(),Plays.createGoalLinePower()],def=Plays.createDefensePresets();
+  assert.equal(off.length,36);assert.equal(def.length,21);
+  assert.equal(new Set(off.map(p=>p.id)).size,off.length);assert.equal(new Set(def.map(p=>p.id)).size,def.length);
+  assert.ok(off.every(p=>p.formation),'every offensive call is grouped into a formation tab');
+  assert.ok(def.every(p=>p.formation),'every defensive call is grouped into a formation tab');
   for(const o of off)for(const d of def)assert.equal(Core.validate(o,d).valid,true,o.name+' / '+d.name);
 });
 for(const side of ['offense','defense']){
