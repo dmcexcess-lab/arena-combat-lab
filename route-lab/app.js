@@ -2,8 +2,9 @@
 'use strict';
 const C=window.GridironCore,P=window.GridironPlays,K=window.RouteCampaign,E=window.RouteEncyclopedia,G=window.RouteGame;
 const $=id=>document.getElementById(id),esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
-const W=1080,H=900,OX=540,OY=745,XS=18,YS=15;
-const pos=(p)=>({x:OX+p.x*XS,y:OY-p.y*YS}), world=(x,y)=>({x:C.clamp((x-OX)/XS,-26.6,26.6),y:C.clamp((OY-y)/YS,-9.2,39.5)});
+const W=1080,H=900,OX=540,OY=450,XS=18,YS=16;
+let cameraY=0;
+const pos=(p)=>({x:OX+p.x*XS,y:OY-(p.y-cameraY)*YS}), world=(x,y)=>({x:C.clamp((x-OX)/XS,-26.6,26.6),y:C.clamp((OY-y)/YS+cameraY,-110,110)});
 const offPresets=P.createOffensePresets(),pitchBack=P.createPitchBack(),goalLinePower=P.createGoalLinePower(),defPresets=P.createDefensePresets();
 const initCustom=()=>{try{let v=JSON.parse(localStorage.getItem('route-lab-custom-v1')||'{"offense":[],"defense":[]}');return v&&Array.isArray(v.offense)&&Array.isArray(v.defense)?v:{offense:[],defense:[]};}catch{return {offense:[],defense:[]};}};
 const custom=initCustom();
@@ -136,13 +137,17 @@ function renderGrid(){const gridState=replayInProgress()?playStartState:(pending
 <marker id="arrowOff" markerWidth="7" markerHeight="7" refX="5" refY="3" orient="auto"><path d="M0 0L6 3L0 6" fill="none" stroke="#52e3d4" stroke-width="1.45"/></marker>
 <marker id="arrowHot" markerWidth="7" markerHeight="7" refX="5" refY="3" orient="auto"><path d="M0 0L6 3L0 6" fill="none" stroke="#ffcf69" stroke-width="1.45"/></marker>
 <marker id="arrowD" markerWidth="7" markerHeight="7" refX="5" refY="3" orient="auto"><path d="M0 0L6 3L0 6" fill="none" stroke="#ff8772" stroke-width="1.45"/></marker></defs>`;
- s+=`<rect x="0" y="0" width="1080" height="900" fill="url(#grass)"/><rect x="0" y="0" width="1080" height="900" fill="url(#speckle)"/><rect x="59" y="146" width="962" height="747" stroke="#7aad9d" stroke-opacity=".50" stroke-width="3" fill="none"/>`;
- for(let y=-5;y<=40;y+=5){const py=pos({x:0,y}).y;if(py<120||py>893)continue;
+ s+=`<rect x="0" y="0" width="1080" height="900" fill="url(#grass)"/><rect x="0" y="0" width="1080" height="900" fill="url(#speckle)"/><rect x="59" y="0" width="962" height="900" stroke="#7aad9d" stroke-opacity=".50" stroke-width="3" fill="none"/>`;
+ for(const [a,b,label] of [[-yard-10,-yard,'OWN END ZONE'],[100-yard,110-yard,'END ZONE']]){const ya=pos({x:0,y:a}).y,yb=pos({x:0,y:b}).y,top=Math.max(0,Math.min(ya,yb)),bottom=Math.min(900,Math.max(ya,yb));if(bottom>top){s+=`<rect x="61" y="${top}" width="958" height="${bottom-top}" fill="#174c43" opacity=".9"/><text x="540" y="${(top+bottom)/2+7}" text-anchor="middle" fill="#c6e4d8" font-family="ui-monospace" font-size="18" font-weight="800" letter-spacing="5" opacity=".55">${label}</text>`;}}
+ const first=Math.floor((cameraY-29)/5)*5,last=Math.ceil((cameraY+29)/5)*5;
+ for(let y=first;y<=last;y+=5){const py=pos({x:0,y}).y;if(py<0||py>900)continue;
+  const fieldY=yard+y;
   s+=`<path d="M60 ${py}H1020" stroke="${y===0?'#ffd187':'#9dbdb3'}" stroke-width="${y===0?4:1.65}" stroke-opacity="${y===0?.95:.35}" ${y===0?'stroke-dasharray="10 6"':''}/>`;
-  if(y!==0 && y!==40){s+=`<text x="77" y="${py-7}" fill="#8db3a6" font-size="19" font-family="ui-monospace" font-weight="700" opacity=".65">${Math.max(0,Math.min(100,yard+y))}</text><text x="1002" y="${py-7}" text-anchor="end" fill="#8db3a6" font-size="19" font-family="ui-monospace" font-weight="700" opacity=".65">${Math.max(0,Math.min(100,yard+y))}</text>`;}
+  const rounded=Math.round(fieldY),distance=Math.min(rounded,100-rounded);
+  if(y!==0&&rounded>=0&&rounded<=100&&rounded%10===0){const n=distance===50?'50':String(distance);s+=`<text x="77" y="${py-7}" fill="#b4cfc6" font-size="19" font-family="ui-monospace" font-weight="700" opacity=".85">${n}</text><text x="1002" y="${py-7}" text-anchor="end" fill="#b4cfc6" font-size="19" font-family="ui-monospace" font-weight="700" opacity=".85">${n}</text>`;}
  }
- for(let y=-5;y<=38;y++){const py=pos({x:0,y}).y;if(py<149||py>892)continue;for(const x of [OX-13.75*XS,OX+13.75*XS])s+=`<path d="M${x-7} ${py}h14" stroke="#aacbc0" opacity=".48" stroke-width="1.4"/>`;}
- s+=`<rect x="60" y="145" width="960" height="50" fill="#162e38" opacity=".8"/><text x="540" y="177" text-anchor="middle" fill="#b8ddd3" font-family="ui-monospace" font-weight="700" letter-spacing="7" font-size="16" opacity=".7">DOWNFIELD ↑</text>`;
+ for(let y=first;y<=last;y++){const py=pos({x:0,y}).y;if(py<0||py>900)continue;for(const x of [OX-13.75*XS,OX+13.75*XS])s+=`<path d="M${x-7} ${py}h14" stroke="#aacbc0" opacity=".48" stroke-width="1.4"/>`;}
+ s+=`<text x="540" y="28" text-anchor="middle" fill="#b8ddd3" font-family="ui-monospace" font-weight="700" letter-spacing="7" font-size="16" opacity=".7">DOWNFIELD ↑</text>`;
  const losState=gridState;s+=`<text x="540" y="${pos({x:0,y:0}).y-10}" text-anchor="middle" font-size="12" font-weight="800" letter-spacing="3" fill="#f9d597" opacity=".95">LINE OF SCRIMMAGE · ${campaign?Math.round(offensive.yardLine??50):esc(G.spotText(losState))}</text>`;
  if(gridState.phase==='scrimmage'){const gainY=Math.min(gridState.toGain,100-yard),gainPos=pos({x:0,y:gainY});if(gainPos.y>=146&&gainPos.y<=893)s+=`<path d="M60 ${gainPos.y}H1020" stroke="#6de4d0" stroke-width="4" stroke-dasharray="14 7"/><rect x="399" y="${gainPos.y-13}" width="282" height="20" rx="6" fill="#082a28" stroke="#6de4d0"/><text x="540" y="${gainPos.y+2}" text-anchor="middle" font-size="11" font-weight="900" letter-spacing="1.5" fill="#aaffef">LINE TO GAIN · ${Math.ceil(gridState.toGain)} YD</text>`;}
  if(!campaign&&!replayInProgress()){const b=pos({x:1.45,y:-.1});s+=`<g pointer-events="none" aria-label="Ball at ${esc(G.spotText(gridState))}"><ellipse cx="${b.x}" cy="${b.y}" rx="10" ry="6.2" transform="rotate(-20 ${b.x} ${b.y})" fill="#ffcf69" stroke="#fff0bd" stroke-width="1.8"/><path d="M${b.x-4} ${b.y}h8" stroke="#704a24" stroke-width="1.5"/></g>`;}
@@ -201,7 +206,9 @@ function renderCoachLayer(live,offCoords,defCoords){
 
 function renderField(){
  renderOverview();
- const svg=$('field');let s=renderGrid();const live=playback?.frames[frameIndex];const offCoords=new Map((live?.offense||[]).map(a=>[a.id,a]));const defCoords=new Map((live?.defense||[]).map(a=>[a.id,a]));
+ const svg=$('field'),live=playback?.frames[frameIndex];
+ cameraY=replayInProgress()&&Number.isFinite(live?.ball?.y)&&Math.abs(live.ball.y)>25?live.ball.y:0;
+ let s=renderGrid();const offCoords=new Map((live?.offense||[]).map(a=>[a.id,a]));const defCoords=new Map((live?.defense||[]).map(a=>[a.id,a]));
  const drawRoutes=$('routesToggle').checked&&!live;
  if(drawRoutes){for(const p of offensive.players){
    if((p.job==='route'||p.job==='carry'||p.job==='release'||p.job==='pull')&&p.route?.length){
