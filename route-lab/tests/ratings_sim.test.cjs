@@ -136,6 +136,26 @@ test('Tampa 2 middle linebacker carries the inside seam and reduces a seeded sea
  assert.ok(carried/count<baseline/count-3,`Tampa 2 seam help should reduce this fixed sample (${carried/count} vs ${baseline/count})`);
 });
 
+test('Cover 3 outside third carries a vertical receiver and reduces a seeded deep-route sample',()=>{
+ const off=C.clone(P.createOffensePresets().find(play=>play.name==='Four Verticals'));
+ off.training=true;off.trainingVirtualSnap=true;off.players=off.players.filter(p=>['oQB','oZ'].includes(p.id));
+ off.qbDropTime=2.4;off.throwAt=3.3;off.players.find(p=>p.id==='oQB').y=-6;
+ const z=off.players.find(p=>p.id==='oZ');z.x=19;z.y=-2;z.route=[{x:19,y:7},{x:19,y:23},{x:19,y:30}];
+ const cover3=C.clone(P.createDefensePresets().find(play=>play.name==='Nickel Cover 3'));
+ cover3.players=cover3.players.filter(p=>p.id==='dCB2');
+ const spotDrop=C.clone(cover3);spotDrop.name='Cover 3 spot-drop comparison';delete spotDrop.coverageScheme;
+ const sample=C.simulate(off,cover3,71),comparison=C.simulate(off,spotDrop,71);assert.ok(sample.valid&&comparison.valid);
+ assert.ok(sample.coverageReads.some(r=>r.defenderId==='dCB2'&&r.receiverId==='oZ'&&r.role==='Cover 3 outside third'&&r.decision==='carries vertical in deep third'));
+ assert.ok(sample.events.some(e=>e.text==='CB carries Z through the deep third'));
+ assert.deepEqual(C.simulate(off,cover3,71),sample,'deep-third carry remains deterministic');
+ let carried=0,baseline=0;const count=20;
+ for(let seed=1;seed<=count;seed++){
+  carried+=C.simulate(off,cover3,seed).result.yards;
+  baseline+=C.simulate(off,spotDrop,seed).result.yards;
+ }
+ assert.ok(carried/count<baseline/count-3,`Cover 3 outside-third carry should reduce this fixed sample (${carried/count} vs ${baseline/count})`);
+});
+
 
 test('Quarters Match uses route ownership and reduces the seeded vertical-route gain sample',()=>{
  const off=P.createOffensePresets().find(play=>play.name==='Four Verticals');
