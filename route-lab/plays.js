@@ -92,10 +92,54 @@ function createOffensePresets(){
  for(const id of ['oLT','oLG','oC','oRG','oRT'])setBlock(o,id,'',4,'runblock');
  setRoute(o,'oX','slant');setRoute(o,'oSL','slant');setRoute(o,'oTE','flat');setRoute(o,'oZ','go');
  runRoute(o,'oRB',[[2,-4],[2,1],[4,10],[6,25]]);o.runGapX=3;o.rpoReadId='dW';o.rpoReceiverId='oX';a.push(o);
+ a.forEach(q=>q.formation='Shotgun Doubles');
+ a.find(q=>q.name==='Trips Flood').formation='Shotgun Trips';
+ a.find(q=>q.name==='Empty Spacing').formation='Empty';
+ const slug=s=>s.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');
+ const align=(play,formation)=>{
+  const at=id=>play.players.find(q=>q.id===id);
+  if(formation==='Shotgun Trips')Object.assign(at('oSL'),{x:10,y:-2,onLine:false}),Object.assign(at('oZ'),{x:18,y:-2,onLine:false}),Object.assign(at('oTE'),{x:6.5,y:0,onLine:true});
+  else if(formation==='Shotgun Bunch')Object.assign(at('oSL'),{x:14,y:-1,onLine:false}),Object.assign(at('oZ'),{x:18,y:-2,onLine:false}),Object.assign(at('oTE'),{x:20,y:0,onLine:true});
+  else if(formation==='Pistol')Object.assign(at('oQB'),{y:-4}),Object.assign(at('oRB'),{x:0,y:-6});
+  else if(formation==='I-Formation')Object.assign(at('oQB'),{y:-2.5}),Object.assign(at('oRB'),{x:0,y:-6});
+  else if(formation==='Singleback')Object.assign(at('oQB'),{y:-4.5}),Object.assign(at('oRB'),{x:0,y:-6.5});
+  else if(formation==='Empty')Object.assign(at('oRB'),{x:-12,y:-2,job:'route'}),Object.assign(at('oSL'),{x:-5,y:-2}),Object.assign(at('oZ'),{x:10,y:-2});
+  else if(formation==='Goal Line'){
+   Object.assign(at('oX'),{x:-9,onLine:true,y:0});Object.assign(at('oZ'),{x:9,onLine:true,y:0});Object.assign(at('oTE'),{onLine:false,y:-1});
+   Object.assign(at('oQB'),{y:-2.5});Object.assign(at('oRB'),{x:0,y:-4.5});
+  }
+ };
+ const add=(name,source,formation,setup)=>{const play=COPY(a.find(q=>q.name===source));play.id='off-'+slug(name);play.name=name;play.formation=formation;align(play,formation);setup?.(play);a.push(play);return play;};
+ const route=(play,id,kind,read=3,hot=false)=>setRoute(play,id,kind,read,hot),block=(play,id,gap=3)=>setBlock(play,id,'',gap,'passblock');
+ // Common dropback concepts, grouped by the personnel picture shown in the playbook.
+ add('Quick Stick','Slant / Flat','Shotgun Doubles',q=>{route(q,'oX','go',4);route(q,'oSL','flat',1,true);route(q,'oTE','hitch',2);route(q,'oZ','go',3);block(q,'oRB');q.primaryTarget='oSL';q.throwAt=1.8;});
+ add('Drive Concept','Shotgun Mesh','Shotgun Doubles',q=>{route(q,'oX','dig',3);route(q,'oSL','shallow',1,true);route(q,'oTE','flat',2);route(q,'oZ','comeback',4);block(q,'oRB');q.primaryTarget='oSL';});
+ add('Smash','Slant / Flat','Shotgun Doubles',q=>{route(q,'oX','hitch',2);route(q,'oSL','corner',1,true);route(q,'oTE','curl',3);route(q,'oZ','go',4);block(q,'oRB');q.primaryTarget='oSL';});
+ add('Dagger','Four Verticals','Shotgun Doubles',q=>{route(q,'oX','dig',2);route(q,'oSL','go',1,true);route(q,'oTE','seam',3);route(q,'oZ','curl',4);block(q,'oRB');q.primaryTarget='oSL';});
+ add('Mesh Sit','Shotgun Mesh','Shotgun Doubles',q=>{route(q,'oX','drag',2);route(q,'oSL','shallow',1,true);route(q,'oTE','curl',3);route(q,'oZ','corner',4);block(q,'oRB');q.primaryTarget='oSL';});
+ add('Slot Fade','Four Verticals','Shotgun Doubles',q=>{route(q,'oX','comeback',4);route(q,'oSL','fade',1,true);route(q,'oTE','seam',2);route(q,'oZ','post',3);block(q,'oRB');q.primaryTarget='oSL';});
+ add('Levels','Shotgun Mesh','Shotgun Doubles',q=>{route(q,'oX','dig',3);route(q,'oSL','in',1,true);route(q,'oTE','seam',2);route(q,'oZ','comeback',4);block(q,'oRB');q.primaryTarget='oSL';});
+ add('Trips Sail','Trips Flood','Shotgun Trips',q=>{route(q,'oX','post',4);route(q,'oSL','flat',1,true);route(q,'oTE','corner',2);route(q,'oZ','go',3);block(q,'oRB');q.primaryTarget='oTE';});
+ add('Trips Stick','Trips Flood','Shotgun Trips',q=>{route(q,'oX','go',4);route(q,'oSL','hitch',1,true);route(q,'oTE','flat',2);route(q,'oZ','seam',3);block(q,'oRB');q.primaryTarget='oSL';q.throwAt=2;});
+ add('Trips Verticals','Four Verticals','Shotgun Trips',q=>{route(q,'oX','fade',4);route(q,'oSL','seam',1,true);route(q,'oTE','seam',2);route(q,'oZ','go',3);block(q,'oRB');q.primaryTarget='oSL';});
+ add('Trips Bubble','Slant / Flat','Shotgun Trips',q=>{route(q,'oX','slant',3);route(q,'oSL','bubble',1,true);route(q,'oTE','flat',2);route(q,'oZ','go',4);block(q,'oRB');q.primaryTarget='oSL';q.throwAt=1.7;});
+ add('Bunch Mesh','Shotgun Mesh','Shotgun Bunch',q=>{route(q,'oX','go',4);route(q,'oSL','shallow',1,true);route(q,'oTE','drag',2);route(q,'oZ','corner',3);block(q,'oRB');q.primaryTarget='oSL';});
+ add('Bunch Pivot','Slant / Flat','Shotgun Bunch',q=>{route(q,'oX','post',4);route(q,'oSL','out',1,true);route(q,'oTE','corner',2);route(q,'oZ','hitch',3);block(q,'oRB');q.primaryTarget='oSL';});
+ add('Bunch Flood','Trips Flood','Shotgun Bunch',q=>{route(q,'oX','dig',4);route(q,'oSL','flat',1,true);route(q,'oTE','out',2);route(q,'oZ','corner',3);block(q,'oRB');q.primaryTarget='oTE';});
+ // Backfield run families. Assignments and the carrier path are explicit simulation inputs.
+ add('Pistol Inside Zone','Inside Zone','Pistol',q=>{runRoute(q,'oRB',[[0,-3],[0,0],[1,5],[0,13],[0,25]]);q.runGapX=0;});
+ add('Pistol Read Option','RPO Glance','Pistol',q=>{runRoute(q,'oRB',[[1,-3],[1,0],[3,5],[5,13],[7,25]]);q.runGapX=3;q.rpoReadId='dS';q.rpoReceiverId='oX';});
+ add('I-Form Iso','Power Right','I-Formation',q=>{runRoute(q,'oRB',[[0,-3],[1,0],[2,5],[2,12],[2,23]]);q.runGapX=2;});
+ add('I-Form Counter','Power Right','I-Formation',q=>{runRoute(q,'oRB',[[0,-3],[0,0],[-3,2],[-5,7],[-5,18]]);q.runGapX=-5;const lg=q.players.find(p=>p.id==='oLG');lg.job='pull';lg.route=[{x:-2,y:-1},{x:-5,y:2},{x:-7,y:6}];});
+ add('Singleback Stretch','Outside Zone Left','Singleback',q=>{runRoute(q,'oRB',[[0,-3],[-3,0],[-7,4],[-11,11],[-14,25]]);q.runGapX=-9;});
+ add('Singleback Duo','Inside Zone','Singleback',q=>{runRoute(q,'oRB',[[0,-3],[0,0],[0,5],[1,12],[1,24]]);q.runGapX=1;});
+ add('HB Draw','HB Screen','Shotgun Doubles',q=>{q.type='run';q.screen=null;q.throwAt=null;for(const id of ['oLT','oLG','oC','oRG','oRT'])setBlock(q,id,'',3,'runblock');setBlock(q,'oTE','',5,'runblock');setBlock(q,'oSL','',5,'runblock');runRoute(q,'oRB',[[0,-5],[0,-1],[0,3],[1,10],[1,23]]);q.runGapX=1;});
+ add('QB Draw','Inside Zone','Empty',q=>{q.runnerId='oQB';q.allowScramble=false;runRoute(q,'oQB',[[0,-5],[0,-1],[0,4],[1,11],[1,23]]);for(const id of ['oLT','oLG','oC','oRG','oRT'])setBlock(q,id,'',2,'runblock');setBlock(q,'oTE','',4,'runblock');setBlock(q,'oRB','',2,'runblock');q.runGapX=1;});
+ add('Goal Line Power O','Inside Zone','Goal Line',q=>{for(const id of ['oLT','oLG','oC','oRG','oRT','oTE','oSL'])setBlock(q,id,'',0,'runblock');Object.assign(q.players.find(p=>p.id==='oX'),{x:-9,onLine:true});Object.assign(q.players.find(p=>p.id==='oZ'),{x:9,onLine:true});Object.assign(q.players.find(p=>p.id==='oQB'),{y:-2.5});Object.assign(q.players.find(p=>p.id==='oRB'),{x:0,y:-4.5});runRoute(q,'oRB',[[0,-3],[0,0],[0,3],[1,7],[1,10]]);q.runGapX=0;});
  return a;
 }
-function createPitchBack(){const o=COPY(createOffensePresets().find(play=>play.name==='Outside Zone Left'));o.id='off-pitch-back';o.name='Pitch Back';o.lateralToId='oQB';o.lateralAt=1.7;return o;}
-function createGoalLinePower(){const o=COPY(createOffensePresets().find(play=>play.name==='Inside Zone'));o.id='off-goal-line-power';o.name='Goal Line Power';o.runGapX=0;runRoute(o,'oRB',[[1,-3],[0,0],[0,2],[0,5],[0,9]]);return o;}
+function createPitchBack(){const o=COPY(createOffensePresets().find(play=>play.name==='Outside Zone Left'));o.id='off-pitch-back';o.name='Pitch Back';o.formation='Shotgun Doubles';o.lateralToId='oQB';o.lateralAt=1.7;return o;}
+function createGoalLinePower(){const o=COPY(createOffensePresets().find(play=>play.name==='Inside Zone'));o.id='off-goal-line-power';o.name='Goal Line Power';o.formation='Goal Line';o.runGapX=0;runRoute(o,'oRB',[[1,-3],[0,0],[0,2],[0,5],[0,9]]);return o;}
 function defense(name){
  const players=[
  p('dLE','DE',91,-5.8,1.4,false,'rush'),p('dDT1','DT',95,-1.8,1.4,false,'rush'),p('dDT2','DT',98,1.8,1.4,false,'rush'),p('dRE','DE',90,5.8,1.4,false,'rush'),
@@ -154,6 +198,22 @@ function createDefensePresets(){
  d.players[5].job='runfit';d.players[5].y=3;
  d.players[10].job='runfit';d.players[10].x=0;d.players[10].y=4;
  man(d.players[7],'oX');man(d.players[8],'oZ');zone(d.players[9],0,12,13,10);a.push(d);
+ a.forEach(q=>q.formation=q.name.includes('3–4')?'3-4':q.name.includes('Nickel')||q.name==='Quarters Match'?'Nickel':q.name.includes('Goal Line')?'Goal Line':'4-3');
+ const slug=s=>s.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');
+ const add=(name,source,formation,setup)=>{const play=COPY(a.find(q=>q.name===source));play.id='def-'+slug(name);play.name=name;play.formation=formation;setup?.(play);a.push(play);return play;};
+ add('4-3 Cover 2 Man','4–3 Cover 2','4-3',q=>{[4,5,6,7,8].forEach((i,j)=>man(q.players[i],['oRB','oTE','oSL','oX','oZ'][j]));zone(q.players[9],-12,20,12,12);zone(q.players[10],12,20,12,12);q.coverageScheme='cover2';});
+ add('4-3 Cover 3 Buzz','4–3 Cover 2','4-3',q=>{zone(q.players[4],-8,9,8);zone(q.players[5],0,11,8);zone(q.players[6],8,8,8);zone(q.players[7],-19,20,10,13);zone(q.players[8],19,20,10,13);zone(q.players[9],0,23,13,13);q.players[10].job='runfit';q.players[10].x=8;q.players[10].y=8;q.coverageScheme='cover3';});
+ add('Cover 1 Robber','Cover 1 Man','4-3',q=>{man(q.players[4],'oRB');man(q.players[5],'oTE');man(q.players[6],'oSL');man(q.players[7],'oX');man(q.players[8],'oZ');zone(q.players[9],0,23,17,14);zone(q.players[10],0,11,8,7);q.players[10].job='spy';});
+ add('Nickel Cover 3 Match','Nickel Cover 3','Nickel',q=>{for(const p of q.players)if(p.job==='zone')p.zoneTechnique='match';q.coverageScheme='cover3';});
+ add('Nickel Cover 2 Trap','4–3 Cover 2','Nickel',q=>{q.players[6].label='NB';q.players[6].x=14;q.players[6].y=7;zone(q.players[4],-8,9,8);zone(q.players[5],0,11,8);zone(q.players[6],13,8,9);zone(q.players[7],-19,6,8,7);zone(q.players[8],19,6,8,7);zone(q.players[9],-12,20,12,13);zone(q.players[10],12,20,12,13);q.coverageScheme='cover2';});
+ add('Nickel Double Mug','Cover 0 Blitz','Nickel',q=>{q.players[5].job='blitz';q.players[6].job='blitz';man(q.players[4],'oRB');man(q.players[7],'oX');man(q.players[8],'oZ');man(q.players[9],'oSL');man(q.players[10],'oTE');});
+ add('Nickel Cover 6','Nickel Cover 3','Nickel',q=>{zone(q.players[4],-8,9,8);zone(q.players[5],0,10,8);zone(q.players[6],9,8,8);zone(q.players[7],-19,6,8,7);zone(q.players[8],19,20,10,13);zone(q.players[9],-12,20,12,13);zone(q.players[10],12,20,12,13);q.coverageScheme='cover6';});
+ add('Dime Cover 2','4–3 Cover 2','Dime',q=>{q.players[4].label='NB';q.players[4].x=-8;q.players[4].y=7;q.players[6].label='DB';q.players[6].x=8;q.players[6].y=7;zone(q.players[4],-8,9,8);zone(q.players[5],0,11,8);zone(q.players[6],8,9,8);zone(q.players[7],-19,6,8,7);zone(q.players[8],19,6,8,7);zone(q.players[9],-12,20,12,13);zone(q.players[10],12,20,12,13);q.coverageScheme='cover2';});
+ add('Dime Prevent','Nickel Cover 3','Dime',q=>{q.players[4].label='NB';q.players[6].label='DB';zone(q.players[4],-8,13,10);zone(q.players[5],0,14,10);zone(q.players[6],8,13,10);zone(q.players[7],-19,23,11,14);zone(q.players[8],19,23,11,14);zone(q.players[9],-7,26,10,13);zone(q.players[10],7,26,10,13);});
+ add('3-4 Cover 2','3–4 Cover 3','3-4',q=>{zone(q.players[4],-9,9,8);zone(q.players[5],0,11,9);zone(q.players[6],9,9,8);zone(q.players[7],-19,6,8,7);zone(q.players[8],19,6,8,7);zone(q.players[9],-12,21,12,13);zone(q.players[10],12,21,12,13);q.coverageScheme='cover2';});
+ add('3-4 Fire Zone','3–4 Cover 3','3-4',q=>{q.players[4].job='blitz';zone(q.players[5],0,10,8);zone(q.players[6],8,9,8);zone(q.players[7],-19,18,10,13);zone(q.players[8],19,18,10,13);zone(q.players[9],0,23,13,13);});
+ add('3-4 Edge Blitz','3–4 Cover 3','3-4',q=>{q.players[3].job='blitz';q.players[4].job='blitz';man(q.players[5],'oRB');man(q.players[6],'oTE');man(q.players[7],'oX');man(q.players[8],'oZ');zone(q.players[9],0,22,13,13);q.players[10].job='spy';});
+ add('Goal Line 5-3 Run Blitz','Goal Line 6–2','Goal Line',q=>{q.players[0].x=-7;q.players[1].x=-3.5;q.players[2].x=0;q.players[3].x=3.5;q.players[4].x=7;q.players[0].job=q.players[1].job=q.players[3].job=q.players[4].job='rush';q.players[5].job='runfit';q.players[6].job='runfit';q.players[5].y=3;q.players[6].y=3;q.players[10].job='runfit';q.players[10].x=0;q.players[10].y=5;man(q.players[7],'oX');man(q.players[8],'oZ');zone(q.players[9],0,12,12,10);});
  return a;
 }
 const api={offense,defense,routeFrom,setRoute,setBlock,createOffensePresets,createPitchBack,createGoalLinePower,createDefensePresets};

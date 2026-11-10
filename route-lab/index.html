@@ -41,6 +41,10 @@ body.ency-open{overflow:hidden}.ency-overlay[hidden]{display:none}.ency-overlay{
 .start-window h1{font-size:clamp(26px,4vw,40px);margin:4px 0 10px;line-height:1.1}.start-window h2{margin:5px 0 12px}.start-window p{color:#bdd6d3;line-height:1.5}.start-actions,.setup-actions{display:flex;flex-wrap:wrap;gap:9px;margin-top:18px}.start-actions button,.setup-actions button{min-height:43px;padding:10px 18px;font-weight:800}.start-actions button:first-child,.setup-actions .primary{background:#216c5c;border-color:#70e5c3;color:#f3fffa}.start-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.start-grid label{display:flex;flex-direction:column;gap:5px;color:#d5e9e4;font-size:12px;font-weight:700}.start-grid input,.start-grid select{width:100%;padding:10px}.start-grid .wide{grid-column:1/-1}.coin-stage{display:flex;align-items:center;gap:28px;flex-wrap:wrap}.coin-token{width:124px;height:124px;border-radius:50%;display:grid;place-items:center;background:radial-gradient(circle at 35% 30%,#fff0b1,#bb7d2d 70%);box-shadow:inset 0 0 0 7px #f9d873,inset 0 0 0 11px #8f5c24,0 12px 30px #0008;color:#4c2f13;font:900 65px Georgia,serif;transform-style:preserve-3d}.coin-token.flipping{animation:coinflip 1.3s ease-in-out}@keyframes coinflip{0%{transform:rotateY(0) translateY(0)}50%{transform:rotateY(900deg) translateY(-45px)}100%{transform:rotateY(1800deg) translateY(0)}}.depth-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px 12px}.depth-row{display:grid;grid-template-columns:42px 1fr;gap:8px;align-items:center;font-size:12px}.depth-row select{min-width:0;width:100%;padding:7px}.start-window section h3{margin:20px 0 9px;color:#77e5c7}.start-note{font-size:12px;color:#9cb9b5}.start-window .color-preview{display:inline-block;width:18px;height:18px;border-radius:50%;background:var(--home-uniform,#41ded0);vertical-align:middle;margin-right:7px}body.start-open{overflow:hidden}@media(max-width:680px){.start-grid,.depth-grid{grid-template-columns:1fr}.start-window{padding:20px}.coin-token{width:90px;height:90px;font-size:48px}}
 .play-call-context{margin:-3px 0 12px;padding:9px 10px;border:1px solid #42645e;border-left:3px solid #66e7c9;border-radius:7px;background:#102a2c;color:#e2fff3;font:700 11px/1.55 ui-monospace,monospace}.play-call-context b{color:#ffe29a}.play-call-context small{color:#a9c7c1;font:10px/1.5 system-ui,sans-serif}
 .play-call-context{margin:-3px 0 12px;padding:9px 10px;border:1px solid #42645e;border-left:3px solid #66e7c9;border-radius:7px;background:#102a2c;color:#e2fff3;font:700 11px/1.55 ui-monospace,monospace}.play-call-context b{color:#ffe29a}.play-call-context small{color:#a9c7c1;font:10px/1.5 system-ui,sans-serif}
+
+.playbook-picker{width:100%;display:flex;align-items:center;justify-content:space-between;gap:10px;text-align:left;padding:11px 12px;background:#0b202b;border-color:#304953;min-height:56px}.playbook-picker>span{display:flex;flex-direction:column;gap:4px;min-width:0}.playbook-picker b{font-size:13px;color:#f1f8f5;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.playbook-picker small{font-size:10px;color:#9db5bb;font-weight:600;letter-spacing:.04em;text-transform:uppercase}.playbook-picker>strong{font-size:10px;white-space:nowrap;color:#73e5d7}.defense-picker>strong{color:#ff9e89}
+.playbook-dialog{width:min(880px,calc(100vw - 24px));max-width:none;max-height:calc(100dvh - 24px);padding:0;overflow:hidden;border:1px solid #3b625e;border-radius:16px;background:#0c1d28;color:var(--text);box-shadow:0 28px 90px #000b}.playbook-dialog::backdrop{background:#030a0fd9;backdrop-filter:blur(5px)}.playbook-window{display:flex;flex-direction:column;max-height:calc(100dvh - 26px);background:linear-gradient(145deg,#102632,#0a1824)}.playbook-header{display:flex;align-items:flex-start;justify-content:space-between;gap:18px;padding:22px 24px 15px!important;border:0!important;border-bottom:1px solid #263d49!important;background:transparent!important;position:static!important}.playbook-header h2{font-size:24px;margin:5px 0}.playbook-header p{font-size:12px;color:#a6bec1;margin:0}.playbook-close{width:37px;height:37px;padding:0;font-size:17px}.playbook-side-tabs{display:flex;gap:8px;padding:12px 24px 0}.playbook-side-tabs button{background:#0d202b}.playbook-side-tabs button.active[data-book-side=offense]{border-color:var(--cyan);color:#82f6e5;background:#153b3a}.playbook-side-tabs button.active[data-book-side=defense]{border-color:#ff8068;color:#ffb09e;background:#40282a}.playbook-search-label{padding:13px 24px 8px;margin:0}.playbook-search-label input{margin-top:6px;text-transform:none;letter-spacing:0}.playbook-formation-tabs{display:flex;gap:7px;padding:8px 24px 12px;overflow-x:auto;border-bottom:1px solid #243a45;scrollbar-width:thin}.playbook-formation-tabs button{white-space:nowrap;background:#10232e;border-radius:20px;padding:7px 12px;font-size:11px}.playbook-formation-tabs button.active{border-color:#60ddcb;background:#1a4943;color:#d8fff7}.playbook-list-head{display:flex;align-items:center;justify-content:space-between;padding:13px 24px 8px;color:#b4c9c8}.playbook-list-head span{font-size:11px;color:#89a5aa}.playbook-list{overflow:auto;padding:4px 24px 24px;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;min-height:180px}.playbook-card{display:flex;flex-direction:column;align-items:stretch;text-align:left;gap:6px;padding:12px 14px;background:#10232f;border-color:#2d4652;min-height:90px}.playbook-card:hover,.playbook-card.current{background:#173a3c;border-color:#54cfbd}.playbook-card.defense-card:hover,.playbook-card.defense-card.current{background:#3b292d;border-color:#ef8879}.playbook-card-head{display:flex;justify-content:space-between;gap:12px;align-items:center}.playbook-card-head b{font-size:13px}.playbook-card-head small{font-size:9px;letter-spacing:.08em;text-transform:uppercase;color:#73e5d7;white-space:nowrap}.defense-card .playbook-card-head small{color:#ff9e89}.playbook-card>span:last-child{font-size:11px;line-height:1.45;color:#a6bdc1;font-weight:500}.playbook-card em{font-style:normal;color:#f8d290;font-size:9px;text-transform:uppercase;letter-spacing:.08em}.playbook-empty{grid-column:1/-1;text-align:center;padding:30px;color:#9db5bb}
+@media(max-width:600px){.playbook-dialog{width:100vw;max-height:100dvh;height:100dvh;border-radius:0;border-left:0;border-right:0}.playbook-window{max-height:100dvh;height:100dvh}.playbook-header{padding:18px 16px 12px!important}.playbook-header h2{font-size:21px}.playbook-side-tabs,.playbook-formation-tabs{padding-left:16px;padding-right:16px}.playbook-search-label{padding:12px 16px 6px}.playbook-list-head{padding-left:16px;padding-right:16px}.playbook-list{padding:4px 16px 20px;grid-template-columns:1fr;gap:7px}.playbook-card{min-height:78px}}
 </style></head>
 <body><div id="startupFallback" role="alert" style="padding:13px 17px;background:#382821;color:#ffe3b7;border-bottom:2px solid #d69e47;font:600 14px/1.5 system-ui,sans-serif;position:relative;z-index:20">The game has not started. If you opened this attachment in an iPhone Files or ChatGPT preview, that viewer may block JavaScript. Open this HTML in a full browser or use a hosted link. The plays and players are inside this file, but require JavaScript to load.</div><div class="app">
 <header><div class="mark">X/O</div><div class="brand"><b>ROUTE LAB</b><small>FOOTBALL TACTICS SANDBOX</small></div><div class="header-right"><span class="release">11v11 • NFL-STYLE • BUILD 0.1</span><button id="encyBtn" aria-haspopup="dialog">ENCYCLOPEDIA ↗</button><button class="linkish" id="helpBtn">HOW TO USE ?</button></div></header>
@@ -61,8 +65,8 @@ body.ency-open{overflow:hidden}.ency-overlay[hidden]{display:none}.ency-overlay{
 <div class="workspace">
 <aside class="pane left-pane">
  <section class="sec full"><div class="section-title"><h3>Matchup</h3><span class="micro">Any play vs. any play</span></div>
- <div class="field-select"><label class="field-label"><span class="label-row"><i class="dot off"></i>OFFENSIVE PLAY</span><span class="x">O</span></label><select id="offPreset"></select></div>
- <div class="field-select"><label class="field-label"><span class="label-row"><i class="dot def"></i>DEFENSIVE PLAY</span><span class="o">X</span></label><select id="defPreset"></select></div>
+ <div class="field-select"><label class="field-label"><span class="label-row"><i class="dot off"></i>OFFENSIVE PLAY</span><span class="x">O</span></label><select id="offPreset" hidden aria-hidden="true" tabindex="-1"></select><button id="offPlaybookBtn" class="playbook-picker offense-picker" type="button" aria-haspopup="dialog"><span><b id="offPlayName">Choose offense</b><small id="offPlayFormation">Formation playbook</small></span><strong>Change ▾</strong></button></div>
+ <div class="field-select"><label class="field-label"><span class="label-row"><i class="dot def"></i>DEFENSIVE PLAY</span><span class="o">X</span></label><select id="defPreset" hidden aria-hidden="true" tabindex="-1"></select><button id="defPlaybookBtn" class="playbook-picker defense-picker" type="button" aria-haspopup="dialog"><span><b id="defPlayName">Choose defense</b><small id="defPlayFormation">Formation playbook</small></span><strong>Change ▾</strong></button></div>
  <div id="playCallContext" class="play-call-context" aria-live="polite">Choose a play for this matchup.</div>
  <div class="field-select"><label class="field-label" for="lateralTarget">DESIGNED BACKWARD PASS</label><select id="lateralTarget"><option value="">None</option></select><label class="field-label" for="lateralAt">Release after snap (seconds)</label><input id="lateralAt" type="number" min="0.7" max="9" step="0.1" value="1.7"><p class="help">The carrier pitches only if the chosen teammate is behind the ball at release. Either team can recover a loose pitch.</p></div>
  <div class="row"><button id="saveBtn">Save custom</button><button id="exportBtn" class="btn-ghost">Export ↗</button></div><div class="row" style="margin-top:7px"><button id="importBtn" class="btn-ghost">Import JSON</button><button id="resetBtn" class="btn-ghost">Reset play</button></div><input style="display:none" type="file" accept=".json,application/json" id="importFile"></section>
@@ -88,6 +92,16 @@ body.ency-open{overflow:hidden}.ency-overlay[hidden]{display:none}.ency-overlay{
 </main>
 <aside class="pane inspector" id="inspector"></aside>
 </div></div>
+<dialog id="playbookDialog" class="playbook-dialog" aria-labelledby="playbookTitle">
+ <div class="playbook-window">
+  <header class="playbook-header"><div><span id="playbookKicker" class="eyebrow">OFFENSE PLAYBOOK</span><h2 id="playbookTitle">Choose a play</h2><p id="playbookSubtitle">Pick a formation, then select a call.</p></div><button id="playbookClose" class="playbook-close" type="button" aria-label="Close playbook">✕</button></header>
+  <div class="playbook-side-tabs" role="tablist" aria-label="Offense or defense playbook"><button type="button" data-book-side="offense" role="tab">Offense · O</button><button type="button" data-book-side="defense" role="tab">Defense · X</button></div>
+  <label class="playbook-search-label" for="playbookSearch">Search plays<input id="playbookSearch" type="search" placeholder="Try Mesh, Cover 3, Counter…" autocomplete="off"></label>
+  <div id="playbookFormationTabs" class="playbook-formation-tabs" role="tablist" aria-label="Formations"></div>
+  <div class="playbook-list-head"><b id="playbookListTitle">Available plays</b><span id="playbookCount"></span></div>
+  <div id="playbookList" class="playbook-list" role="tabpanel"></div>
+ </div>
+</dialog>
 <div class="ency-overlay" id="encyOverlay" hidden role="presentation"><div class="ency-window" role="dialog" aria-modal="true" aria-labelledby="encyHeading">
 <div class="ency-head"><h2 id="encyHeading">Football Encyclopedia</h2><button id="encyClose" aria-label="Close encyclopedia">×</button></div>
 <div class="ency-searchbox"><input id="encySearch" type="search" placeholder="Search rules, routes, positions, concepts…" aria-label="Search football encyclopedia"><span id="encyCount"></span></div>
@@ -1259,10 +1273,54 @@ function createOffensePresets(){
  for(const id of ['oLT','oLG','oC','oRG','oRT'])setBlock(o,id,'',4,'runblock');
  setRoute(o,'oX','slant');setRoute(o,'oSL','slant');setRoute(o,'oTE','flat');setRoute(o,'oZ','go');
  runRoute(o,'oRB',[[2,-4],[2,1],[4,10],[6,25]]);o.runGapX=3;o.rpoReadId='dW';o.rpoReceiverId='oX';a.push(o);
+ a.forEach(q=>q.formation='Shotgun Doubles');
+ a.find(q=>q.name==='Trips Flood').formation='Shotgun Trips';
+ a.find(q=>q.name==='Empty Spacing').formation='Empty';
+ const slug=s=>s.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');
+ const align=(play,formation)=>{
+  const at=id=>play.players.find(q=>q.id===id);
+  if(formation==='Shotgun Trips')Object.assign(at('oSL'),{x:10,y:-2,onLine:false}),Object.assign(at('oZ'),{x:18,y:-2,onLine:false}),Object.assign(at('oTE'),{x:6.5,y:0,onLine:true});
+  else if(formation==='Shotgun Bunch')Object.assign(at('oSL'),{x:14,y:-1,onLine:false}),Object.assign(at('oZ'),{x:18,y:-2,onLine:false}),Object.assign(at('oTE'),{x:20,y:0,onLine:true});
+  else if(formation==='Pistol')Object.assign(at('oQB'),{y:-4}),Object.assign(at('oRB'),{x:0,y:-6});
+  else if(formation==='I-Formation')Object.assign(at('oQB'),{y:-2.5}),Object.assign(at('oRB'),{x:0,y:-6});
+  else if(formation==='Singleback')Object.assign(at('oQB'),{y:-4.5}),Object.assign(at('oRB'),{x:0,y:-6.5});
+  else if(formation==='Empty')Object.assign(at('oRB'),{x:-12,y:-2,job:'route'}),Object.assign(at('oSL'),{x:-5,y:-2}),Object.assign(at('oZ'),{x:10,y:-2});
+  else if(formation==='Goal Line'){
+   Object.assign(at('oX'),{x:-9,onLine:true,y:0});Object.assign(at('oZ'),{x:9,onLine:true,y:0});Object.assign(at('oTE'),{onLine:false,y:-1});
+   Object.assign(at('oQB'),{y:-2.5});Object.assign(at('oRB'),{x:0,y:-4.5});
+  }
+ };
+ const add=(name,source,formation,setup)=>{const play=COPY(a.find(q=>q.name===source));play.id='off-'+slug(name);play.name=name;play.formation=formation;align(play,formation);setup?.(play);a.push(play);return play;};
+ const route=(play,id,kind,read=3,hot=false)=>setRoute(play,id,kind,read,hot),block=(play,id,gap=3)=>setBlock(play,id,'',gap,'passblock');
+ // Common dropback concepts, grouped by the personnel picture shown in the playbook.
+ add('Quick Stick','Slant / Flat','Shotgun Doubles',q=>{route(q,'oX','go',4);route(q,'oSL','flat',1,true);route(q,'oTE','hitch',2);route(q,'oZ','go',3);block(q,'oRB');q.primaryTarget='oSL';q.throwAt=1.8;});
+ add('Drive Concept','Shotgun Mesh','Shotgun Doubles',q=>{route(q,'oX','dig',3);route(q,'oSL','shallow',1,true);route(q,'oTE','flat',2);route(q,'oZ','comeback',4);block(q,'oRB');q.primaryTarget='oSL';});
+ add('Smash','Slant / Flat','Shotgun Doubles',q=>{route(q,'oX','hitch',2);route(q,'oSL','corner',1,true);route(q,'oTE','curl',3);route(q,'oZ','go',4);block(q,'oRB');q.primaryTarget='oSL';});
+ add('Dagger','Four Verticals','Shotgun Doubles',q=>{route(q,'oX','dig',2);route(q,'oSL','go',1,true);route(q,'oTE','seam',3);route(q,'oZ','curl',4);block(q,'oRB');q.primaryTarget='oSL';});
+ add('Mesh Sit','Shotgun Mesh','Shotgun Doubles',q=>{route(q,'oX','drag',2);route(q,'oSL','shallow',1,true);route(q,'oTE','curl',3);route(q,'oZ','corner',4);block(q,'oRB');q.primaryTarget='oSL';});
+ add('Slot Fade','Four Verticals','Shotgun Doubles',q=>{route(q,'oX','comeback',4);route(q,'oSL','fade',1,true);route(q,'oTE','seam',2);route(q,'oZ','post',3);block(q,'oRB');q.primaryTarget='oSL';});
+ add('Levels','Shotgun Mesh','Shotgun Doubles',q=>{route(q,'oX','dig',3);route(q,'oSL','in',1,true);route(q,'oTE','seam',2);route(q,'oZ','comeback',4);block(q,'oRB');q.primaryTarget='oSL';});
+ add('Trips Sail','Trips Flood','Shotgun Trips',q=>{route(q,'oX','post',4);route(q,'oSL','flat',1,true);route(q,'oTE','corner',2);route(q,'oZ','go',3);block(q,'oRB');q.primaryTarget='oTE';});
+ add('Trips Stick','Trips Flood','Shotgun Trips',q=>{route(q,'oX','go',4);route(q,'oSL','hitch',1,true);route(q,'oTE','flat',2);route(q,'oZ','seam',3);block(q,'oRB');q.primaryTarget='oSL';q.throwAt=2;});
+ add('Trips Verticals','Four Verticals','Shotgun Trips',q=>{route(q,'oX','fade',4);route(q,'oSL','seam',1,true);route(q,'oTE','seam',2);route(q,'oZ','go',3);block(q,'oRB');q.primaryTarget='oSL';});
+ add('Trips Bubble','Slant / Flat','Shotgun Trips',q=>{route(q,'oX','slant',3);route(q,'oSL','bubble',1,true);route(q,'oTE','flat',2);route(q,'oZ','go',4);block(q,'oRB');q.primaryTarget='oSL';q.throwAt=1.7;});
+ add('Bunch Mesh','Shotgun Mesh','Shotgun Bunch',q=>{route(q,'oX','go',4);route(q,'oSL','shallow',1,true);route(q,'oTE','drag',2);route(q,'oZ','corner',3);block(q,'oRB');q.primaryTarget='oSL';});
+ add('Bunch Pivot','Slant / Flat','Shotgun Bunch',q=>{route(q,'oX','post',4);route(q,'oSL','out',1,true);route(q,'oTE','corner',2);route(q,'oZ','hitch',3);block(q,'oRB');q.primaryTarget='oSL';});
+ add('Bunch Flood','Trips Flood','Shotgun Bunch',q=>{route(q,'oX','dig',4);route(q,'oSL','flat',1,true);route(q,'oTE','out',2);route(q,'oZ','corner',3);block(q,'oRB');q.primaryTarget='oTE';});
+ // Backfield run families. Assignments and the carrier path are explicit simulation inputs.
+ add('Pistol Inside Zone','Inside Zone','Pistol',q=>{runRoute(q,'oRB',[[0,-3],[0,0],[1,5],[0,13],[0,25]]);q.runGapX=0;});
+ add('Pistol Read Option','RPO Glance','Pistol',q=>{runRoute(q,'oRB',[[1,-3],[1,0],[3,5],[5,13],[7,25]]);q.runGapX=3;q.rpoReadId='dS';q.rpoReceiverId='oX';});
+ add('I-Form Iso','Power Right','I-Formation',q=>{runRoute(q,'oRB',[[0,-3],[1,0],[2,5],[2,12],[2,23]]);q.runGapX=2;});
+ add('I-Form Counter','Power Right','I-Formation',q=>{runRoute(q,'oRB',[[0,-3],[0,0],[-3,2],[-5,7],[-5,18]]);q.runGapX=-5;const lg=q.players.find(p=>p.id==='oLG');lg.job='pull';lg.route=[{x:-2,y:-1},{x:-5,y:2},{x:-7,y:6}];});
+ add('Singleback Stretch','Outside Zone Left','Singleback',q=>{runRoute(q,'oRB',[[0,-3],[-3,0],[-7,4],[-11,11],[-14,25]]);q.runGapX=-9;});
+ add('Singleback Duo','Inside Zone','Singleback',q=>{runRoute(q,'oRB',[[0,-3],[0,0],[0,5],[1,12],[1,24]]);q.runGapX=1;});
+ add('HB Draw','HB Screen','Shotgun Doubles',q=>{q.type='run';q.screen=null;q.throwAt=null;for(const id of ['oLT','oLG','oC','oRG','oRT'])setBlock(q,id,'',3,'runblock');setBlock(q,'oTE','',5,'runblock');setBlock(q,'oSL','',5,'runblock');runRoute(q,'oRB',[[0,-5],[0,-1],[0,3],[1,10],[1,23]]);q.runGapX=1;});
+ add('QB Draw','Inside Zone','Empty',q=>{q.runnerId='oQB';q.allowScramble=false;runRoute(q,'oQB',[[0,-5],[0,-1],[0,4],[1,11],[1,23]]);for(const id of ['oLT','oLG','oC','oRG','oRT'])setBlock(q,id,'',2,'runblock');setBlock(q,'oTE','',4,'runblock');setBlock(q,'oRB','',2,'runblock');q.runGapX=1;});
+ add('Goal Line Power O','Inside Zone','Goal Line',q=>{for(const id of ['oLT','oLG','oC','oRG','oRT','oTE','oSL'])setBlock(q,id,'',0,'runblock');Object.assign(q.players.find(p=>p.id==='oX'),{x:-9,onLine:true});Object.assign(q.players.find(p=>p.id==='oZ'),{x:9,onLine:true});Object.assign(q.players.find(p=>p.id==='oQB'),{y:-2.5});Object.assign(q.players.find(p=>p.id==='oRB'),{x:0,y:-4.5});runRoute(q,'oRB',[[0,-3],[0,0],[0,3],[1,7],[1,10]]);q.runGapX=0;});
  return a;
 }
-function createPitchBack(){const o=COPY(createOffensePresets().find(play=>play.name==='Outside Zone Left'));o.id='off-pitch-back';o.name='Pitch Back';o.lateralToId='oQB';o.lateralAt=1.7;return o;}
-function createGoalLinePower(){const o=COPY(createOffensePresets().find(play=>play.name==='Inside Zone'));o.id='off-goal-line-power';o.name='Goal Line Power';o.runGapX=0;runRoute(o,'oRB',[[1,-3],[0,0],[0,2],[0,5],[0,9]]);return o;}
+function createPitchBack(){const o=COPY(createOffensePresets().find(play=>play.name==='Outside Zone Left'));o.id='off-pitch-back';o.name='Pitch Back';o.formation='Shotgun Doubles';o.lateralToId='oQB';o.lateralAt=1.7;return o;}
+function createGoalLinePower(){const o=COPY(createOffensePresets().find(play=>play.name==='Inside Zone'));o.id='off-goal-line-power';o.name='Goal Line Power';o.formation='Goal Line';o.runGapX=0;runRoute(o,'oRB',[[1,-3],[0,0],[0,2],[0,5],[0,9]]);return o;}
 function defense(name){
  const players=[
  p('dLE','DE',91,-5.8,1.4,false,'rush'),p('dDT1','DT',95,-1.8,1.4,false,'rush'),p('dDT2','DT',98,1.8,1.4,false,'rush'),p('dRE','DE',90,5.8,1.4,false,'rush'),
@@ -1321,6 +1379,22 @@ function createDefensePresets(){
  d.players[5].job='runfit';d.players[5].y=3;
  d.players[10].job='runfit';d.players[10].x=0;d.players[10].y=4;
  man(d.players[7],'oX');man(d.players[8],'oZ');zone(d.players[9],0,12,13,10);a.push(d);
+ a.forEach(q=>q.formation=q.name.includes('3–4')?'3-4':q.name.includes('Nickel')||q.name==='Quarters Match'?'Nickel':q.name.includes('Goal Line')?'Goal Line':'4-3');
+ const slug=s=>s.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');
+ const add=(name,source,formation,setup)=>{const play=COPY(a.find(q=>q.name===source));play.id='def-'+slug(name);play.name=name;play.formation=formation;setup?.(play);a.push(play);return play;};
+ add('4-3 Cover 2 Man','4–3 Cover 2','4-3',q=>{[4,5,6,7,8].forEach((i,j)=>man(q.players[i],['oRB','oTE','oSL','oX','oZ'][j]));zone(q.players[9],-12,20,12,12);zone(q.players[10],12,20,12,12);q.coverageScheme='cover2';});
+ add('4-3 Cover 3 Buzz','4–3 Cover 2','4-3',q=>{zone(q.players[4],-8,9,8);zone(q.players[5],0,11,8);zone(q.players[6],8,8,8);zone(q.players[7],-19,20,10,13);zone(q.players[8],19,20,10,13);zone(q.players[9],0,23,13,13);q.players[10].job='runfit';q.players[10].x=8;q.players[10].y=8;q.coverageScheme='cover3';});
+ add('Cover 1 Robber','Cover 1 Man','4-3',q=>{man(q.players[4],'oRB');man(q.players[5],'oTE');man(q.players[6],'oSL');man(q.players[7],'oX');man(q.players[8],'oZ');zone(q.players[9],0,23,17,14);zone(q.players[10],0,11,8,7);q.players[10].job='spy';});
+ add('Nickel Cover 3 Match','Nickel Cover 3','Nickel',q=>{for(const p of q.players)if(p.job==='zone')p.zoneTechnique='match';q.coverageScheme='cover3';});
+ add('Nickel Cover 2 Trap','4–3 Cover 2','Nickel',q=>{q.players[6].label='NB';q.players[6].x=14;q.players[6].y=7;zone(q.players[4],-8,9,8);zone(q.players[5],0,11,8);zone(q.players[6],13,8,9);zone(q.players[7],-19,6,8,7);zone(q.players[8],19,6,8,7);zone(q.players[9],-12,20,12,13);zone(q.players[10],12,20,12,13);q.coverageScheme='cover2';});
+ add('Nickel Double Mug','Cover 0 Blitz','Nickel',q=>{q.players[5].job='blitz';q.players[6].job='blitz';man(q.players[4],'oRB');man(q.players[7],'oX');man(q.players[8],'oZ');man(q.players[9],'oSL');man(q.players[10],'oTE');});
+ add('Nickel Cover 6','Nickel Cover 3','Nickel',q=>{zone(q.players[4],-8,9,8);zone(q.players[5],0,10,8);zone(q.players[6],9,8,8);zone(q.players[7],-19,6,8,7);zone(q.players[8],19,20,10,13);zone(q.players[9],-12,20,12,13);zone(q.players[10],12,20,12,13);q.coverageScheme='cover6';});
+ add('Dime Cover 2','4–3 Cover 2','Dime',q=>{q.players[4].label='NB';q.players[4].x=-8;q.players[4].y=7;q.players[6].label='DB';q.players[6].x=8;q.players[6].y=7;zone(q.players[4],-8,9,8);zone(q.players[5],0,11,8);zone(q.players[6],8,9,8);zone(q.players[7],-19,6,8,7);zone(q.players[8],19,6,8,7);zone(q.players[9],-12,20,12,13);zone(q.players[10],12,20,12,13);q.coverageScheme='cover2';});
+ add('Dime Prevent','Nickel Cover 3','Dime',q=>{q.players[4].label='NB';q.players[6].label='DB';zone(q.players[4],-8,13,10);zone(q.players[5],0,14,10);zone(q.players[6],8,13,10);zone(q.players[7],-19,23,11,14);zone(q.players[8],19,23,11,14);zone(q.players[9],-7,26,10,13);zone(q.players[10],7,26,10,13);});
+ add('3-4 Cover 2','3–4 Cover 3','3-4',q=>{zone(q.players[4],-9,9,8);zone(q.players[5],0,11,9);zone(q.players[6],9,9,8);zone(q.players[7],-19,6,8,7);zone(q.players[8],19,6,8,7);zone(q.players[9],-12,21,12,13);zone(q.players[10],12,21,12,13);q.coverageScheme='cover2';});
+ add('3-4 Fire Zone','3–4 Cover 3','3-4',q=>{q.players[4].job='blitz';zone(q.players[5],0,10,8);zone(q.players[6],8,9,8);zone(q.players[7],-19,18,10,13);zone(q.players[8],19,18,10,13);zone(q.players[9],0,23,13,13);});
+ add('3-4 Edge Blitz','3–4 Cover 3','3-4',q=>{q.players[3].job='blitz';q.players[4].job='blitz';man(q.players[5],'oRB');man(q.players[6],'oTE');man(q.players[7],'oX');man(q.players[8],'oZ');zone(q.players[9],0,22,13,13);q.players[10].job='spy';});
+ add('Goal Line 5-3 Run Blitz','Goal Line 6–2','Goal Line',q=>{q.players[0].x=-7;q.players[1].x=-3.5;q.players[2].x=0;q.players[3].x=3.5;q.players[4].x=7;q.players[0].job=q.players[1].job=q.players[3].job=q.players[4].job='rush';q.players[5].job='runfit';q.players[6].job='runfit';q.players[5].y=3;q.players[6].y=3;q.players[10].job='runfit';q.players[10].x=0;q.players[10].y=5;man(q.players[7],'oX');man(q.players[8],'oZ');zone(q.players[9],0,12,12,10);});
  return a;
 }
 const api={offense,defense,routeFrom,setRoute,setBlock,createOffensePresets,createPitchBack,createGoalLinePower,createDefensePresets};
@@ -2106,7 +2180,22 @@ function kick(state,kind,seed=71,choice='auto'){
  kick.events.push({t:+elapsed.toFixed(2),text:'Referee: '+call});
  return {state:s,call,accepted:true,kick};
 }
-function autoPick(state,offenses,defenses){const s=state,d=s.toGain,own=s.possession==='home'?s.ball:100-s.ball,sequence=s.plays+(s.rosterSeed||0),short=d<=3,long=d>=8,goal=own>=97,red=own>=80;let wants=s.phase==='try'?['Inside Zone']:goal?['Goal Line Power','Inside Zone','Play Action Cross','Slant / Flat']:red?['Power Right','Inside Zone','Play Action Cross','Slant / Flat','RPO Glance']:s.down>=3&&long?['Shotgun Mesh','Trips Flood','Slant / Flat','Four Verticals']:short?['Inside Zone','Power Right','RPO Glance','Slant / Flat']:s.down===1?['Inside Zone','Outside Zone Left','Power Right','Slant / Flat','HB Screen','Play Action Cross','Shotgun Mesh','Trips Flood']:['Outside Zone Left','Inside Zone','Power Right','Slant / Flat','Shotgun Mesh','HB Screen','Play Action Cross'];const want=s.down<=2&&!red&&sequence%17===0?'Pitch Back':wants[sequence%wants.length],defWants=goal||red&&short?['Goal Line 6–2','3–4 Cover 3','Cover 1 Man']:s.down>=3&&long?['Nickel Cover 3','4–3 Cover 2','Quarters Match']:short?['4–3 Cover 2','3–4 Cover 3','Goal Line 6–2']:['4–3 Cover 2','Cover 1 Man','Nickel Cover 3'];const off=offenses.find(p=>p.name===want)||offenses[0],def=defenses.find(p=>p.name===defWants[(sequence+Math.round(d))%defWants.length])||defenses[0];return {offense:off?.id,defense:def?.id};}
+function autoPick(state,offenses,defenses){
+ const s=state,d=s.toGain,own=s.possession==='home'?s.ball:100-s.ball,sequence=s.plays+(s.rosterSeed||0),short=d<=3,long=d>=8,goal=own>=97,red=own>=80;
+ const wants=s.phase==='try'?['Inside Zone','Goal Line Power O']:
+  goal?['Goal Line Power','Goal Line Power O','I-Form Iso','Play Action Cross','Slant / Flat']:
+  red?['Power Right','Inside Zone','I-Form Counter','Play Action Cross','Trips Sail','Slant / Flat','RPO Glance']:
+  s.down>=3&&long?['Shotgun Mesh','Trips Flood','Dagger','Drive Concept','Trips Sail','Four Verticals','Smash']:
+  short?['Inside Zone','Power Right','I-Form Iso','HB Draw','Pistol Inside Zone','RPO Glance','Slant / Flat']:
+  s.down===1?['Inside Zone','Outside Zone Left','Singleback Stretch','Power Right','Slant / Flat','HB Screen','Play Action Cross','Shotgun Mesh','Trips Flood','Quick Stick']:
+  ['Outside Zone Left','Inside Zone','Power Right','I-Form Counter','Pistol Read Option','Slant / Flat','Shotgun Mesh','HB Screen','Play Action Cross','Trips Stick'];
+ const want=s.down<=2&&!red&&sequence%17===0?'Pitch Back':wants[sequence%wants.length];
+ const defWants=goal||red&&short?['Goal Line 6–2','Goal Line 5-3 Run Blitz','3-4 Cover 3','Cover 1 Man']:
+  s.down>=3&&long?['Nickel Cover 3','Nickel Cover 3 Match','Dime Cover 2','Dime Prevent','4-3 Cover 2','Quarters Match']:
+  short?['4–3 Cover 2','3–4 Cover 3','Goal Line 6–2','Goal Line 5-3 Run Blitz','Cover 1 Robber']:
+  ['4–3 Cover 2','Cover 1 Man','Nickel Cover 3','4-3 Cover 3 Buzz','Nickel Cover 2 Trap','3-4 Cover 2','Cover 1 Robber'];
+ const off=offenses.find(p=>p.name===want)||offenses[0],def=defenses.find(p=>p.name===defWants[(sequence+Math.round(d))%defWants.length])||defenses[0];return {offense:off?.id,defense:def?.id};
+}
 function cpuFourthDownKick(s,manualOverride=false){if(manualOverride||s.phase!=='scrimmage'||s.down!==4||s.toGain<=2)return null;const own=s.possession==='home'?s.ball:100-s.ball;return own>=65?'fieldGoal':'punt';}
 const api={createGame,createExhibition,roster,setStarter,dressPlay,syncSpecialists,flipCoin,jumpTo,huddleSeconds,resetToLine,passInterference,liveFouls,reviewSpot,spotText,timeout,flag,setSpot,preSnap,finishScrimmage,kick,autoPick,cpuFourthDownKick,overtimeTouchdownDecision};root.RouteGame=api;if(typeof module!=='undefined'&&module.exports)module.exports=api;
 })(typeof window!=='undefined'?window:globalThis);</script>
@@ -2197,6 +2286,7 @@ let offensive=C.clone(offPresets[0]), defensive=C.clone(defPresets[0]);
 let side='offense',selected='oSL',tool='select',drag=null,undo=[],redo=[],running=false,playback=null,frameIndex=0,lastFrameTime=0,raf=0,dirty=false,zoom=1;
 let campaignDrillCleared=false,campaignQuizCleared=false,encyCategory='All',encySearch='';
 let campaignWave=0,coachLayer='assignments';
+let playbookSide='offense',playbookFormation='All';
 let gameMode='menu',gameState=G.createGame(),pendingState=null,pendingRuling=null,playStartState=null,lastKick=null,kickFrame=0,kickTimer=null,manualOverride=false,stagedCpuKick=null,coinFace='heads',coinReady=false;
 let profile=(()=>{try{const p=JSON.parse(localStorage.getItem('route-lab-profile-v1')||'null');return p&&['heads','tails'].includes(p.call)&&/^#[0-9a-f]{6}$/i.test(p.color)?p:null;}catch{return null;}})();
 let campaign=null,campaignBaseline=null,campaignProgress=K.readProgress({getItem:k=>{try{return localStorage.getItem(k);}catch{return null;}}}),campaignDrive=null,campaignSuccess=false,campaignAttempt=0;
@@ -2226,10 +2316,44 @@ function fillPresets(){
   const current=key==='offense'?offensive:defensive;
   el.value=arr.some(p=>p.id===current.id)?current.id:(arr.some(p=>p.id===prior)?prior:arr[0]?.id||'');}
  fill($('offPreset'),allOff(),'offense');fill($('defPreset'),allDef(),'defense');
+ renderPlaybookSelectors();
  updateCallContext();
  $('lateralTarget').innerHTML='<option value="">None</option>'+offensive.players.filter(p=>p.id!==offensive.runnerId).map(p=>`<option value="${esc(p.id)}">${esc(p.label)} #${esc(p.number)}</option>`).join('');
  $('lateralTarget').value=offensive.lateralToId||'';$('lateralAt').value=String(offensive.lateralAt??1.7);
 }
+function formationOf(play,which){if(play.formation)return play.formation;if((custom[which]||[]).some(p=>p.id===play.id))return 'Custom Plays';return which==='offense'?'Shotgun Doubles':'4-3';}
+function playDescription(play,which){
+ if(which==='offense'){
+  const routes=[...new Set(play.players.filter(p=>p.pattern&&p.job==='route').map(p=>p.pattern.replace(/-/g,' ')))].slice(0,4);
+  if(play.type==='run')return `Run · designed lane ${play.runGapX>=0?'+':''}${play.runGapX??0} yd · ${play.players.find(p=>p.id===play.runnerId)?.label||'RB'} carries`;
+  if(play.type==='option')return `Option read · run gap ${play.runGapX>=0?'+':''}${play.runGapX??0} yd · QB reads the edge`;
+  return `${play.type==='screen'?'Screen':play.type==='playaction'?'Play action':'Pass'} · ${routes.length?routes.join(' / '):'protection and route concept'}`;
+ }
+ const counts={rush:0,blitz:0,man:0,zone:0,spy:0,runfit:0};for(const p of play.players)if(counts[p.job]!==undefined)counts[p.job]++;
+ const shell=play.coverageScheme?play.coverageScheme.replace('cover','Cover '):'coverage call';
+ return `${shell} · ${counts.rush} rush, ${counts.blitz} blitz · ${counts.man} man, ${counts.zone} zone`;
+}
+function renderPlaybookSelectors(){
+ const offense=allOff().find(p=>p.id===$('offPreset')?.value)||offensive,defense=allDef().find(p=>p.id===$('defPreset')?.value)||defensive;
+ if($('offPlayName')){$('offPlayName').textContent=offense.name;$('offPlayFormation').textContent=formationOf(offense,'offense');}
+ if($('defPlayName')){$('defPlayName').textContent=defense.name;$('defPlayFormation').textContent=formationOf(defense,'defense');}
+}
+function renderPlaybook(){
+ const which=playbookSide,list=which==='offense'?allOff():allDef(),formations=['All',...new Set(list.map(p=>formationOf(p,which)))];
+ if(!formations.includes(playbookFormation))playbookFormation='All';
+ $('playbookKicker').textContent=which==='offense'?'OFFENSE PLAYBOOK · O':'DEFENSE PLAYBOOK · X';
+ $('playbookTitle').textContent=which==='offense'?'Choose an offensive play':'Choose a defensive call';
+ $('playbookSubtitle').textContent=which==='offense'?'Browse common calls by formation. Selecting a play stages it for the next snap.':'Browse fronts and coverages by defensive formation. Selecting a call stages it for the next snap.';
+ $('playbookSideTabs').querySelectorAll('[data-book-side]').forEach(b=>{const active=b.dataset.bookSide===which;b.classList.toggle('active',active);b.setAttribute('aria-selected',String(active));});
+ $('playbookFormationTabs').innerHTML=formations.map(f=>`<button type="button" role="tab" data-formation="${esc(f)}" aria-selected="${String(f===playbookFormation)}" class="${f===playbookFormation?'active':''}">${esc(f)}</button>`).join('');
+ const search=$('playbookSearch').value.trim().toLowerCase(),current=(which==='offense'?offensive:defensive).id;
+ const shown=list.filter(p=>(playbookFormation==='All'||formationOf(p,which)===playbookFormation)&&(!search||`${p.name} ${formationOf(p,which)} ${playDescription(p,which)}`.toLowerCase().includes(search)));
+ $('playbookListTitle').textContent=playbookFormation==='All'?'All formations':playbookFormation;
+ $('playbookCount').textContent=`${shown.length} ${shown.length===1?'play':'plays'}`;
+ $('playbookList').innerHTML=shown.length?shown.map(p=>`<button type="button" class="playbook-card ${which==='defense'?'defense-card':''} ${p.id===current?'current':''}" data-play-id="${esc(p.id)}"><span class="playbook-card-head"><b>${esc(p.name)}</b><small>${esc(p.formation||formationOf(p,which))}</small></span><span>${esc(playDescription(p,which))}</span>${p.id===current?'<em>Currently selected</em>':''}</button>`).join(''):'<div class="playbook-empty">No plays match that formation and search.</div>';
+}
+function openPlaybook(which){if(campaign)return;playbookSide=which;playbookFormation='All';$('playbookSearch').value='';renderPlaybook();const dlg=$('playbookDialog');if(!dlg.open)dlg.showModal();}
+function choosePlaybookPlay(id){const which=playbookSide,select=$(which==='offense'?'offPreset':'defPreset'),plays=which==='offense'?allOff():allDef();if(!plays.some(p=>p.id===id))return;select.value=id;select.dispatchEvent(new Event('change',{bubbles:true}));$('playbookDialog').close();}
 function updateCallContext(){const el=$('playCallContext');if(!el)return;const s=pendingState||gameState;if(gameMode!=='free'||!s?.teams||!['scrimmage','try'].includes(s.phase)){el.textContent='Choose a play for this matchup.';return;}const toEnd=s.possession==='home'?100-s.ball:s.ball,zone=toEnd<=2?'GOAL LINE':toEnd<=10?'GOAL TO GO':toEnd<=20?'RED ZONE':toEnd<=40?'OPEN FIELD':'BACKED UP';el.innerHTML=`<b>${zone}</b> · ${s.phase==='try'?'TRY':`${s.down}${s.down===1?'st':s.down===2?'nd':s.down===3?'rd':'th'} & ${Math.ceil(s.toGain)}`} · ${Math.ceil(toEnd)} yd to end zone<br><small>CPU suggestion is staged. Change either selector to override, then press Run play.</small>`;}
 function changePreset(which){if(campaign)return;const value=$(which==='offense'?'offPreset':'defPreset').value;const source=(which==='offense'?allOff():allDef()).find(p=>p.id===value);if(!source)return;
  checkpoint();const team=which==='offense'?gameState.possession:(gameState.possession==='home'?'away':'home');if(which==='offense')offensive=G.dressPlay(gameState,source,team,'offense');else defensive=G.dressPlay(gameState,source,team,'defense');selected=(sidePlay().players[0]?.id||'');dirty=false;invalidate();refresh(true);saveExhibition();}
@@ -2483,6 +2607,14 @@ function fieldAction(p,wp){const sideMatch=side==='offense'?'o':'d';
 function bindEvents(){
  $('offPreset').addEventListener('change',()=>changePreset('offense'));
  $('defPreset').addEventListener('change',()=>changePreset('defense'));
+ $('offPlaybookBtn').addEventListener('click',()=>openPlaybook('offense'));
+ $('defPlaybookBtn').addEventListener('click',()=>openPlaybook('defense'));
+ $('playbookClose').addEventListener('click',()=>$('playbookDialog').close());
+ $('playbookSideTabs').addEventListener('click',e=>{const b=e.target.closest('[data-book-side]');if(!b)return;playbookSide=b.dataset.bookSide;playbookFormation='All';$('playbookSearch').value='';renderPlaybook();});
+ $('playbookFormationTabs').addEventListener('click',e=>{const b=e.target.closest('[data-formation]');if(!b)return;playbookFormation=b.dataset.formation;renderPlaybook();});
+ $('playbookSearch').addEventListener('input',renderPlaybook);
+ $('playbookList').addEventListener('click',e=>{const b=e.target.closest('[data-play-id]');if(b)choosePlaybookPlay(b.dataset.playId);});
+ $('playbookDialog').addEventListener('click',e=>{if(e.target===$('playbookDialog'))$('playbookDialog').close();});
  $('lateralTarget').addEventListener('change',e=>{if(campaign)return;checkpoint();offensive.lateralToId=e.target.value||null;invalidate();refresh();});
  $('lateralAt').addEventListener('change',e=>{if(campaign)return;checkpoint();offensive.lateralAt=C.clamp(Number(e.target.value)||1.7,.7,9);e.target.value=offensive.lateralAt;invalidate();refresh();});
  $('sideTabs').addEventListener('click',e=>{const b=e.target.closest('[data-side]');if(b)selectSide(b.dataset.side);});
@@ -2706,7 +2838,7 @@ function safeProgress(){try{localStorage.setItem('route-lab-campaign-v1',JSON.st
 function modeCampaignUI(){
  const banner=$('campaignBanner');banner.hidden=!campaign;$('gamePanel').hidden=!!campaign;
  document.body.classList.toggle('campaign-on',!!campaign);
- $('offPreset').disabled=!!campaign;$('defPreset').disabled=!!campaign;$('lateralTarget').disabled=!!campaign;$('lateralAt').disabled=!!campaign;
+ $('offPreset').disabled=!!campaign;$('defPreset').disabled=!!campaign;$('offPlaybookBtn').disabled=!!campaign;$('defPlaybookBtn').disabled=!!campaign;$('lateralTarget').disabled=!!campaign;$('lateralAt').disabled=!!campaign;
  for(const id of ['saveBtn','importBtn','copyBtn','exportBtn'])$(id).disabled=!!campaign;
  $('sideTabs').querySelectorAll('[data-side]').forEach(b=>{b.disabled=!!campaign&&b.dataset.side!==campaign.side;b.classList.toggle('active',b.dataset.side===side);});
  $('resetBtn').textContent=campaign?'↶ Restart lesson':'Reset play';

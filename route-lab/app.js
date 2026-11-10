@@ -12,6 +12,7 @@ let offensive=C.clone(offPresets[0]), defensive=C.clone(defPresets[0]);
 let side='offense',selected='oSL',tool='select',drag=null,undo=[],redo=[],running=false,playback=null,frameIndex=0,lastFrameTime=0,raf=0,dirty=false,zoom=1;
 let campaignDrillCleared=false,campaignQuizCleared=false,encyCategory='All',encySearch='';
 let campaignWave=0,coachLayer='assignments';
+let playbookSide='offense',playbookFormation='All';
 let gameMode='menu',gameState=G.createGame(),pendingState=null,pendingRuling=null,playStartState=null,lastKick=null,kickFrame=0,kickTimer=null,manualOverride=false,stagedCpuKick=null,coinFace='heads',coinReady=false;
 let profile=(()=>{try{const p=JSON.parse(localStorage.getItem('route-lab-profile-v1')||'null');return p&&['heads','tails'].includes(p.call)&&/^#[0-9a-f]{6}$/i.test(p.color)?p:null;}catch{return null;}})();
 let campaign=null,campaignBaseline=null,campaignProgress=K.readProgress({getItem:k=>{try{return localStorage.getItem(k);}catch{return null;}}}),campaignDrive=null,campaignSuccess=false,campaignAttempt=0;
@@ -41,10 +42,44 @@ function fillPresets(){
   const current=key==='offense'?offensive:defensive;
   el.value=arr.some(p=>p.id===current.id)?current.id:(arr.some(p=>p.id===prior)?prior:arr[0]?.id||'');}
  fill($('offPreset'),allOff(),'offense');fill($('defPreset'),allDef(),'defense');
+ renderPlaybookSelectors();
  updateCallContext();
  $('lateralTarget').innerHTML='<option value="">None</option>'+offensive.players.filter(p=>p.id!==offensive.runnerId).map(p=>`<option value="${esc(p.id)}">${esc(p.label)} #${esc(p.number)}</option>`).join('');
  $('lateralTarget').value=offensive.lateralToId||'';$('lateralAt').value=String(offensive.lateralAt??1.7);
 }
+function formationOf(play,which){if(play.formation)return play.formation;if((custom[which]||[]).some(p=>p.id===play.id))return 'Custom Plays';return which==='offense'?'Shotgun Doubles':'4-3';}
+function playDescription(play,which){
+ if(which==='offense'){
+  const routes=[...new Set(play.players.filter(p=>p.pattern&&p.job==='route').map(p=>p.pattern.replace(/-/g,' ')))].slice(0,4);
+  if(play.type==='run')return `Run · designed lane ${play.runGapX>=0?'+':''}${play.runGapX??0} yd · ${play.players.find(p=>p.id===play.runnerId)?.label||'RB'} carries`;
+  if(play.type==='option')return `Option read · run gap ${play.runGapX>=0?'+':''}${play.runGapX??0} yd · QB reads the edge`;
+  return `${play.type==='screen'?'Screen':play.type==='playaction'?'Play action':'Pass'} · ${routes.length?routes.join(' / '):'protection and route concept'}`;
+ }
+ const counts={rush:0,blitz:0,man:0,zone:0,spy:0,runfit:0};for(const p of play.players)if(counts[p.job]!==undefined)counts[p.job]++;
+ const shell=play.coverageScheme?play.coverageScheme.replace('cover','Cover '):'coverage call';
+ return `${shell} · ${counts.rush} rush, ${counts.blitz} blitz · ${counts.man} man, ${counts.zone} zone`;
+}
+function renderPlaybookSelectors(){
+ const offense=allOff().find(p=>p.id===$('offPreset')?.value)||offensive,defense=allDef().find(p=>p.id===$('defPreset')?.value)||defensive;
+ if($('offPlayName')){$('offPlayName').textContent=offense.name;$('offPlayFormation').textContent=formationOf(offense,'offense');}
+ if($('defPlayName')){$('defPlayName').textContent=defense.name;$('defPlayFormation').textContent=formationOf(defense,'defense');}
+}
+function renderPlaybook(){
+ const which=playbookSide,list=which==='offense'?allOff():allDef(),formations=['All',...new Set(list.map(p=>formationOf(p,which)))];
+ if(!formations.includes(playbookFormation))playbookFormation='All';
+ $('playbookKicker').textContent=which==='offense'?'OFFENSE PLAYBOOK · O':'DEFENSE PLAYBOOK · X';
+ $('playbookTitle').textContent=which==='offense'?'Choose an offensive play':'Choose a defensive call';
+ $('playbookSubtitle').textContent=which==='offense'?'Browse common calls by formation. Selecting a play stages it for the next snap.':'Browse fronts and coverages by defensive formation. Selecting a call stages it for the next snap.';
+ $('playbookSideTabs').querySelectorAll('[data-book-side]').forEach(b=>{const active=b.dataset.bookSide===which;b.classList.toggle('active',active);b.setAttribute('aria-selected',String(active));});
+ $('playbookFormationTabs').innerHTML=formations.map(f=>`<button type="button" role="tab" data-formation="${esc(f)}" aria-selected="${String(f===playbookFormation)}" class="${f===playbookFormation?'active':''}">${esc(f)}</button>`).join('');
+ const search=$('playbookSearch').value.trim().toLowerCase(),current=(which==='offense'?offensive:defensive).id;
+ const shown=list.filter(p=>(playbookFormation==='All'||formationOf(p,which)===playbookFormation)&&(!search||`${p.name} ${formationOf(p,which)} ${playDescription(p,which)}`.toLowerCase().includes(search)));
+ $('playbookListTitle').textContent=playbookFormation==='All'?'All formations':playbookFormation;
+ $('playbookCount').textContent=`${shown.length} ${shown.length===1?'play':'plays'}`;
+ $('playbookList').innerHTML=shown.length?shown.map(p=>`<button type="button" class="playbook-card ${which==='defense'?'defense-card':''} ${p.id===current?'current':''}" data-play-id="${esc(p.id)}"><span class="playbook-card-head"><b>${esc(p.name)}</b><small>${esc(p.formation||formationOf(p,which))}</small></span><span>${esc(playDescription(p,which))}</span>${p.id===current?'<em>Currently selected</em>':''}</button>`).join(''):'<div class="playbook-empty">No plays match that formation and search.</div>';
+}
+function openPlaybook(which){if(campaign)return;playbookSide=which;playbookFormation='All';$('playbookSearch').value='';renderPlaybook();const dlg=$('playbookDialog');if(!dlg.open)dlg.showModal();}
+function choosePlaybookPlay(id){const which=playbookSide,select=$(which==='offense'?'offPreset':'defPreset'),plays=which==='offense'?allOff():allDef();if(!plays.some(p=>p.id===id))return;select.value=id;select.dispatchEvent(new Event('change',{bubbles:true}));$('playbookDialog').close();}
 function updateCallContext(){const el=$('playCallContext');if(!el)return;const s=pendingState||gameState;if(gameMode!=='free'||!s?.teams||!['scrimmage','try'].includes(s.phase)){el.textContent='Choose a play for this matchup.';return;}const toEnd=s.possession==='home'?100-s.ball:s.ball,zone=toEnd<=2?'GOAL LINE':toEnd<=10?'GOAL TO GO':toEnd<=20?'RED ZONE':toEnd<=40?'OPEN FIELD':'BACKED UP';el.innerHTML=`<b>${zone}</b> · ${s.phase==='try'?'TRY':`${s.down}${s.down===1?'st':s.down===2?'nd':s.down===3?'rd':'th'} & ${Math.ceil(s.toGain)}`} · ${Math.ceil(toEnd)} yd to end zone<br><small>CPU suggestion is staged. Change either selector to override, then press Run play.</small>`;}
 function changePreset(which){if(campaign)return;const value=$(which==='offense'?'offPreset':'defPreset').value;const source=(which==='offense'?allOff():allDef()).find(p=>p.id===value);if(!source)return;
  checkpoint();const team=which==='offense'?gameState.possession:(gameState.possession==='home'?'away':'home');if(which==='offense')offensive=G.dressPlay(gameState,source,team,'offense');else defensive=G.dressPlay(gameState,source,team,'defense');selected=(sidePlay().players[0]?.id||'');dirty=false;invalidate();refresh(true);saveExhibition();}
@@ -298,6 +333,14 @@ function fieldAction(p,wp){const sideMatch=side==='offense'?'o':'d';
 function bindEvents(){
  $('offPreset').addEventListener('change',()=>changePreset('offense'));
  $('defPreset').addEventListener('change',()=>changePreset('defense'));
+ $('offPlaybookBtn').addEventListener('click',()=>openPlaybook('offense'));
+ $('defPlaybookBtn').addEventListener('click',()=>openPlaybook('defense'));
+ $('playbookClose').addEventListener('click',()=>$('playbookDialog').close());
+ $('playbookSideTabs').addEventListener('click',e=>{const b=e.target.closest('[data-book-side]');if(!b)return;playbookSide=b.dataset.bookSide;playbookFormation='All';$('playbookSearch').value='';renderPlaybook();});
+ $('playbookFormationTabs').addEventListener('click',e=>{const b=e.target.closest('[data-formation]');if(!b)return;playbookFormation=b.dataset.formation;renderPlaybook();});
+ $('playbookSearch').addEventListener('input',renderPlaybook);
+ $('playbookList').addEventListener('click',e=>{const b=e.target.closest('[data-play-id]');if(b)choosePlaybookPlay(b.dataset.playId);});
+ $('playbookDialog').addEventListener('click',e=>{if(e.target===$('playbookDialog'))$('playbookDialog').close();});
  $('lateralTarget').addEventListener('change',e=>{if(campaign)return;checkpoint();offensive.lateralToId=e.target.value||null;invalidate();refresh();});
  $('lateralAt').addEventListener('change',e=>{if(campaign)return;checkpoint();offensive.lateralAt=C.clamp(Number(e.target.value)||1.7,.7,9);e.target.value=offensive.lateralAt;invalidate();refresh();});
  $('sideTabs').addEventListener('click',e=>{const b=e.target.closest('[data-side]');if(b)selectSide(b.dataset.side);});
@@ -521,7 +564,7 @@ function safeProgress(){try{localStorage.setItem('route-lab-campaign-v1',JSON.st
 function modeCampaignUI(){
  const banner=$('campaignBanner');banner.hidden=!campaign;$('gamePanel').hidden=!!campaign;
  document.body.classList.toggle('campaign-on',!!campaign);
- $('offPreset').disabled=!!campaign;$('defPreset').disabled=!!campaign;$('lateralTarget').disabled=!!campaign;$('lateralAt').disabled=!!campaign;
+ $('offPreset').disabled=!!campaign;$('defPreset').disabled=!!campaign;$('offPlaybookBtn').disabled=!!campaign;$('defPlaybookBtn').disabled=!!campaign;$('lateralTarget').disabled=!!campaign;$('lateralAt').disabled=!!campaign;
  for(const id of ['saveBtn','importBtn','copyBtn','exportBtn'])$(id).disabled=!!campaign;
  $('sideTabs').querySelectorAll('[data-side]').forEach(b=>{b.disabled=!!campaign&&b.dataset.side!==campaign.side;b.classList.toggle('active',b.dataset.side===side);});
  $('resetBtn').textContent=campaign?'↶ Restart lesson':'Reset play';

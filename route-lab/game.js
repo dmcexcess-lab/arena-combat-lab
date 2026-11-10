@@ -557,7 +557,22 @@ function kick(state,kind,seed=71,choice='auto'){
  kick.events.push({t:+elapsed.toFixed(2),text:'Referee: '+call});
  return {state:s,call,accepted:true,kick};
 }
-function autoPick(state,offenses,defenses){const s=state,d=s.toGain,own=s.possession==='home'?s.ball:100-s.ball,sequence=s.plays+(s.rosterSeed||0),short=d<=3,long=d>=8,goal=own>=97,red=own>=80;let wants=s.phase==='try'?['Inside Zone']:goal?['Goal Line Power','Inside Zone','Play Action Cross','Slant / Flat']:red?['Power Right','Inside Zone','Play Action Cross','Slant / Flat','RPO Glance']:s.down>=3&&long?['Shotgun Mesh','Trips Flood','Slant / Flat','Four Verticals']:short?['Inside Zone','Power Right','RPO Glance','Slant / Flat']:s.down===1?['Inside Zone','Outside Zone Left','Power Right','Slant / Flat','HB Screen','Play Action Cross','Shotgun Mesh','Trips Flood']:['Outside Zone Left','Inside Zone','Power Right','Slant / Flat','Shotgun Mesh','HB Screen','Play Action Cross'];const want=s.down<=2&&!red&&sequence%17===0?'Pitch Back':wants[sequence%wants.length],defWants=goal||red&&short?['Goal Line 6–2','3–4 Cover 3','Cover 1 Man']:s.down>=3&&long?['Nickel Cover 3','4–3 Cover 2','Quarters Match']:short?['4–3 Cover 2','3–4 Cover 3','Goal Line 6–2']:['4–3 Cover 2','Cover 1 Man','Nickel Cover 3'];const off=offenses.find(p=>p.name===want)||offenses[0],def=defenses.find(p=>p.name===defWants[(sequence+Math.round(d))%defWants.length])||defenses[0];return {offense:off?.id,defense:def?.id};}
+function autoPick(state,offenses,defenses){
+ const s=state,d=s.toGain,own=s.possession==='home'?s.ball:100-s.ball,sequence=s.plays+(s.rosterSeed||0),short=d<=3,long=d>=8,goal=own>=97,red=own>=80;
+ const wants=s.phase==='try'?['Inside Zone','Goal Line Power O']:
+  goal?['Goal Line Power','Goal Line Power O','I-Form Iso','Play Action Cross','Slant / Flat']:
+  red?['Power Right','Inside Zone','I-Form Counter','Play Action Cross','Trips Sail','Slant / Flat','RPO Glance']:
+  s.down>=3&&long?['Shotgun Mesh','Trips Flood','Dagger','Drive Concept','Trips Sail','Four Verticals','Smash']:
+  short?['Inside Zone','Power Right','I-Form Iso','HB Draw','Pistol Inside Zone','RPO Glance','Slant / Flat']:
+  s.down===1?['Inside Zone','Outside Zone Left','Singleback Stretch','Power Right','Slant / Flat','HB Screen','Play Action Cross','Shotgun Mesh','Trips Flood','Quick Stick']:
+  ['Outside Zone Left','Inside Zone','Power Right','I-Form Counter','Pistol Read Option','Slant / Flat','Shotgun Mesh','HB Screen','Play Action Cross','Trips Stick'];
+ const want=s.down<=2&&!red&&sequence%17===0?'Pitch Back':wants[sequence%wants.length];
+ const defWants=goal||red&&short?['Goal Line 6–2','Goal Line 5-3 Run Blitz','3-4 Cover 3','Cover 1 Man']:
+  s.down>=3&&long?['Nickel Cover 3','Nickel Cover 3 Match','Dime Cover 2','Dime Prevent','4-3 Cover 2','Quarters Match']:
+  short?['4–3 Cover 2','3–4 Cover 3','Goal Line 6–2','Goal Line 5-3 Run Blitz','Cover 1 Robber']:
+  ['4–3 Cover 2','Cover 1 Man','Nickel Cover 3','4-3 Cover 3 Buzz','Nickel Cover 2 Trap','3-4 Cover 2','Cover 1 Robber'];
+ const off=offenses.find(p=>p.name===want)||offenses[0],def=defenses.find(p=>p.name===defWants[(sequence+Math.round(d))%defWants.length])||defenses[0];return {offense:off?.id,defense:def?.id};
+}
 function cpuFourthDownKick(s,manualOverride=false){if(manualOverride||s.phase!=='scrimmage'||s.down!==4||s.toGain<=2)return null;const own=s.possession==='home'?s.ball:100-s.ball;return own>=65?'fieldGoal':'punt';}
 const api={createGame,createExhibition,roster,setStarter,dressPlay,syncSpecialists,flipCoin,jumpTo,huddleSeconds,resetToLine,passInterference,liveFouls,reviewSpot,spotText,timeout,flag,setSpot,preSnap,finishScrimmage,kick,autoPick,cpuFourthDownKick,overtimeTouchdownDecision};root.RouteGame=api;if(typeof module!=='undefined'&&module.exports)module.exports=api;
 })(typeof window!=='undefined'?window:globalThis);
