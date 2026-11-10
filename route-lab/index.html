@@ -95,7 +95,7 @@ body.ency-open{overflow:hidden}.ency-overlay[hidden]{display:none}.ency-overlay{
 <dialog id="playbookDialog" class="playbook-dialog" aria-labelledby="playbookTitle">
  <div class="playbook-window">
   <header class="playbook-header"><div><span id="playbookKicker" class="eyebrow">OFFENSE PLAYBOOK</span><h2 id="playbookTitle">Choose a play</h2><p id="playbookSubtitle">Pick a formation, then select a call.</p></div><button id="playbookClose" class="playbook-close" type="button" aria-label="Close playbook">✕</button></header>
-  <div class="playbook-side-tabs" role="tablist" aria-label="Offense or defense playbook"><button type="button" data-book-side="offense" role="tab">Offense · O</button><button type="button" data-book-side="defense" role="tab">Defense · X</button></div>
+  <div id="playbookSideTabs" class="playbook-side-tabs" role="tablist" aria-label="Offense or defense playbook"><button type="button" data-book-side="offense" role="tab">Offense · O</button><button type="button" data-book-side="defense" role="tab">Defense · X</button></div>
   <label class="playbook-search-label" for="playbookSearch">Search plays<input id="playbookSearch" type="search" placeholder="Try Mesh, Cover 3, Counter…" autocomplete="off"></label>
   <div id="playbookFormationTabs" class="playbook-formation-tabs" role="tablist" aria-label="Formations"></div>
   <div class="playbook-list-head"><b id="playbookListTitle">Available plays</b><span id="playbookCount"></span></div>
