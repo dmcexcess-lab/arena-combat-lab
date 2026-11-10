@@ -389,7 +389,7 @@ function kick(state,kind,seed=71,choice='auto'){
   kick.returnYards=Math.max(0,Math.round((carrier.yard-start)*direction));runSeconds=Math.max(runSeconds,Math.ceil(free?elapsed-returnStartTime:elapsed));
   if((carrier.yard-end)*direction>=0){touchdown(ownerTeam,kind==='punt'?'Punt return':kind==='kickoff'||kind==='safetyKick'?'Kick return':kind==='fieldGoal'&&!kick.blocked?'Missed field-goal return':'Blocked-kick return');event(call);}
   else if(ownerTeam===receive&&free&&!onside&&(carrier.yard-own(receive))*dir(receive)<=0){kick.touchback=true;const ownSpot=(kick.landing-own(receive))*dir(receive)<=0?35:20;receiveAt(along(receive,ownSpot),'Returner downed in own end zone — touchback');s.clockRunning=false;}
-  else{newSeries(s,ownerTeam,clamp(carrier.yard,1,99));call=`${kind==='punt'?'Punt':kind==='fieldGoal'&&!kick.blocked?'Missed field-goal return':goalKick?'Blocked kick':'Kickoff'} ${kick.kickYards} yd, ${ownerTeam.toUpperCase()} return ${kick.returnYards} yd (${kick.move||'lane read'}) to ${spotText(s)}`;endedTeam=other(ownerTeam);s.clockRunning=false;}
+  else{newSeries(s,ownerTeam,clamp(carrier.yard,1,99));call=`${kind==='punt'?'Punt':kind==='fieldGoal'&&!kick.blocked?'Missed field-goal return':goalKick?'Blocked kick':safety?'Safety kick':'Kickoff'} ${kick.kickYards} yd, ${ownerTeam.toUpperCase()} return ${kick.returnYards} yd (${kick.move||'lane read'}) to ${spotText(s)}`;endedTeam=other(ownerTeam);s.clockRunning=false;}
  }
  function scramble(y,kindOfLoose,canAdvance){
   ball={yard:clamp(y,-10,110),lane:(rand()-.5)*7,phase:'loose'};event(kindOfLoose+' — loose ball');
@@ -517,7 +517,7 @@ function kick(state,kind,seed=71,choice='auto'){
    event(`OFFICIAL KOB: receiver elects ${chosen.name} at field yard ${chosen.yard.toFixed(1)}`);
    receiveAt(chosen.yard,`Kickoff out of bounds — receiver elects ${chosen.name}`);s.clockRunning=false;runSeconds=0;
   }else{
-  ball={yard:landing,lane:lateralDrift,phase:'landing'};event(`${onside?'Onside kick':punt?'Punt':'Kickoff'} lands at ${Math.round(landing)}`);snap();
+  ball={yard:landing,lane:lateralDrift,phase:'landing'};event(`${onside?'Onside kick':punt?'Punt':safety?'Safety kick':'Kickoff'} lands at ${Math.round(landing)}`);snap();
   if(onside){
    scramble(landing,'Onside kick',false);
    if(kick.recovery?.team===team){call=`Declared onside kick ${kick.kickYards} yd — ${team.toUpperCase()} recovers at ${spotText(s)}`;s.clockRunning=false;}
