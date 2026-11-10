@@ -15,9 +15,20 @@ test('drive advances downs, first down, fourth-down turnover and arbitrary field
 });
 test('touchdown, try, field goal, and safety lead to correct scoring and kick states',()=>{
  let s=G.createGame();G.setSpot(s,'home',98);let r=G.finishScrimmage(s,fake('Touchdown',3));assert.equal(r.state.score.home,6);assert.equal(r.state.phase,'try');
- let x=G.kick(r.state,'extraPoint',7);assert.equal(x.state.phase,'kickoff');assert.ok([6,7].includes(x.state.score.home));
+ let x=G.kick(r.state,'extraPoint',7);assert.equal(x.state.phase,'kickoff');assert.equal(x.state.kicking,'away');assert.equal(x.state.ball,65);assert.ok([6,7].includes(x.state.score.home));
  G.setSpot(s,'away',30);r=G.finishScrimmage(s,fake('Safety — Sack',-35));assert.equal(r.state.score.home,2);assert.equal(r.state.phase,'safetyKick');
  G.setSpot(s,'home',80);x=G.kick(s,'fieldGoal',1);assert.equal(x.kick.team,'home');assert.equal(x.state.score.home,3);
+});
+test('try run completion or failure stages the opponent for the next kickoff',()=>{
+ const s=G.createGame();G.setSpot(s,'home',98);let td=G.finishScrimmage(s,fake('Touchdown',3)).state;
+ const miss=G.kick(td,'extraPoint',7);assert.equal(miss.accepted,true);assert.equal(miss.state.phase,'kickoff');assert.equal(miss.state.kicking,'away');
+ const two=G.finishScrimmage(td,fake('Incomplete pass',0),0);assert.equal(two.accepted,true);assert.equal(two.state.phase,'kickoff');assert.equal(two.state.kicking,'away');assert.equal(two.state.ball,65);
+ const returnTd=G.kick(td,'extraPoint',1,'return');if(returnTd.call.includes('two-point try return')){assert.equal(returnTd.state.phase,'kickoff');assert.equal(returnTd.state.kicking,'away');}
+});
+test('conversion play failure and extra-point kick both stage the opponent for kickoff',()=>{
+ const s=G.createGame();G.setSpot(s,'home',98);const td=G.finishScrimmage(s,fake('Touchdown',3)).state;
+ const failed=G.finishScrimmage(td,fake('Incomplete pass',0),0);assert.equal(failed.state.phase,'kickoff');assert.equal(failed.state.kicking,'away');assert.equal(failed.state.ball,65);
+ const extra=G.kick(td,'extraPoint',7);assert.equal(extra.state.phase,'kickoff');assert.equal(extra.state.kicking,'away');assert.equal(extra.state.ball,65);const next=G.kick(extra.state,'kickoff',23);assert.equal(next.accepted,true);assert.equal(next.state.phase,'scrimmage');assert.equal(next.state.possession,'home');assert.equal(next.state.down,1);
 });
 test('interception uses return spot, and punt kicker is current possession',()=>{
  let s=G.createGame();G.setSpot(s,'away',60);let r=G.finishScrimmage(s,fake('Interception return tackled',0,5,'defense',-12));assert.equal(r.state.possession,'home');assert.equal(r.state.ball,72);
@@ -62,7 +73,7 @@ test('overtime touchdowns complete the try before finalizing the game',()=>{
  assert.equal(G.overtimeTouchdownDecision(kickoff,'away',{first:null,firstEnded:false,secondEnded:false,initial:{home:0,away:0}}),'try','opening kickoff return touchdown still needs a try');
  const firstDidNotScore=G.createGame();firstDidNotScore.quarter=5;firstDidNotScore.score={home:0,away:6};
  assert.equal(G.overtimeTouchdownDecision(firstDidNotScore,'away',{first:'home',firstEnded:true,secondEnded:false,initial:{home:0,away:0}}),'final','second team wins after first team failed to score');
- const firstLeads=G.createGame();firstLeads.quarter=5;firstLeads.score={home:7,away:6};
+ const firstLeads=G.createGame();firstLeads.quarter=5;firstLeads.score={home:13,away:12};
  assert.equal(G.overtimeTouchdownDecision(firstLeads,'away',{first:'home',firstEnded:true,secondEnded:false,initial:{home:0,away:0}}),'try','trailing second team can still tie or win with its try');
  const suddenDeath=G.createGame();suddenDeath.quarter=5;suddenDeath.score={home:20,away:20};
  assert.equal(G.overtimeTouchdownDecision(suddenDeath,'home',{first:'home',firstEnded:true,secondEnded:true,initial:{home:20,away:20}}),'final','the first score after tied initial possessions wins');
@@ -73,7 +84,7 @@ test('specialist ratings change field goal and return outcomes with same seed',(
  assert.ok(changed);const k=G.kick(s,'punt',25);assert.equal(k.kick.coveragePlayers,11);assert.equal(k.kick.returnBlockers,10);
 });
 test('hosted page embeds game module and interactive full-field controls',()=>{
- const fs=require('node:fs'),path=require('node:path');const html=fs.readFileSync(path.join(__dirname,'..','index.html'),'utf8');const source=fs.readFileSync(path.join(__dirname,'..','game.js'),'utf8').trimEnd();assert.ok(html.includes(source));for(const id of ['fullField','fullGameBtn','continueBtn','startSpotBtn','timeoutHomeBtn','timeoutAwayBtn','kickoffBtn','puntBtn','fieldGoalBtn','extraPointBtn','twoPointBtn'])assert.ok(html.includes('id="'+id+'"'),id);
+ const fs=require('node:fs'),path=require('node:path');const html=fs.readFileSync(path.join(__dirname,'..','index.html'),'utf8');const source=fs.readFileSync(path.join(__dirname,'..','game.js'),'utf8').trimEnd();assert.ok(html.includes(source));for(const id of ['fullField','fullGameBtn','continueBtn','startSpotBtn','timeoutHomeBtn','timeoutAwayBtn','kickoffBtn','puntBtn','fieldGoalBtn','extraPointBtn','twoPointBtn','tryControls','twoPointChoice','twoPointPlay'])assert.ok(html.includes('id="'+id+'"'),id);
 });
 test('officials enforce encroachment and illegal formation with the proper chain adjustment',()=>{
  const s=G.createGame();G.setSpot(s,'home',50,2,5);let r=G.flag(s,'defense','Defensive encroachment');assert.equal(r.state.ball,55);assert.equal(r.state.down,1);assert.equal(r.state.toGain,10);
@@ -114,7 +125,8 @@ test('player fatigue persists across snaps, affects replay state, and recovers d
 });
 test('fatigue follows the dressed depth-chart slot when the player role label changes',()=>{
  const s=G.createExhibition(482),rows=s.teams.home.depth.offense,qb=rows.find(v=>v.slot==='oQB'),rb=rows.find(v=>v.slot==='oRB');
- G.setSpot(s,'home',50);rb.players[0].name=qb.players[0].name;
+ G.setSpot(s,'home',50);
+ rb.players[0].name=qb.players[0].name;
  const actor={id:'oQB',label:'RB',rosterName:qb.players[0].name,rosterSlot:'oQB',rosterIndex:0};
  const offense={players:[actor]},sim=fake('Tackle',1,4);sim.participation=[{side:'o',id:'oQB',fatigue:.47}];
  const result=G.finishScrimmage(s,sim,0,{offense,defense:{players:[]}}).state;
@@ -153,6 +165,7 @@ test('backward-pass teammate recoveries can advance on fourth down and after two
  const latePass=G.createGame();G.setSpot(latePass,'home',50,3,10);latePass.quarter=4;latePass.clock=100;result=G.finishScrimmage(latePass,loosePlay('backwardPass'),0);assert.equal(result.state.possession,'home');assert.equal(result.state.ball,60);assert.equal(result.state.down,1,'the two-minute teammate fumble restriction does not apply to a backward pass');
  const lateFumble=G.createGame();G.setSpot(lateFumble,'home',50,3,10);lateFumble.quarter=4;lateFumble.clock=100;result=G.finishScrimmage(lateFumble,loosePlay('fumble'),0);assert.equal(result.state.possession,'home');assert.equal(result.state.ball,50,'a teammate fumble recovery after two minutes is dead at the fumble spot');assert.equal(result.state.down,4);
 });
+
 test('rejected pre-snap fouls use a fresh attempt seed on retry',()=>{
  const off=P.createOffensePresets()[0],def=P.createDefensePresets()[0],s=G.createGame();G.setSpot(s,'home',50);let first=null,attemptSim=null;
  for(let seed=1;seed<=5000&&!first;seed++){const sim={...fake('Tackle',2),result:{...fake('Tackle',2).result,seed}};const r=G.finishScrimmage(s,sim,0,{offense:off,defense:def});if(r.foul){first=r;attemptSim=sim;}}
